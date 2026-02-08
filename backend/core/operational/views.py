@@ -843,9 +843,11 @@ class SalesMetricsAPIView(APIView):
         thirty_days_from_now = today + timedelta(days=30)
         open_stages = (
             "NEW",
+            "DISCOVERY",
             "QUALIFICATION",
             "NEEDS_ASSESSMENT",
             "QUOTATION",
+            "PROPOSAL",
             "PROPOSAL_PRESENTATION",
             "NEGOTIATION",
         )
@@ -869,6 +871,13 @@ class SalesMetricsAPIView(APIView):
             key: round(float(value or 0), 2)
             for key, value in pipeline_values.items()
         }
+        discovery_total = (
+            opportunity_counts.get("NEW", 0) + opportunity_counts.get("DISCOVERY", 0)
+        )
+        proposal_total = (
+            opportunity_counts.get("PROPOSAL", 0)
+            + opportunity_counts.get("PROPOSAL_PRESENTATION", 0)
+        )
 
         payload = SalesMetricsSerializer(
             {
@@ -896,8 +905,8 @@ class SalesMetricsAPIView(APIView):
                     "NEGOTIATION": opportunity_counts.get("NEGOTIATION", 0),
                     "WON": opportunity_counts.get("WON", 0),
                     "LOST": opportunity_counts.get("LOST", 0),
-                    "DISCOVERY": opportunity_counts.get("NEW", 0),
-                    "PROPOSAL": opportunity_counts.get("PROPOSAL_PRESENTATION", 0),
+                    "DISCOVERY": discovery_total,
+                    "PROPOSAL": proposal_total,
                 },
                 "policy_requests": {
                     "PENDING_DATA": policy_request_counts.get("PENDING_DATA", 0),

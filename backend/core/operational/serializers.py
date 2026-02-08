@@ -327,6 +327,8 @@ class LeadConvertSerializer(serializers.Serializer):
             ("NEEDS_ASSESSMENT", "Levantamento de Necessidades"),
             ("QUOTATION", "Cotação"),
             ("PROPOSAL_PRESENTATION", "Apresentação de Proposta"),
+            ("DISCOVERY", "Descoberta (Legado)"),
+            ("PROPOSAL", "Proposta (Legado)"),
             ("NEGOTIATION", "Negociação"),
         ),
         required=False,

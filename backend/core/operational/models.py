@@ -266,6 +266,8 @@ class Opportunity(BaseTenantModel):
         ("NEEDS_ASSESSMENT", "Levantamento de Necessidades"),
         ("QUOTATION", "Cotação"),
         ("PROPOSAL_PRESENTATION", "Apresentação de Proposta"),
+        ("DISCOVERY", "Descoberta (Legado)"),
+        ("PROPOSAL", "Proposta (Legado)"),
         ("NEGOTIATION", "Negociação"),
         ("WON", "Ganha"),
         ("LOST", "Perdida"),
@@ -320,11 +322,13 @@ class Opportunity(BaseTenantModel):
         return f"{self.title} ({self.customer.name})"
 
     STAGE_TRANSITIONS = {
-        "NEW": frozenset(("QUALIFICATION", "LOST")),
-        "QUALIFICATION": frozenset(("NEEDS_ASSESSMENT", "LOST")),
-        "NEEDS_ASSESSMENT": frozenset(("QUOTATION", "LOST")),
-        "QUOTATION": frozenset(("PROPOSAL_PRESENTATION", "LOST")),
+        "NEW": frozenset(("QUALIFICATION", "DISCOVERY", "LOST")),
+        "QUALIFICATION": frozenset(("NEEDS_ASSESSMENT", "PROPOSAL", "LOST")),
+        "NEEDS_ASSESSMENT": frozenset(("QUOTATION", "PROPOSAL", "LOST")),
+        "QUOTATION": frozenset(("PROPOSAL_PRESENTATION", "PROPOSAL", "LOST")),
         "PROPOSAL_PRESENTATION": frozenset(("NEGOTIATION", "LOST")),
+        "DISCOVERY": frozenset(("PROPOSAL", "QUALIFICATION", "LOST")),
+        "PROPOSAL": frozenset(("NEGOTIATION", "PROPOSAL_PRESENTATION", "LOST")),
         "NEGOTIATION": frozenset(("WON", "LOST")),
         "WON": frozenset(),
         "LOST": frozenset(),
