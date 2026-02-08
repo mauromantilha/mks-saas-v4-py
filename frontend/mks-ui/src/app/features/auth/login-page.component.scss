@@ -5,6 +5,14 @@
   padding: 1rem;
 }
 
+.login-wrap.tenant-portal {
+  background: radial-gradient(circle at 15% 20%, #eff9ff, #e5f1fb);
+}
+
+.login-wrap.control-plane {
+  background: radial-gradient(circle at 15% 20%, #fff5ed, #ffe8d6);
+}
+
 .login-card {
   width: min(460px, 100%);
   background: #fff;
@@ -13,6 +21,34 @@
   padding: 1.2rem;
   display: grid;
   gap: 0.8rem;
+}
+
+.login-wrap.tenant-portal .login-card {
+  border-color: #b8d8f2;
+}
+
+.login-wrap.control-plane .login-card {
+  border-color: #e7b088;
+}
+
+.portal-badge {
+  justify-self: start;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.login-wrap.tenant-portal .portal-badge {
+  background: #e0f2ff;
+  color: #004a73;
+}
+
+.login-wrap.control-plane .portal-badge {
+  background: #ffe2cc;
+  color: #7a2d00;
 }
 
 label {
@@ -37,6 +73,10 @@ button {
   padding: 0.65rem 0.85rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.login-wrap.control-plane button {
+  background: #7a2d00;
 }
 
 button[disabled] {

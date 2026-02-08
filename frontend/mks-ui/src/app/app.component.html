@@ -1,4 +1,9 @@
-<div class="shell" [class.no-session]="!isAuthenticated()">
+<div
+  class="shell"
+  [class.no-session]="!isAuthenticated()"
+  [class.control-plane]="portalType() === 'CONTROL_PLANE'"
+  [class.tenant-portal]="portalType() === 'TENANT'"
+>
   <aside class="sidebar" *ngIf="isAuthenticated()">
     <div class="brand">
       <strong>MKS CRM</strong>

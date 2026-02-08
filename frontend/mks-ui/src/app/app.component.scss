@@ -17,6 +17,23 @@
   background: radial-gradient(circle at 15% 20%, #ffffff, var(--shell-bg));
 }
 
+.shell.tenant-portal {
+  --shell-bg: #eef7fb;
+  --sidebar-bg: #0b1f35;
+  --sidebar-text: #dbe7f3;
+  --sidebar-muted: #9cb3c9;
+  --sidebar-active: #1f7a8c;
+}
+
+.shell.control-plane {
+  --shell-bg: #fff5ea;
+  --sidebar-bg: #3a1d0b;
+  --sidebar-text: #ffe6d1;
+  --sidebar-muted: #f2bf9a;
+  --sidebar-active: #d9632e;
+  --content-text: #35190c;
+}
+
 .shell.no-session {
   grid-template-columns: 1fr;
 }
@@ -29,6 +46,11 @@
   flex-direction: column;
   gap: 16px;
   border-right: 1px solid #0f3357;
+}
+
+.shell.control-plane .sidebar {
+  background: linear-gradient(180deg, #5d2d10 0%, var(--sidebar-bg) 70%);
+  border-right: 1px solid #7b4120;
 }
 
 .brand {
@@ -55,6 +77,11 @@
   padding: 10px;
   background: rgba(7, 39, 67, 0.55);
   font-size: 0.85rem;
+}
+
+.shell.control-plane .session-meta {
+  border: 1px solid #8a4b26;
+  background: rgba(85, 40, 16, 0.55);
 }
 
 .session-meta p {
@@ -86,10 +113,21 @@
   background: rgba(24, 83, 129, 0.38);
 }
 
+.shell.control-plane .menu a:hover {
+  border-color: #955127;
+  background: rgba(140, 69, 31, 0.35);
+}
+
 .menu a.active {
   background: linear-gradient(90deg, #1b6b80, var(--sidebar-active));
   border-color: #59a8bd;
   color: #f8fdff;
+}
+
+.shell.control-plane .menu a.active {
+  background: linear-gradient(90deg, #b44c1f, var(--sidebar-active));
+  border-color: #efaa7f;
+  color: #fff6f0;
 }
 
 .logout-btn {
@@ -103,8 +141,17 @@
   cursor: pointer;
 }
 
+.shell.control-plane .logout-btn {
+  border: 1px solid #b86e43;
+  color: #ffe6d1;
+}
+
 .logout-btn:hover {
   background: rgba(67, 114, 151, 0.24);
+}
+
+.shell.control-plane .logout-btn:hover {
+  background: rgba(145, 73, 32, 0.35);
 }
 
 .content {

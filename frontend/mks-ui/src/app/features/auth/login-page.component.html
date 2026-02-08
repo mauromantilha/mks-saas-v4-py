@@ -1,5 +1,12 @@
-<section class="login-wrap">
+<section
+  class="login-wrap"
+  [class.control-plane]="isControlPlanePortal"
+  [class.tenant-portal]="!isControlPlanePortal"
+>
   <div class="login-card">
+    <div class="portal-badge">
+      {{ isControlPlanePortal ? "Portal Sistema" : "Portal Tenant" }}
+    </div>
     <h1>{{ isControlPlanePortal ? "Acesso Control Plane" : "Acesso ao Tenant" }}</h1>
     <p *ngIf="isControlPlanePortal">
       Login administrativo para gestão de tenants no subdomínio
