@@ -98,15 +98,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Select GCP auth mode
+        id: auth_mode
+        env:
+          WIP: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          WIP_SA: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          if [ -n "${WIP}" ] && [ -n "${WIP_SA}" ]; then
+            echo "mode=wif" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -n "${SA_KEY}" ]; then
+            echo "mode=sa_key" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "GCP auth is not configured." >&2
+          echo "Set vars GCP_WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT OR set secret GCP_SA_KEY." >&2
+          exit 1
+
       - name: Authenticate to GCP (Workload Identity)
-        if: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && vars.GCP_SERVICE_ACCOUNT != '' }}
+        if: ${{ steps.auth_mode.outputs.mode == 'wif' }}
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
       - name: Authenticate to GCP (Service Account Key)
-        if: ${{ !(vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && vars.GCP_SERVICE_ACCOUNT != '') }}
+        if: ${{ steps.auth_mode.outputs.mode == 'sa_key' }}
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
