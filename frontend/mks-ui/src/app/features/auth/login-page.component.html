@@ -1,9 +1,15 @@
 <section class="login-wrap">
   <div class="login-card">
-    <h1>Acesso ao Tenant</h1>
-    <p>Entre com usuário e senha para carregar seu contexto de tenant.</p>
+    <h1>{{ isControlPlanePortal ? "Acesso Control Plane" : "Acesso ao Tenant" }}</h1>
+    <p *ngIf="isControlPlanePortal">
+      Login administrativo para gestão de tenants no subdomínio
+      <strong>sistema</strong>.
+    </p>
+    <p *ngIf="!isControlPlanePortal">
+      Entre com usuário e senha para carregar seu contexto de tenant.
+    </p>
 
-    <label>
+    <label *ngIf="!isControlPlanePortal || !detectedTenantCode">
       Tenant Code
       <input
         type="text"
@@ -11,6 +17,9 @@
         (ngModelChange)="tenantCode.set($event)"
       />
     </label>
+    <p *ngIf="detectedTenantCode && !isControlPlanePortal" class="hint">
+      Tenant detectado pelo subdomínio: <strong>{{ detectedTenantCode }}</strong>
+    </p>
 
     <label>
       Username

@@ -7,6 +7,8 @@ from operational.models import (
     Endosso,
     Lead,
     Opportunity,
+    PolicyRequest,
+    ProposalOption,
 )
 
 
@@ -106,6 +108,9 @@ class LeadSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "source",
+            "capture_channel",
+            "external_id",
+            "external_campaign",
             "full_name",
             "job_title",
             "company_name",
@@ -116,6 +121,16 @@ class LeadSerializer(serializers.ModelSerializer):
             "website",
             "linkedin_url",
             "instagram_url",
+            "lead_score_label",
+            "product_line",
+            "cnae_code",
+            "company_size_estimate",
+            "raw_payload",
+            "needs_summary",
+            "needs_payload",
+            "first_response_sla_minutes",
+            "first_response_due_at",
+            "first_response_at",
             "customer",
             "status",
             "products_of_interest",
@@ -150,19 +165,110 @@ class OpportunitySerializer(serializers.ModelSerializer):
             "source_lead",
             "title",
             "stage",
+            "product_line",
             "amount",
             "expected_close_date",
             "closing_probability",
             "next_step",
             "next_step_due_at",
+            "needs_payload",
+            "quote_payload",
+            "proposal_pdf_url",
+            "proposal_tracking_token",
+            "proposal_sent_at",
+            "proposal_viewed_at",
             "loss_reason",
             "competitors",
+            "handover_notes",
             "notes",
             "ai_insights",
             "created_at",
             "updated_at",
         )
         read_only_fields = ("id", "ai_insights", "created_at", "updated_at")
+
+
+class ProposalOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProposalOption
+        fields = (
+            "id",
+            "opportunity",
+            "insurer_name",
+            "plan_name",
+            "coverage_summary",
+            "deductible",
+            "annual_premium",
+            "monthly_premium",
+            "franchise_notes",
+            "commission_percent",
+            "commission_amount",
+            "ranking_score",
+            "is_recommended",
+            "external_reference",
+            "notes",
+            "ai_insights",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "ai_insights", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        company = getattr(request, "company", None)
+        opportunity = attrs.get("opportunity", getattr(self.instance, "opportunity", None))
+        if company is not None and opportunity is not None and opportunity.company_id != company.id:
+            raise serializers.ValidationError("Opportunity belongs to another tenant.")
+        return attrs
+
+
+class PolicyRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PolicyRequest
+        fields = (
+            "id",
+            "opportunity",
+            "customer",
+            "source_lead",
+            "product_line",
+            "status",
+            "inspection_required",
+            "inspection_status",
+            "inspection_scheduled_at",
+            "inspection_notes",
+            "billing_method",
+            "bank_account_holder",
+            "bank_name",
+            "bank_branch",
+            "bank_account",
+            "bank_document",
+            "payment_day",
+            "final_premium",
+            "final_commission",
+            "issue_deadline_at",
+            "issued_at",
+            "notes",
+            "ai_insights",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "issued_at", "ai_insights", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        company = getattr(request, "company", None)
+        opportunity = attrs.get("opportunity", getattr(self.instance, "opportunity", None))
+        customer = attrs.get("customer", getattr(self.instance, "customer", None))
+        source_lead = attrs.get("source_lead", getattr(self.instance, "source_lead", None))
+
+        if company is not None:
+            if opportunity is not None and opportunity.company_id != company.id:
+                raise serializers.ValidationError("Opportunity belongs to another tenant.")
+            if customer is not None and customer.company_id != company.id:
+                raise serializers.ValidationError("Customer belongs to another tenant.")
+            if source_lead is not None and source_lead.company_id != company.id:
+                raise serializers.ValidationError("Lead belongs to another tenant.")
+        return attrs
 
 
 class ApoliceSerializer(serializers.ModelSerializer):
@@ -216,12 +322,15 @@ class LeadConvertSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=200, required=False, allow_blank=True)
     stage = serializers.ChoiceField(
         choices=(
-            ("DISCOVERY", "Descoberta"),
-            ("PROPOSAL", "Proposta"),
+            ("NEW", "Novo/Sem Contato"),
+            ("QUALIFICATION", "Qualificação"),
+            ("NEEDS_ASSESSMENT", "Levantamento de Necessidades"),
+            ("QUOTATION", "Cotação"),
+            ("PROPOSAL_PRESENTATION", "Apresentação de Proposta"),
             ("NEGOTIATION", "Negociação"),
         ),
         required=False,
-        default="DISCOVERY",
+        default="QUALIFICATION",
     )
     amount = serializers.DecimalField(
         max_digits=14,
@@ -231,6 +340,7 @@ class LeadConvertSerializer(serializers.Serializer):
     )
     expected_close_date = serializers.DateField(required=False, allow_null=True)
     create_customer_if_missing = serializers.BooleanField(required=False, default=True)
+    create_policy_request = serializers.BooleanField(required=False, default=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -382,6 +492,7 @@ class SalesMetricsSerializer(serializers.Serializer):
     period = SalesMetricsPeriodSerializer()
     lead_funnel = serializers.DictField(child=serializers.IntegerField())
     opportunity_funnel = serializers.DictField(child=serializers.IntegerField())
+    policy_requests = serializers.DictField(child=serializers.IntegerField())
     activities = serializers.DictField(child=serializers.IntegerField())
     activities_by_priority = serializers.DictField(child=serializers.IntegerField())
     pipeline_value = serializers.DictField(child=serializers.FloatField())

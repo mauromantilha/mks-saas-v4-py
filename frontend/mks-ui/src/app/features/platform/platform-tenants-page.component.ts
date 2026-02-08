@@ -45,7 +45,7 @@ export class PlatformTenantsPageComponent {
       return;
     }
     if (!this.isPlatformAdmin()) {
-      void this.router.navigate(["/tenant/rbac"]);
+      void this.router.navigate(["/sales/flow"]);
       return;
     }
     this.load();

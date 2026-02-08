@@ -37,6 +37,7 @@ from operational.views import (
     ApoliceDetailAPIView,
     ApoliceAIInsightsAPIView,
     ApoliceListCreateAPIView,
+    CommercialActivityAIInsightsAPIView,
     CommercialActivityCompleteAPIView,
     CommercialActivityDetailAPIView,
     CommercialActivityListCreateAPIView,
@@ -63,6 +64,12 @@ from operational.views import (
     OpportunityStageUpdateAPIView,
     OpportunityDetailAPIView,
     OpportunityListCreateAPIView,
+    PolicyRequestAIInsightsAPIView,
+    PolicyRequestDetailAPIView,
+    PolicyRequestListCreateAPIView,
+    ProposalOptionAIInsightsAPIView,
+    ProposalOptionDetailAPIView,
+    ProposalOptionListCreateAPIView,
     SalesMetricsAPIView,
 )
 
@@ -183,6 +190,36 @@ urlpatterns = [
         name="opportunities-stage",
     ),
     path(
+        "api/proposal-options/",
+        ProposalOptionListCreateAPIView.as_view(),
+        name="proposal-options-list",
+    ),
+    path(
+        "api/proposal-options/<int:pk>/",
+        ProposalOptionDetailAPIView.as_view(),
+        name="proposal-options-detail",
+    ),
+    path(
+        "api/proposal-options/<int:pk>/ai-insights/",
+        ProposalOptionAIInsightsAPIView.as_view(),
+        name="proposal-options-ai-insights",
+    ),
+    path(
+        "api/policy-requests/",
+        PolicyRequestListCreateAPIView.as_view(),
+        name="policy-requests-list",
+    ),
+    path(
+        "api/policy-requests/<int:pk>/",
+        PolicyRequestDetailAPIView.as_view(),
+        name="policy-requests-detail",
+    ),
+    path(
+        "api/policy-requests/<int:pk>/ai-insights/",
+        PolicyRequestAIInsightsAPIView.as_view(),
+        name="policy-requests-ai-insights",
+    ),
+    path(
         "api/activities/",
         CommercialActivityListCreateAPIView.as_view(),
         name="activities-list",
@@ -211,6 +248,11 @@ urlpatterns = [
         "api/activities/<int:pk>/mark-reminded/",
         CommercialActivityMarkRemindedAPIView.as_view(),
         name="activities-mark-reminded",
+    ),
+    path(
+        "api/activities/<int:pk>/ai-insights/",
+        CommercialActivityAIInsightsAPIView.as_view(),
+        name="activities-ai-insights",
     ),
     path("api/sales/metrics/", SalesMetricsAPIView.as_view(), name="sales-metrics"),
     path("api/apolices/", ApoliceListCreateAPIView.as_view(), name="apolices-list"),

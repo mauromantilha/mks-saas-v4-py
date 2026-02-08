@@ -12,7 +12,7 @@ export class SessionService {
   readonly session = computed(() => this.state());
   readonly isAuthenticated = computed(() => {
     const current = this.state();
-    return Boolean(current?.token && current?.tenantCode);
+    return Boolean(current?.token);
   });
 
   saveSession(session: UserSession): void {
@@ -47,15 +47,16 @@ export class SessionService {
         return null;
       }
       const parsed = JSON.parse(raw) as Partial<UserSession>;
-      if (!parsed.token || !parsed.tenantCode || !parsed.username) {
+      if (!parsed.token || !parsed.username) {
         return null;
       }
       return {
         token: parsed.token,
-        tenantCode: parsed.tenantCode,
+        tenantCode: parsed.tenantCode ?? null,
         username: parsed.username,
         role: parsed.role ?? null,
         platformAdmin: Boolean(parsed.platformAdmin),
+        portalType: parsed.portalType === "CONTROL_PLANE" ? "CONTROL_PLANE" : "TENANT",
       };
     } catch {
       return null;

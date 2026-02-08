@@ -1,4 +1,5 @@
 from datetime import timedelta
+from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -7,6 +8,17 @@ from django.db import models
 from django.utils import timezone
 
 from tenancy.models import BaseTenantModel
+
+
+INSURANCE_LINE_CHOICES = [
+    ("AUTO", "Auto"),
+    ("LIFE", "Vida"),
+    ("HEALTH", "Saúde"),
+    ("PROPERTY", "Patrimonial"),
+    ("TRANSPORT", "Transporte"),
+    ("LIABILITY", "Responsabilidade Civil"),
+    ("OTHER", "Outro"),
+]
 
 
 class Customer(BaseTenantModel):
@@ -106,6 +118,26 @@ class Customer(BaseTenantModel):
 
 
 class Lead(BaseTenantModel):
+    CHANNEL_WEBHOOK = "WEBHOOK"
+    CHANNEL_API = "API"
+    CHANNEL_MANUAL = "MANUAL"
+    CHANNEL_IMPORT = "IMPORT"
+    CAPTURE_CHANNEL_CHOICES = [
+        (CHANNEL_WEBHOOK, "Webhook"),
+        (CHANNEL_API, "API"),
+        (CHANNEL_MANUAL, "Cadastro Manual"),
+        (CHANNEL_IMPORT, "Importação"),
+    ]
+
+    SCORE_COLD = "COLD"
+    SCORE_WARM = "WARM"
+    SCORE_HOT = "HOT"
+    SCORE_LABEL_CHOICES = [
+        (SCORE_COLD, "Frio"),
+        (SCORE_WARM, "Morno"),
+        (SCORE_HOT, "Quente"),
+    ]
+
     STATUS_CHOICES = [
         ("NEW", "Novo"),
         ("QUALIFIED", "Qualificado"),
@@ -114,6 +146,13 @@ class Lead(BaseTenantModel):
     ]
 
     source = models.CharField(max_length=100)
+    capture_channel = models.CharField(
+        max_length=20,
+        choices=CAPTURE_CHANNEL_CHOICES,
+        default=CHANNEL_MANUAL,
+    )
+    external_id = models.CharField(max_length=120, blank=True)
+    external_campaign = models.CharField(max_length=120, blank=True)
     full_name = models.CharField(max_length=255, blank=True)
     job_title = models.CharField(max_length=120, blank=True)
     company_name = models.CharField(max_length=255, blank=True)
@@ -124,6 +163,24 @@ class Lead(BaseTenantModel):
     website = models.URLField(blank=True)
     linkedin_url = models.URLField(blank=True)
     instagram_url = models.URLField(blank=True)
+    lead_score_label = models.CharField(
+        max_length=10,
+        choices=SCORE_LABEL_CHOICES,
+        blank=True,
+    )
+    product_line = models.CharField(
+        max_length=20,
+        choices=INSURANCE_LINE_CHOICES,
+        blank=True,
+    )
+    cnae_code = models.CharField(max_length=12, blank=True)
+    company_size_estimate = models.CharField(max_length=60, blank=True)
+    raw_payload = models.JSONField(default=dict, blank=True)
+    needs_summary = models.TextField(blank=True)
+    needs_payload = models.JSONField(default=dict, blank=True)
+    first_response_sla_minutes = models.PositiveIntegerField(default=30)
+    first_response_due_at = models.DateTimeField(null=True, blank=True)
+    first_response_at = models.DateTimeField(null=True, blank=True)
     customer = models.ForeignKey(
         Customer,
         related_name="leads",
@@ -192,11 +249,23 @@ class Lead(BaseTenantModel):
         if save:
             self.save(update_fields=("status", "updated_at"))
 
+    def save(self, *args, **kwargs):
+        if self.first_response_due_at is None and self.first_response_sla_minutes:
+            self.first_response_due_at = timezone.now() + timedelta(
+                minutes=self.first_response_sla_minutes
+            )
+        if self.first_response_at and self.status == "NEW":
+            self.status = "QUALIFIED"
+        return super().save(*args, **kwargs)
+
 
 class Opportunity(BaseTenantModel):
     STAGE_CHOICES = [
-        ("DISCOVERY", "Descoberta"),
-        ("PROPOSAL", "Proposta"),
+        ("NEW", "Novo/Sem Contato"),
+        ("QUALIFICATION", "Qualificação"),
+        ("NEEDS_ASSESSMENT", "Levantamento de Necessidades"),
+        ("QUOTATION", "Cotação"),
+        ("PROPOSAL_PRESENTATION", "Apresentação de Proposta"),
         ("NEGOTIATION", "Negociação"),
         ("WON", "Ganha"),
         ("LOST", "Perdida"),
@@ -215,7 +284,12 @@ class Opportunity(BaseTenantModel):
         blank=True,
     )
     title = models.CharField(max_length=200)
-    stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default="DISCOVERY")
+    stage = models.CharField(max_length=30, choices=STAGE_CHOICES, default="NEW")
+    product_line = models.CharField(
+        max_length=20,
+        choices=INSURANCE_LINE_CHOICES,
+        blank=True,
+    )
     amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     expected_close_date = models.DateField(null=True, blank=True)
     closing_probability = models.PositiveSmallIntegerField(
@@ -224,8 +298,19 @@ class Opportunity(BaseTenantModel):
     )
     next_step = models.CharField(max_length=255, blank=True)
     next_step_due_at = models.DateTimeField(null=True, blank=True)
+    needs_payload = models.JSONField(default=dict, blank=True)
+    quote_payload = models.JSONField(default=dict, blank=True)
+    proposal_pdf_url = models.URLField(blank=True)
+    proposal_tracking_token = models.CharField(
+        max_length=64,
+        blank=True,
+        db_index=True,
+    )
+    proposal_sent_at = models.DateTimeField(null=True, blank=True)
+    proposal_viewed_at = models.DateTimeField(null=True, blank=True)
     loss_reason = models.TextField(blank=True)
     competitors = models.CharField(max_length=255, blank=True)
+    handover_notes = models.TextField(blank=True)
     notes = models.TextField(blank=True)
 
     class Meta:
@@ -235,8 +320,11 @@ class Opportunity(BaseTenantModel):
         return f"{self.title} ({self.customer.name})"
 
     STAGE_TRANSITIONS = {
-        "DISCOVERY": frozenset(("PROPOSAL", "LOST")),
-        "PROPOSAL": frozenset(("NEGOTIATION", "LOST")),
+        "NEW": frozenset(("QUALIFICATION", "LOST")),
+        "QUALIFICATION": frozenset(("NEEDS_ASSESSMENT", "LOST")),
+        "NEEDS_ASSESSMENT": frozenset(("QUOTATION", "LOST")),
+        "QUOTATION": frozenset(("PROPOSAL_PRESENTATION", "LOST")),
+        "PROPOSAL_PRESENTATION": frozenset(("NEGOTIATION", "LOST")),
         "NEGOTIATION": frozenset(("WON", "LOST")),
         "WON": frozenset(),
         "LOST": frozenset(),
@@ -256,6 +344,214 @@ class Opportunity(BaseTenantModel):
         self.stage = target_stage
         if save:
             self.save(update_fields=("stage", "updated_at"))
+
+    def save(self, *args, **kwargs):
+        if not self.proposal_tracking_token:
+            self.proposal_tracking_token = uuid4().hex
+        return super().save(*args, **kwargs)
+
+
+class ProposalOption(BaseTenantModel):
+    opportunity = models.ForeignKey(
+        Opportunity,
+        related_name="proposal_options",
+        on_delete=models.CASCADE,
+    )
+    insurer_name = models.CharField(max_length=120)
+    plan_name = models.CharField(max_length=120, blank=True)
+    coverage_summary = models.TextField(blank=True)
+    deductible = models.CharField(max_length=120, blank=True)
+    annual_premium = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    monthly_premium = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    franchise_notes = models.TextField(blank=True)
+    commission_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    commission_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    ranking_score = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    is_recommended = models.BooleanField(default=False)
+    external_reference = models.CharField(max_length=120, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-is_recommended", "-ranking_score", "annual_premium", "-created_at")
+
+    def __str__(self):
+        return f"{self.insurer_name} - {self.plan_name or 'Plano'}"
+
+    def clean(self):
+        super().clean()
+        if self.opportunity_id and self.opportunity.company_id != self.company_id:
+            raise ValidationError(
+                "Proposal option and Opportunity must belong to the same company."
+            )
+
+    def save(self, *args, **kwargs):
+        if self.opportunity_id:
+            self.company = self.opportunity.company
+        return super().save(*args, **kwargs)
+
+
+class PolicyRequest(BaseTenantModel):
+    STATUS_PENDING_DATA = "PENDING_DATA"
+    STATUS_UNDER_REVIEW = "UNDER_REVIEW"
+    STATUS_READY_TO_ISSUE = "READY_TO_ISSUE"
+    STATUS_ISSUED = "ISSUED"
+    STATUS_REJECTED = "REJECTED"
+    STATUS_CHOICES = [
+        (STATUS_PENDING_DATA, "Pendente de Dados"),
+        (STATUS_UNDER_REVIEW, "Em Revisão"),
+        (STATUS_READY_TO_ISSUE, "Pronto para Emissão"),
+        (STATUS_ISSUED, "Emitida"),
+        (STATUS_REJECTED, "Rejeitada"),
+    ]
+
+    INSPECTION_NOT_REQUIRED = "NOT_REQUIRED"
+    INSPECTION_PENDING = "PENDING"
+    INSPECTION_SCHEDULED = "SCHEDULED"
+    INSPECTION_APPROVED = "APPROVED"
+    INSPECTION_REJECTED = "REJECTED"
+    INSPECTION_STATUS_CHOICES = [
+        (INSPECTION_NOT_REQUIRED, "Sem Vistoria"),
+        (INSPECTION_PENDING, "Vistoria Pendente"),
+        (INSPECTION_SCHEDULED, "Vistoria Agendada"),
+        (INSPECTION_APPROVED, "Vistoria Aprovada"),
+        (INSPECTION_REJECTED, "Vistoria Rejeitada"),
+    ]
+
+    BILLING_BANK_DEBIT = "BANK_DEBIT"
+    BILLING_INVOICE = "INVOICE"
+    BILLING_PIX = "PIX"
+    BILLING_CREDIT_CARD = "CREDIT_CARD"
+    BILLING_OTHER = "OTHER"
+    BILLING_METHOD_CHOICES = [
+        (BILLING_BANK_DEBIT, "Débito em Conta"),
+        (BILLING_INVOICE, "Boleto"),
+        (BILLING_PIX, "PIX"),
+        (BILLING_CREDIT_CARD, "Cartão de Crédito"),
+        (BILLING_OTHER, "Outro"),
+    ]
+
+    opportunity = models.OneToOneField(
+        Opportunity,
+        related_name="policy_request",
+        on_delete=models.CASCADE,
+    )
+    customer = models.ForeignKey(
+        Customer,
+        related_name="policy_requests",
+        on_delete=models.CASCADE,
+    )
+    source_lead = models.ForeignKey(
+        Lead,
+        related_name="policy_requests",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    product_line = models.CharField(
+        max_length=20,
+        choices=INSURANCE_LINE_CHOICES,
+        blank=True,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING_DATA,
+    )
+    inspection_required = models.BooleanField(default=True)
+    inspection_status = models.CharField(
+        max_length=20,
+        choices=INSPECTION_STATUS_CHOICES,
+        default=INSPECTION_PENDING,
+    )
+    inspection_scheduled_at = models.DateTimeField(null=True, blank=True)
+    inspection_notes = models.TextField(blank=True)
+    billing_method = models.CharField(
+        max_length=20,
+        choices=BILLING_METHOD_CHOICES,
+        blank=True,
+    )
+    bank_account_holder = models.CharField(max_length=120, blank=True)
+    bank_name = models.CharField(max_length=120, blank=True)
+    bank_branch = models.CharField(max_length=20, blank=True)
+    bank_account = models.CharField(max_length=30, blank=True)
+    bank_document = models.CharField(max_length=20, blank=True)
+    payment_day = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(31)],
+    )
+    final_premium = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    final_commission = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    issue_deadline_at = models.DateTimeField(null=True, blank=True)
+    issued_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("status", "issue_deadline_at", "-created_at")
+
+    def __str__(self):
+        return f"PolicyRequest #{self.id} - {self.customer.name}"
+
+    def clean(self):
+        super().clean()
+        if self.opportunity_id and self.opportunity.company_id != self.company_id:
+            raise ValidationError(
+                "Policy request and Opportunity must belong to the same company."
+            )
+        if self.customer_id and self.customer.company_id != self.company_id:
+            raise ValidationError(
+                "Policy request and Customer must belong to the same company."
+            )
+        if self.source_lead_id and self.source_lead.company_id != self.company_id:
+            raise ValidationError("Policy request and Lead must belong to the same company.")
+
+    def save(self, *args, **kwargs):
+        if self.opportunity_id:
+            self.company = self.opportunity.company
+            if self.customer_id is None:
+                self.customer = self.opportunity.customer
+            if self.source_lead_id is None and self.opportunity.source_lead_id:
+                self.source_lead = self.opportunity.source_lead
+            if not self.product_line and self.opportunity.product_line:
+                self.product_line = self.opportunity.product_line
+        if not self.inspection_required:
+            self.inspection_status = self.INSPECTION_NOT_REQUIRED
+        if self.status == self.STATUS_ISSUED and self.issued_at is None:
+            self.issued_at = timezone.now()
+        return super().save(*args, **kwargs)
 
 
 class CommercialActivity(BaseTenantModel):

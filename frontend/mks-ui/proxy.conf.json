@@ -4,6 +4,11 @@
     "secure": false,
     "changeOrigin": true
   },
+  "/platform/api": {
+    "target": "http://127.0.0.1:8002",
+    "secure": false,
+    "changeOrigin": true
+  },
   "/healthz": {
     "target": "http://127.0.0.1:8002",
     "secure": false,

@@ -25,6 +25,8 @@ from operational.models import (
     Endosso,
     Lead,
     Opportunity,
+    PolicyRequest,
+    ProposalOption,
 )
 from operational.serializers import (
     AIInsightRequestSerializer,
@@ -32,13 +34,15 @@ from operational.serializers import (
     CNPJEnrichmentRequestSerializer,
     CommercialActivitySerializer,
     CustomerSerializer,
-    LeadHistorySerializer,
-    LeadConvertSerializer,
     EndossoSerializer,
+    LeadConvertSerializer,
+    LeadHistorySerializer,
     LeadSerializer,
+    PolicyRequestSerializer,
     OpportunityHistorySerializer,
     OpportunityStageUpdateSerializer,
     OpportunitySerializer,
+    ProposalOptionSerializer,
     SalesMetricsSerializer,
 )
 from tenancy.permissions import IsTenantRoleAllowed
@@ -100,6 +104,36 @@ class OpportunityDetailAPIView(
     model = Opportunity
     serializer_class = OpportunitySerializer
     tenant_resource_key = "opportunities"
+
+
+class ProposalOptionListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView):
+    model = ProposalOption
+    serializer_class = ProposalOptionSerializer
+    ordering = ("-is_recommended", "-ranking_score", "annual_premium", "-created_at")
+    tenant_resource_key = "proposal_options"
+
+
+class ProposalOptionDetailAPIView(
+    TenantScopedAPIViewMixin, generics.RetrieveUpdateDestroyAPIView
+):
+    model = ProposalOption
+    serializer_class = ProposalOptionSerializer
+    tenant_resource_key = "proposal_options"
+
+
+class PolicyRequestListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView):
+    model = PolicyRequest
+    serializer_class = PolicyRequestSerializer
+    ordering = ("status", "issue_deadline_at", "-created_at")
+    tenant_resource_key = "policy_requests"
+
+
+class PolicyRequestDetailAPIView(
+    TenantScopedAPIViewMixin, generics.RetrieveUpdateDestroyAPIView
+):
+    model = PolicyRequest
+    serializer_class = PolicyRequestSerializer
+    tenant_resource_key = "policy_requests"
 
 
 class ApoliceListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView):
@@ -177,11 +211,63 @@ def _build_customer_from_lead(lead: Lead, company) -> Customer | None:
             "contact_name": lead.full_name,
             "contact_role": lead.job_title,
             "lead_source": lead.source,
+            "industry": lead.company_size_estimate,
             "lifecycle_stage": Customer.STAGE_PROSPECT,
             "notes": lead.notes,
         },
     )
     return customer
+
+
+def _sync_customer_from_lead(customer: Customer, lead: Lead) -> None:
+    changed_fields = []
+
+    if not customer.name:
+        customer.name = lead.best_customer_name()
+        changed_fields.append("name")
+    if not customer.legal_name and lead.company_name:
+        customer.legal_name = lead.company_name
+        changed_fields.append("legal_name")
+    if not customer.trade_name and lead.company_name:
+        customer.trade_name = lead.company_name
+        changed_fields.append("trade_name")
+    if not customer.phone and lead.phone:
+        customer.phone = lead.phone
+        changed_fields.append("phone")
+    if not customer.whatsapp and lead.whatsapp:
+        customer.whatsapp = lead.whatsapp
+        changed_fields.append("whatsapp")
+    if not customer.cnpj and lead.cnpj:
+        customer.cnpj = lead.cnpj
+        changed_fields.append("cnpj")
+    if not customer.document and lead.cnpj:
+        customer.document = lead.cnpj
+        changed_fields.append("document")
+    if not customer.website and lead.website:
+        customer.website = lead.website
+        changed_fields.append("website")
+    if not customer.linkedin_url and lead.linkedin_url:
+        customer.linkedin_url = lead.linkedin_url
+        changed_fields.append("linkedin_url")
+    if not customer.instagram_url and lead.instagram_url:
+        customer.instagram_url = lead.instagram_url
+        changed_fields.append("instagram_url")
+    if not customer.contact_name and lead.full_name:
+        customer.contact_name = lead.full_name
+        changed_fields.append("contact_name")
+    if not customer.contact_role and lead.job_title:
+        customer.contact_role = lead.job_title
+        changed_fields.append("contact_role")
+    if not customer.lead_source and lead.source:
+        customer.lead_source = lead.source
+        changed_fields.append("lead_source")
+
+    if customer.lifecycle_stage != Customer.STAGE_CUSTOMER:
+        customer.lifecycle_stage = Customer.STAGE_CUSTOMER
+        changed_fields.append("lifecycle_stage")
+
+    if changed_fields:
+        customer.save(update_fields=tuple(sorted(set(changed_fields + ["updated_at"]))))
 
 
 class LeadConvertAPIView(APIView):
@@ -204,6 +290,7 @@ class LeadConvertAPIView(APIView):
             "create_customer_if_missing",
             True,
         )
+        create_policy_request = serializer.validated_data.get("create_policy_request", True)
         customer = lead.customer or requested_customer
         if lead.customer_id and requested_customer and requested_customer.id != lead.customer_id:
             return Response(
@@ -235,15 +322,28 @@ class LeadConvertAPIView(APIView):
             if lead.customer_id is None:
                 lead.customer = customer
                 lead.save(update_fields=("customer", "updated_at"))
+            _sync_customer_from_lead(customer, lead)
             opportunity = Opportunity.objects.create(
                 company=request.company,
                 customer=customer,
                 source_lead=lead,
                 title=title,
-                stage=serializer.validated_data.get("stage", "DISCOVERY"),
+                stage=serializer.validated_data.get("stage", "QUALIFICATION"),
+                product_line=lead.product_line,
                 amount=serializer.validated_data.get("amount", 0),
                 expected_close_date=serializer.validated_data.get("expected_close_date"),
+                needs_payload=lead.needs_payload or {},
             )
+            policy_request = None
+            if create_policy_request:
+                policy_request = PolicyRequest.objects.create(
+                    company=request.company,
+                    opportunity=opportunity,
+                    customer=customer,
+                    source_lead=lead,
+                    product_line=lead.product_line,
+                    issue_deadline_at=timezone.now() + timedelta(days=2),
+                )
             lead.transition_status("CONVERTED")
 
         return Response(
@@ -252,6 +352,11 @@ class LeadConvertAPIView(APIView):
                 "customer": CustomerSerializer(customer).data,
                 "customer_created": customer_created,
                 "opportunity": OpportunitySerializer(opportunity).data,
+                "policy_request": (
+                    PolicyRequestSerializer(policy_request).data
+                    if policy_request is not None
+                    else None
+                ),
             },
             status=status.HTTP_201_CREATED,
         )
@@ -411,6 +516,13 @@ class BaseCommercialAIInsightsAPIView(APIView):
             return sanitize_cnpj(getattr(instance, "cnpj", ""))
         if hasattr(instance, "cliente_cpf_cnpj"):
             return sanitize_cnpj(getattr(instance, "cliente_cpf_cnpj", ""))
+        if isinstance(instance, PolicyRequest):
+            if instance.customer_id:
+                return sanitize_cnpj(getattr(instance.customer, "cnpj", ""))
+            if instance.source_lead_id:
+                return sanitize_cnpj(getattr(instance.source_lead, "cnpj", ""))
+        if isinstance(instance, ProposalOption):
+            return sanitize_cnpj(getattr(instance.opportunity.customer, "cnpj", ""))
         if isinstance(instance, Opportunity):
             return sanitize_cnpj(getattr(instance.customer, "cnpj", ""))
         if isinstance(instance, Endosso):
@@ -508,6 +620,27 @@ class EndossoAIInsightsAPIView(BaseCommercialAIInsightsAPIView):
     tenant_resource_key = "endossos"
     entity_type = "ENDOSSO"
     select_related = ("apolice",)
+
+
+class CommercialActivityAIInsightsAPIView(BaseCommercialAIInsightsAPIView):
+    model = CommercialActivity
+    tenant_resource_key = "activities"
+    entity_type = "COMMERCIAL_ACTIVITY"
+    select_related = ("lead", "opportunity", "assigned_to")
+
+
+class ProposalOptionAIInsightsAPIView(BaseCommercialAIInsightsAPIView):
+    model = ProposalOption
+    tenant_resource_key = "proposal_options"
+    entity_type = "PROPOSAL_OPTION"
+    select_related = ("opportunity",)
+
+
+class PolicyRequestAIInsightsAPIView(BaseCommercialAIInsightsAPIView):
+    model = PolicyRequest
+    tenant_resource_key = "policy_requests"
+    entity_type = "POLICY_REQUEST"
+    select_related = ("opportunity", "customer", "source_lead")
 
 
 class BaseCNPJEnrichmentAPIView(APIView):
@@ -636,16 +769,19 @@ class SalesMetricsAPIView(APIView):
 
         leads_qs = Lead.objects.all()
         opportunities_qs = Opportunity.objects.all()
+        policy_requests_qs = PolicyRequest.objects.all()
         activities_qs = CommercialActivity.objects.filter(
             status=CommercialActivity.STATUS_PENDING
         )
         if from_date:
             leads_qs = leads_qs.filter(created_at__date__gte=from_date)
             opportunities_qs = opportunities_qs.filter(created_at__date__gte=from_date)
+            policy_requests_qs = policy_requests_qs.filter(created_at__date__gte=from_date)
             activities_qs = activities_qs.filter(created_at__date__gte=from_date)
         if to_date:
             leads_qs = leads_qs.filter(created_at__date__lte=to_date)
             opportunities_qs = opportunities_qs.filter(created_at__date__lte=to_date)
+            policy_requests_qs = policy_requests_qs.filter(created_at__date__lte=to_date)
             activities_qs = activities_qs.filter(created_at__date__lte=to_date)
         if assigned_to_user_id is not None:
             activities_qs = activities_qs.filter(assigned_to_id=assigned_to_user_id)
@@ -659,6 +795,12 @@ class SalesMetricsAPIView(APIView):
         opportunity_counts = {
             row["stage"]: row["total"]
             for row in opportunities_qs.values("stage")
+            .annotate(total=Count("id"))
+            .order_by()
+        }
+        policy_request_counts = {
+            row["status"]: row["total"]
+            for row in policy_requests_qs.values("status")
             .annotate(total=Count("id"))
             .order_by()
         }
@@ -699,23 +841,25 @@ class SalesMetricsAPIView(APIView):
         }
         today = timezone.localdate()
         thirty_days_from_now = today + timedelta(days=30)
+        open_stages = (
+            "NEW",
+            "QUALIFICATION",
+            "NEEDS_ASSESSMENT",
+            "QUOTATION",
+            "PROPOSAL_PRESENTATION",
+            "NEGOTIATION",
+        )
         pipeline_values = opportunities_qs.aggregate(
             open_total_amount=Sum(
                 "amount",
-                filter=Q(
-                    stage__in=(
-                        "DISCOVERY",
-                        "PROPOSAL",
-                        "NEGOTIATION",
-                    )
-                ),
+                filter=Q(stage__in=open_stages),
             ),
             won_total_amount=Sum("amount", filter=Q(stage="WON")),
             lost_total_amount=Sum("amount", filter=Q(stage="LOST")),
             expected_close_next_30d_amount=Sum(
                 "amount",
                 filter=Q(
-                    stage__in=("DISCOVERY", "PROPOSAL", "NEGOTIATION"),
+                    stage__in=open_stages,
                     expected_close_date__gte=today,
                     expected_close_date__lte=thirty_days_from_now,
                 ),
@@ -741,11 +885,26 @@ class SalesMetricsAPIView(APIView):
                     "CONVERTED": lead_counts.get("CONVERTED", 0),
                 },
                 "opportunity_funnel": {
-                    "DISCOVERY": opportunity_counts.get("DISCOVERY", 0),
-                    "PROPOSAL": opportunity_counts.get("PROPOSAL", 0),
+                    "NEW": opportunity_counts.get("NEW", 0),
+                    "QUALIFICATION": opportunity_counts.get("QUALIFICATION", 0),
+                    "NEEDS_ASSESSMENT": opportunity_counts.get("NEEDS_ASSESSMENT", 0),
+                    "QUOTATION": opportunity_counts.get("QUOTATION", 0),
+                    "PROPOSAL_PRESENTATION": opportunity_counts.get(
+                        "PROPOSAL_PRESENTATION",
+                        0,
+                    ),
                     "NEGOTIATION": opportunity_counts.get("NEGOTIATION", 0),
                     "WON": opportunity_counts.get("WON", 0),
                     "LOST": opportunity_counts.get("LOST", 0),
+                    "DISCOVERY": opportunity_counts.get("NEW", 0),
+                    "PROPOSAL": opportunity_counts.get("PROPOSAL_PRESENTATION", 0),
+                },
+                "policy_requests": {
+                    "PENDING_DATA": policy_request_counts.get("PENDING_DATA", 0),
+                    "UNDER_REVIEW": policy_request_counts.get("UNDER_REVIEW", 0),
+                    "READY_TO_ISSUE": policy_request_counts.get("READY_TO_ISSUE", 0),
+                    "ISSUED": policy_request_counts.get("ISSUED", 0),
+                    "REJECTED": policy_request_counts.get("REJECTED", 0),
                 },
                 "activities": activities_info,
                 "activities_by_priority": activities_by_priority,

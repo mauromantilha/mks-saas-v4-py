@@ -36,6 +36,32 @@
   margin-bottom: 16px;
 }
 
+.metrics-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.metrics-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.metrics-filters input {
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.filters-summary {
+  margin: 0 0 10px;
+  color: #475467;
+  font-size: 13px;
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -91,6 +117,14 @@
   font-size: 13px;
 }
 
+.form-grid label.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  align-self: end;
+}
+
 .form-grid input,
 .form-grid textarea,
 .form-grid select {
@@ -122,6 +156,41 @@
   align-items: center;
 }
 
+.notice {
+  color: #026aa2;
+}
+
 .error {
   color: #b42318;
+}
+
+.ai-focus-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.ai-focus-label input {
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.ai-result p {
+  margin: 0 0 6px;
+}
+
+.ai-result ul {
+  margin: 0 0 10px 18px;
+}
+
+.ai-cnpj-details pre {
+  overflow: auto;
+  max-height: 220px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px;
 }

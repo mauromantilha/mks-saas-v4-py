@@ -1,29 +1,34 @@
-<header class="topbar">
-  <div class="topbar-content">
-    <strong>MKS CRM</strong>
-    <nav>
-      <a routerLink="/login">Login</a>
-      <a
-        routerLink="/platform/tenants"
-        *ngIf="sessionService.session()?.platformAdmin"
-      >
-        Control Plane
-      </a>
-      <a routerLink="/sales/flow">Fluxo Comercial</a>
-      <a routerLink="/tenant/members">Tenant Members</a>
-      <a routerLink="/tenant/rbac">Tenant RBAC</a>
-      <button
-        type="button"
-        class="link-btn"
-        *ngIf="sessionService.isAuthenticated()"
-        (click)="logout()"
-      >
-        Logout
-      </button>
-    </nav>
-  </div>
-</header>
+<div class="shell" [class.no-session]="!isAuthenticated()">
+  <aside class="sidebar" *ngIf="isAuthenticated()">
+    <div class="brand">
+      <strong>MKS CRM</strong>
+      <span>{{ portalTitle() }}</span>
+    </div>
 
-<main>
-  <router-outlet></router-outlet>
-</main>
+    <div class="session-meta" *ngIf="session() as current">
+      <p><strong>Host:</strong> {{ hostname }}</p>
+      <p><strong>Usuário:</strong> {{ current.username }}</p>
+      <p *ngIf="current.tenantCode">
+        <strong>Tenant:</strong> {{ current.tenantCode }}
+      </p>
+      <p><strong>Perfil:</strong> {{ current.role || "N/A" }}</p>
+    </div>
+
+    <nav class="menu">
+      <a
+        *ngFor="let item of menuItems()"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+      >
+        {{ item.label }}
+      </a>
+    </nav>
+
+    <button type="button" class="logout-btn" (click)="logout()">Sair</button>
+  </aside>
+
+  <div class="content">
+    <router-outlet></router-outlet>
+  </div>
+</div>

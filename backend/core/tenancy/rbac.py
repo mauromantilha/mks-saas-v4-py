@@ -40,6 +40,8 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
     "customers": build_role_matrix(),
     "leads": build_role_matrix(),
     "opportunities": build_role_matrix(),
+    "proposal_options": build_role_matrix(),
+    "policy_requests": build_role_matrix(),
     "activities": build_role_matrix(),
     "metrics": build_role_matrix(
         post_roles=NO_ROLES,

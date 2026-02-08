@@ -13,9 +13,55 @@
 
   <p *ngIf="loading()">Carregando...</p>
   <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
 
   <article class="card metrics-card" *ngIf="metrics() as currentMetrics">
     <h2>Métricas do Funil</h2>
+    <div class="metrics-filters">
+      <label>
+        De
+        <input
+          type="date"
+          [ngModel]="metricsFromDate()"
+          (ngModelChange)="metricsFromDate.set($event)"
+          [disabled]="loading()"
+        />
+      </label>
+      <label>
+        Até
+        <input
+          type="date"
+          [ngModel]="metricsToDate()"
+          (ngModelChange)="metricsToDate.set($event)"
+          [disabled]="loading()"
+        />
+      </label>
+      <label>
+        Responsável (ID)
+        <input
+          type="number"
+          min="1"
+          [ngModel]="metricsAssignedTo()"
+          (ngModelChange)="metricsAssignedTo.set($event)"
+          [disabled]="loading()"
+          placeholder="Ex.: 12"
+        />
+      </label>
+      <div class="actions">
+        <button type="button" (click)="applyMetricsFilters()" [disabled]="loading()">
+          Aplicar filtros
+        </button>
+        <button type="button" (click)="clearMetricsFilters()" [disabled]="loading()">
+          Limpar filtros
+        </button>
+      </div>
+    </div>
+    <p class="filters-summary">
+      Período: {{ currentMetrics.period.from_date || "início" }} até
+      {{ currentMetrics.period.to_date || "hoje" }} | Responsável:
+      {{ currentMetrics.period.assigned_to_user_id || "todos" }}
+    </p>
+
     <div class="metrics-grid">
       <div class="metric-item">
         <span class="metric-label">Leads Novos</span>
@@ -43,28 +89,319 @@
       </div>
       <div class="metric-item">
         <span class="metric-label">Taxa Lead → Oportunidade</span>
-        <strong class="metric-value"
-          >{{ currentMetrics.conversion.lead_to_opportunity_rate }}%</strong
-        >
+        <strong class="metric-value">
+          {{ currentMetrics.conversion.lead_to_opportunity_rate | number: "1.0-2" }}%
+        </strong>
       </div>
       <div class="metric-item">
         <span class="metric-label">Taxa de Fechamento</span>
-        <strong class="metric-value"
-          >{{ currentMetrics.conversion.opportunity_win_rate }}%</strong
-        >
+        <strong class="metric-value">
+          {{ currentMetrics.conversion.opportunity_win_rate | number: "1.0-2" }}%
+        </strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Pipeline Aberto</span>
+        <strong class="metric-value">
+          {{ formatCurrency(currentMetrics.pipeline_value.open_total_amount) }}
+        </strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Pipeline Ganho</span>
+        <strong class="metric-value">
+          {{ formatCurrency(currentMetrics.pipeline_value.won_total_amount) }}
+        </strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Pipeline Perdido</span>
+        <strong class="metric-value">
+          {{ formatCurrency(currentMetrics.pipeline_value.lost_total_amount) }}
+        </strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Previsto Fechar (30 dias)</span>
+        <strong class="metric-value">
+          {{ formatCurrency(currentMetrics.pipeline_value.expected_close_next_30d_amount) }}
+        </strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Emissão Pendente</span>
+        <strong class="metric-value">
+          {{ currentMetrics.policy_requests.PENDING_DATA }}
+        </strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Em Revisão</span>
+        <strong class="metric-value">
+          {{ currentMetrics.policy_requests.UNDER_REVIEW }}
+        </strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Apólices Emitidas</span>
+        <strong class="metric-value">
+          {{ currentMetrics.policy_requests.ISSUED }}
+        </strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Atividades LOW</span>
+        <strong class="metric-value">{{ currentMetrics.activities_by_priority.LOW }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Atividades MEDIUM</span>
+        <strong class="metric-value">
+          {{ currentMetrics.activities_by_priority.MEDIUM }}
+        </strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Atividades HIGH</span>
+        <strong class="metric-value">{{ currentMetrics.activities_by_priority.HIGH }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Atividades URGENT</span>
+        <strong class="metric-value">
+          {{ currentMetrics.activities_by_priority.URGENT }}
+        </strong>
       </div>
     </div>
   </article>
 
   <div class="grid">
     <article class="card">
+      <h2>Novo Cliente</h2>
+      <div class="form-grid">
+        <label>
+          Nome
+          <input
+            type="text"
+            [ngModel]="customerName()"
+            (ngModelChange)="customerName.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Ex.: Empresa XYZ"
+          />
+        </label>
+        <label>
+          E-mail
+          <input
+            type="email"
+            [ngModel]="customerEmail()"
+            (ngModelChange)="customerEmail.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="contato@empresa.com"
+          />
+        </label>
+        <label>
+          CNPJ
+          <input
+            type="text"
+            [ngModel]="customerCnpj()"
+            (ngModelChange)="customerCnpj.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="00.000.000/0001-00"
+          />
+        </label>
+        <label>
+          Telefone
+          <input
+            type="text"
+            [ngModel]="customerPhone()"
+            (ngModelChange)="customerPhone.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label>
+          Contato principal
+          <input
+            type="text"
+            [ngModel]="customerContactName()"
+            (ngModelChange)="customerContactName.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label>
+          Segmento
+          <input
+            type="text"
+            [ngModel]="customerIndustry()"
+            (ngModelChange)="customerIndustry.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Ex.: Transporte"
+          />
+        </label>
+        <label>
+          Origem
+          <input
+            type="text"
+            [ngModel]="customerLeadSource()"
+            (ngModelChange)="customerLeadSource.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Indicação, inbound, evento..."
+          />
+        </label>
+        <label class="field-full">
+          Observações
+          <textarea
+            rows="2"
+            [ngModel]="customerNotes()"
+            (ngModelChange)="customerNotes.set($event)"
+            [disabled]="loading() || !canWrite()"
+          ></textarea>
+        </label>
+      </div>
+      <div class="actions top-gap">
+        <button type="button" (click)="createCustomer()" [disabled]="loading() || !canWrite()">
+          Criar cliente
+        </button>
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>Novo Lead</h2>
+      <div class="form-grid">
+        <label>
+          Origem
+          <input
+            type="text"
+            [ngModel]="leadSource()"
+            (ngModelChange)="leadSource.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Site, indicação, campanha..."
+          />
+        </label>
+        <label>
+          Nome do contato
+          <input
+            type="text"
+            [ngModel]="leadFullName()"
+            (ngModelChange)="leadFullName.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label>
+          Empresa
+          <input
+            type="text"
+            [ngModel]="leadCompanyName()"
+            (ngModelChange)="leadCompanyName.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label>
+          E-mail
+          <input
+            type="email"
+            [ngModel]="leadEmail()"
+            (ngModelChange)="leadEmail.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label>
+          Telefone
+          <input
+            type="text"
+            [ngModel]="leadPhone()"
+            (ngModelChange)="leadPhone.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label>
+          CNPJ
+          <input
+            type="text"
+            [ngModel]="leadCnpj()"
+            (ngModelChange)="leadCnpj.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label>
+          Produtos de interesse
+          <input
+            type="text"
+            [ngModel]="leadProductsOfInterest()"
+            (ngModelChange)="leadProductsOfInterest.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label>
+          Orçamento estimado
+          <input
+            type="number"
+            [ngModel]="leadEstimatedBudget()"
+            (ngModelChange)="leadEstimatedBudget.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label class="field-full">
+          Observações
+          <textarea
+            rows="2"
+            [ngModel]="leadNotes()"
+            (ngModelChange)="leadNotes.set($event)"
+            [disabled]="loading() || !canWrite()"
+          ></textarea>
+        </label>
+      </div>
+      <div class="actions top-gap">
+        <button type="button" (click)="createLead()" [disabled]="loading() || !canWrite()">
+          Criar lead
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <div class="grid secondary-grid">
+    <article class="card">
+      <h2>Clientes</h2>
+      <table *ngIf="customers().length > 0" class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>CNPJ</th>
+            <th>Etapa</th>
+            <th>Ações IA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let customer of customers()">
+            <td>{{ customer.id }}</td>
+            <td>{{ customer.name }}</td>
+            <td>{{ customer.email }}</td>
+            <td>{{ customer.cnpj || "-" }}</td>
+            <td>{{ customer.lifecycle_stage }}</td>
+            <td>
+              <div class="actions">
+                <button
+                  type="button"
+                  (click)="generateCustomerInsights(customer)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Insights IA
+                </button>
+                <button
+                  type="button"
+                  (click)="enrichCustomerCnpj(customer)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Enriquecer CNPJ
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="customers().length === 0">Nenhum cliente encontrado.</p>
+    </article>
+
+    <article class="card">
       <h2>Leads</h2>
       <table *ngIf="leads().length > 0" class="table">
         <thead>
           <tr>
             <th>ID</th>
-            <th>Source</th>
+            <th>Origem</th>
+            <th>Empresa</th>
             <th>Status</th>
+            <th>CNPJ</th>
             <th>Histórico</th>
             <th>Ações</th>
           </tr>
@@ -73,7 +410,9 @@
           <tr *ngFor="let lead of leads()">
             <td>{{ lead.id }}</td>
             <td>{{ lead.source }}</td>
+            <td>{{ lead.company_name || "-" }}</td>
             <td>{{ lead.status }}</td>
+            <td>{{ lead.cnpj || "-" }}</td>
             <td>
               <button type="button" (click)="viewLeadHistory(lead)" [disabled]="loading()">
                 Ver histórico
@@ -102,6 +441,20 @@
                 >
                   Converter
                 </button>
+                <button
+                  type="button"
+                  (click)="generateLeadInsights(lead)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Insights IA
+                </button>
+                <button
+                  type="button"
+                  (click)="enrichLeadCnpj(lead)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Enriquecer CNPJ
+                </button>
               </div>
             </td>
           </tr>
@@ -109,7 +462,9 @@
       </table>
       <p *ngIf="leads().length === 0">Nenhum lead encontrado.</p>
     </article>
+  </div>
 
+  <div class="grid secondary-grid">
     <article class="card">
       <h2>Oportunidades</h2>
       <table *ngIf="opportunities().length > 0" class="table">
@@ -119,6 +474,7 @@
             <th>Título</th>
             <th>Estágio</th>
             <th>Valor</th>
+            <th>Probabilidade</th>
             <th>Histórico</th>
             <th>Ações</th>
           </tr>
@@ -129,6 +485,7 @@
             <td>{{ opp.title }}</td>
             <td>{{ opp.stage }}</td>
             <td>{{ opp.amount }}</td>
+            <td>{{ opp.closing_probability }}%</td>
             <td>
               <button
                 type="button"
@@ -154,6 +511,13 @@
                 >
                   Marcar perdida
                 </button>
+                <button
+                  type="button"
+                  (click)="generateOpportunityInsights(opp)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Insights IA
+                </button>
               </div>
             </td>
           </tr>
@@ -161,9 +525,7 @@
       </table>
       <p *ngIf="opportunities().length === 0">Nenhuma oportunidade encontrada.</p>
     </article>
-  </div>
 
-  <div class="grid secondary-grid">
     <article class="card">
       <h2>Nova Atividade / Follow-up</h2>
       <div class="form-grid">
@@ -288,7 +650,258 @@
         </button>
       </div>
     </article>
+  </div>
 
+  <div class="grid secondary-grid">
+    <article class="card">
+      <h2>Nova Proposta Comparativa</h2>
+      <div class="form-grid">
+        <label>
+          Oportunidade
+          <select
+            [ngModel]="proposalOpportunityId()"
+            (ngModelChange)="proposalOpportunityId.set($event)"
+            [disabled]="loading() || !canWrite()"
+          >
+            <option value="">Selecione...</option>
+            <option *ngFor="let opp of opportunities()" [value]="opp.id">
+              Opp #{{ opp.id }} - {{ opp.title }}
+            </option>
+          </select>
+        </label>
+        <label>
+          Seguradora
+          <input
+            type="text"
+            [ngModel]="proposalInsurerName()"
+            (ngModelChange)="proposalInsurerName.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Ex.: Seguradora A"
+          />
+        </label>
+        <label>
+          Plano
+          <input
+            type="text"
+            [ngModel]="proposalPlanName()"
+            (ngModelChange)="proposalPlanName.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Ex.: Plano Executivo"
+          />
+        </label>
+        <label>
+          Prêmio anual
+          <input
+            type="number"
+            min="0"
+            [ngModel]="proposalAnnualPremium()"
+            (ngModelChange)="proposalAnnualPremium.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="12000"
+          />
+        </label>
+        <label>
+          Score (0-100)
+          <input
+            type="number"
+            min="0"
+            max="100"
+            [ngModel]="proposalRankingScore()"
+            (ngModelChange)="proposalRankingScore.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label class="checkbox-row">
+          <input
+            type="checkbox"
+            [ngModel]="proposalRecommended()"
+            (ngModelChange)="proposalRecommended.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+          Marcar como recomendada
+        </label>
+      </div>
+      <div class="actions top-gap">
+        <button
+          type="button"
+          (click)="createProposalOption()"
+          [disabled]="loading() || !canWrite()"
+        >
+          Criar proposta comparativa
+        </button>
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>Novo Pedido de Emissão</h2>
+      <div class="form-grid">
+        <label>
+          Oportunidade
+          <select
+            [ngModel]="policyOpportunityId()"
+            (ngModelChange)="policyOpportunityId.set($event)"
+            [disabled]="loading() || !canWrite()"
+          >
+            <option value="">Selecione...</option>
+            <option *ngFor="let opp of opportunities()" [value]="opp.id">
+              Opp #{{ opp.id }} - {{ opp.title }}
+            </option>
+          </select>
+        </label>
+        <label>
+          Cliente (opcional)
+          <select
+            [ngModel]="policyCustomerId()"
+            (ngModelChange)="policyCustomerId.set($event)"
+            [disabled]="loading() || !canWrite()"
+          >
+            <option value="">Auto (pela oportunidade)</option>
+            <option *ngFor="let customer of customers()" [value]="customer.id">
+              {{ customer.id }} - {{ customer.name }}
+            </option>
+          </select>
+        </label>
+        <label>
+          Prazo de emissão
+          <input
+            type="datetime-local"
+            [ngModel]="policyIssueDeadlineAt()"
+            (ngModelChange)="policyIssueDeadlineAt.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <label class="checkbox-row">
+          <input
+            type="checkbox"
+            [ngModel]="policyInspectionRequired()"
+            (ngModelChange)="policyInspectionRequired.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+          Exige vistoria
+        </label>
+        <label class="field-full">
+          Observações
+          <textarea
+            rows="2"
+            [ngModel]="policyNotes()"
+            (ngModelChange)="policyNotes.set($event)"
+            [disabled]="loading() || !canWrite()"
+          ></textarea>
+        </label>
+      </div>
+      <div class="actions top-gap">
+        <button
+          type="button"
+          (click)="createPolicyRequest()"
+          [disabled]="loading() || !canWrite()"
+        >
+          Criar pedido de emissão
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <div class="grid secondary-grid">
+    <article class="card">
+      <h2>Propostas Comparativas</h2>
+      <table *ngIf="proposalOptions().length > 0" class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Oportunidade</th>
+            <th>Seguradora</th>
+            <th>Plano</th>
+            <th>Prêmio anual</th>
+            <th>Score</th>
+            <th>Recomendada</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let proposal of proposalOptions()">
+            <td>{{ proposal.id }}</td>
+            <td>#{{ proposal.opportunity }}</td>
+            <td>{{ proposal.insurer_name }}</td>
+            <td>{{ proposal.plan_name || "-" }}</td>
+            <td>{{ proposal.annual_premium || "-" }}</td>
+            <td>{{ proposal.ranking_score }}</td>
+            <td>{{ proposal.is_recommended ? "Sim" : "Não" }}</td>
+            <td>
+              <div class="actions">
+                <button
+                  type="button"
+                  (click)="generateProposalOptionInsights(proposal)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Insights IA
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="proposalOptions().length === 0">
+        Nenhuma proposta comparativa cadastrada.
+      </p>
+    </article>
+
+    <article class="card">
+      <h2>Pedidos de Emissão</h2>
+      <table *ngIf="policyRequests().length > 0" class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Oportunidade</th>
+            <th>Cliente</th>
+            <th>Status</th>
+            <th>Vistoria</th>
+            <th>Prazo</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let request of policyRequests()">
+            <td>{{ request.id }}</td>
+            <td>#{{ request.opportunity }}</td>
+            <td>#{{ request.customer }}</td>
+            <td>{{ request.status }}</td>
+            <td>{{ request.inspection_status }}</td>
+            <td>{{ request.issue_deadline_at || "-" }}</td>
+            <td>
+              <div class="actions">
+                <button
+                  type="button"
+                  (click)="advancePolicyRequestStatus(request)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Avançar status
+                </button>
+                <button
+                  type="button"
+                  (click)="rejectPolicyRequest(request)"
+                  [disabled]="loading() || !canWrite() || request.status === 'REJECTED'"
+                >
+                  Rejeitar
+                </button>
+                <button
+                  type="button"
+                  (click)="generatePolicyRequestInsights(request)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Insights IA
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="policyRequests().length === 0">
+        Nenhum pedido de emissão cadastrado.
+      </p>
+    </article>
+  </div>
+
+  <div class="grid secondary-grid">
     <article class="card">
       <h2>Atividades</h2>
       <table *ngIf="activities().length > 0" class="table">
@@ -336,6 +949,13 @@
                 >
                   Reabrir
                 </button>
+                <button
+                  type="button"
+                  (click)="generateActivityInsights(activity)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Insights IA
+                </button>
               </div>
             </td>
           </tr>
@@ -343,9 +963,7 @@
       </table>
       <p *ngIf="activities().length === 0">Nenhuma atividade cadastrada.</p>
     </article>
-  </div>
 
-  <div class="grid secondary-grid">
     <article class="card">
       <h2>Lembretes Pendentes</h2>
       <table *ngIf="reminderActivities().length > 0" class="table">
@@ -378,7 +996,9 @@
         Não há lembretes pendentes para envio.
       </p>
     </article>
+  </div>
 
+  <div class="grid secondary-grid">
     <article class="card history-card">
       <div class="history-header">
         <h2>Histórico</h2>
@@ -408,6 +1028,62 @@
 
       <p *ngIf="!leadHistory() && !opportunityHistory()">
         Selecione um lead ou oportunidade para visualizar o histórico consolidado.
+      </p>
+    </article>
+
+    <article class="card">
+      <div class="history-header">
+        <h2>Painel IA Comercial</h2>
+        <button type="button" (click)="clearAiResult()" [disabled]="loading()">
+          Limpar
+        </button>
+      </div>
+
+      <label class="ai-focus-label">
+        Foco da análise IA
+        <input
+          type="text"
+          [ngModel]="aiFocus()"
+          (ngModelChange)="aiFocus.set($event)"
+          [disabled]="loading()"
+          placeholder="Ex.: objeções de preço, próximos passos para fechamento..."
+        />
+      </label>
+
+      <div *ngIf="aiResponse() as response" class="ai-result">
+        <p><strong>Entidade:</strong> {{ aiEntityLabel() }}</p>
+        <p><strong>Resumo:</strong> {{ aiSummary() }}</p>
+        <p *ngIf="aiQualificationScore() !== null">
+          <strong>Score de qualificação:</strong> {{ aiQualificationScore() }}%
+        </p>
+        <p><strong>Provider:</strong> {{ aiProvider() }}</p>
+
+        <p><strong>Riscos:</strong></p>
+        <ul>
+          <li *ngFor="let risk of aiRisks()">{{ risk }}</li>
+          <li *ngIf="aiRisks().length === 0">Sem riscos destacados.</li>
+        </ul>
+
+        <p><strong>Oportunidades:</strong></p>
+        <ul>
+          <li *ngFor="let item of aiOpportunities()">{{ item }}</li>
+          <li *ngIf="aiOpportunities().length === 0">Sem oportunidades destacadas.</li>
+        </ul>
+
+        <p><strong>Próximas ações:</strong></p>
+        <ul>
+          <li *ngFor="let action of aiNextActions()">{{ action }}</li>
+          <li *ngIf="aiNextActions().length === 0">Sem ações sugeridas.</li>
+        </ul>
+
+        <details *ngIf="response.cnpj_profile" class="ai-cnpj-details">
+          <summary>CNPJ profile (raw)</summary>
+          <pre>{{ response.cnpj_profile | json }}</pre>
+        </details>
+      </div>
+
+      <p *ngIf="!aiResponse()">
+        Acione "Insights IA" em Cliente, Lead ou Oportunidade para visualizar análise.
       </p>
     </article>
   </div>

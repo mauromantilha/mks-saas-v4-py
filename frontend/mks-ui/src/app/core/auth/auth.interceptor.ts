@@ -12,6 +12,10 @@ function isApiRequest(url: string): boolean {
   return url.includes("/api/");
 }
 
+function isTenantScopedApiRequest(url: string): boolean {
+  return url.includes("/api/") && !url.includes("/platform/api/");
+}
+
 export const authTenantInterceptor: HttpInterceptorFn = (req, next) => {
   const sessionService = inject(SessionService);
   const session = sessionService.session();
@@ -25,7 +29,11 @@ export const authTenantInterceptor: HttpInterceptorFn = (req, next) => {
   if (!headers.has("Authorization")) {
     headers = headers.set("Authorization", `Token ${session.token}`);
   }
-  if (!headers.has(environment.tenantIdHeader)) {
+  if (
+    isTenantScopedApiRequest(req.url) &&
+    session.tenantCode &&
+    !headers.has(environment.tenantIdHeader)
+  ) {
     headers = headers.set(environment.tenantIdHeader, session.tenantCode);
   }
 
