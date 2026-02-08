@@ -155,10 +155,14 @@ jobs:
             --location="$REGION" \
             --description="MKS SaaS backend images"
 
+      - name: Configure Docker auth for Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
       - name: Build and push image
         run: |
           IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${IMAGE_NAME}:${GITHUB_SHA}"
-          gcloud builds submit backend/core --tag "${IMAGE_URI}"
+          docker build -t "${IMAGE_URI}" backend/core
+          docker push "${IMAGE_URI}"
           echo "IMAGE_URI=${IMAGE_URI}" >> "$GITHUB_ENV"
 
       - name: Run migrations via Cloud Run Job
