@@ -1,0 +1,79 @@
+<section class="members-wrap">
+  <h1>Membros do Tenant</h1>
+
+  <div *ngIf="session()" class="meta">
+    <span><strong>Tenant:</strong> {{ session()?.tenantCode }}</span>
+    <span><strong>Seu role:</strong> {{ session()?.role }}</span>
+  </div>
+
+  <div class="toolbar">
+    <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+  </div>
+
+  <div class="upsert" *ngIf="isOwner()">
+    <h2>Adicionar/Atualizar membro</h2>
+    <label>
+      Username
+      <input
+        type="text"
+        [ngModel]="newUsername()"
+        (ngModelChange)="newUsername.set($event)"
+      />
+    </label>
+    <label>
+      Role
+      <select [ngModel]="newRole()" (ngModelChange)="newRole.set($event)">
+        <option *ngFor="let role of roles" [ngValue]="role">{{ role }}</option>
+      </select>
+    </label>
+    <button type="button" (click)="createOrUpdateMember()" [disabled]="loading()">
+      Salvar membro
+    </button>
+  </div>
+
+  <p *ngIf="loading()">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+
+  <table *ngIf="members().length > 0" class="members-table">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Ativo</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let member of members()">
+        <td>{{ member.username }}</td>
+        <td>{{ member.email }}</td>
+        <td>{{ member.role }}</td>
+        <td>{{ member.is_active ? "Sim" : "Não" }}</td>
+        <td>
+          <div class="actions" *ngIf="isOwner(); else readOnlyActions">
+            <select
+              [ngModel]="member.role"
+              (ngModelChange)="updateRole(member, $event)"
+              [disabled]="loading()"
+            >
+              <option *ngFor="let role of roles" [ngValue]="role">{{ role }}</option>
+            </select>
+            <button
+              type="button"
+              (click)="deactivate(member)"
+              [disabled]="loading() || !member.is_active"
+            >
+              Desativar
+            </button>
+          </div>
+          <ng-template #readOnlyActions>
+            <span>Somente leitura</span>
+          </ng-template>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p *ngIf="!loading() && members().length === 0">Nenhum membro encontrado.</p>
+</section>

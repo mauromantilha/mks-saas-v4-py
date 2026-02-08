@@ -1,0 +1,20 @@
+# dependencies
+/node_modules
+
+# angular build output
+/dist
+/tmp
+/out-tsc
+
+# IDE
+/.idea
+/.vscode/*
+!/.vscode/extensions.json
+!/.vscode/tasks.json
+!/.vscode/launch.json
+!/.vscode/settings.json
+
+# misc
+/.angular
+*.log
+*.local

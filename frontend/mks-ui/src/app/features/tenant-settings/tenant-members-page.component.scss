@@ -1,0 +1,69 @@
+.members-wrap {
+  max-width: 1080px;
+  margin: 20px auto;
+  padding: 0 16px;
+}
+
+.meta {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.toolbar {
+  margin-bottom: 14px;
+}
+
+.upsert {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.upsert label {
+  display: grid;
+  gap: 4px;
+}
+
+.upsert input,
+.upsert select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.members-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+
+.members-table th,
+.members-table td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.actions select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.error {
+  color: #b42318;
+}

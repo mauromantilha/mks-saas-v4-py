@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: mks_db
+    environment:
+      - POSTGRES_DB=mks_db
+      - POSTGRES_USER=mks_user
+      - POSTGRES_PASSWORD=mks_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mks_user -d mks_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/core/Dockerfile
+    container_name: mks_backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend/core:/app
+      - ./requirements:/app/requirements
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_NAME=mks_db
+      - DATABASE_USER=mks_user
+      - DATABASE_PASSWORD=mks_password
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DJANGO_SETTINGS_MODULE=mks_backend.settings
+
+volumes:
+  postgres_data:

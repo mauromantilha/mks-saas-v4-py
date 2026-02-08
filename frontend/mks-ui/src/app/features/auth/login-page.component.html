@@ -1,0 +1,40 @@
+<section class="login-wrap">
+  <div class="login-card">
+    <h1>Acesso ao Tenant</h1>
+    <p>Entre com usuário e senha para carregar seu contexto de tenant.</p>
+
+    <label>
+      Tenant Code
+      <input
+        type="text"
+        [ngModel]="tenantCode()"
+        (ngModelChange)="tenantCode.set($event)"
+      />
+    </label>
+
+    <label>
+      Username
+      <input
+        type="text"
+        [ngModel]="username()"
+        (ngModelChange)="username.set($event)"
+      />
+    </label>
+
+    <label>
+      Password
+      <input
+        type="password"
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+    </label>
+
+    <button type="button" (click)="login()" [disabled]="loading()">
+      Entrar
+    </button>
+
+    <p *ngIf="loading()">Autenticando...</p>
+    <p class="error" *ngIf="error()">{{ error() }}</p>
+  </div>
+</section>

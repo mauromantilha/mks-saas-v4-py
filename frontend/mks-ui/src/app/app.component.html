@@ -1,0 +1,23 @@
+<header class="topbar">
+  <div class="topbar-content">
+    <strong>MKS CRM</strong>
+    <nav>
+      <a routerLink="/login">Login</a>
+      <a routerLink="/sales/flow">Fluxo Comercial</a>
+      <a routerLink="/tenant/members">Tenant Members</a>
+      <a routerLink="/tenant/rbac">Tenant RBAC</a>
+      <button
+        type="button"
+        class="link-btn"
+        *ngIf="sessionService.isAuthenticated()"
+        (click)="logout()"
+      >
+        Logout
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <router-outlet></router-outlet>
+</main>
