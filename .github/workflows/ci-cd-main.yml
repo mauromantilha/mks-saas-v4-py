@@ -103,7 +103,7 @@ jobs:
         env:
           WIP: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           WIP_SA: ${{ vars.GCP_SERVICE_ACCOUNT }}
-          SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          SA_KEY: ${{ secrets.GCP_SA_KEY || secrets.MKS_SAAS_V4 }}
         run: |
           if [ -n "${WIP}" ] && [ -n "${WIP_SA}" ]; then
             echo "mode=wif" >> "$GITHUB_OUTPUT"
@@ -130,7 +130,7 @@ jobs:
         if: ${{ steps.auth_mode.outputs.mode == 'sa_key' }}
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: ${{ secrets.GCP_SA_KEY || secrets.MKS_SAAS_V4 }}
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
