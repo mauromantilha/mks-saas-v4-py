@@ -51,6 +51,33 @@
   color: #7a2d00;
 }
 
+.portal-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.portal-switch button {
+  margin-top: 0;
+  background: #e5e7eb;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+}
+
+.portal-switch button.active {
+  color: #fff;
+}
+
+.login-wrap.tenant-portal .portal-switch button.active {
+  background: #005b8f;
+  border-color: #005b8f;
+}
+
+.login-wrap.control-plane .portal-switch button.active {
+  background: #8a2f00;
+  border-color: #8a2f00;
+}
+
 label {
   display: grid;
   gap: 0.35rem;

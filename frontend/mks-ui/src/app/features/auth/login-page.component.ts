@@ -1,11 +1,12 @@
 import { CommonModule } from "@angular/common";
-import { Component, signal } from "@angular/core";
+import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { map, of, switchMap, throwError } from "rxjs";
 
 import { AuthService } from "../../core/api/auth.service";
 import { SessionService } from "../../core/auth/session.service";
+import { SessionPortalType } from "../../core/auth/session.types";
 import { PortalContextService } from "../../core/portal/portal-context.service";
 
 @Component({
@@ -21,8 +22,14 @@ export class LoginPageComponent {
   tenantCode = signal("");
   loading = signal(false);
   error = signal("");
-  readonly isControlPlanePortal = this.portalContextService.isControlPlanePortal();
-  readonly detectedTenantCode = this.portalContextService.suggestedTenantCode();
+  readonly hostDetectedControlPlane = this.portalContextService.isControlPlanePortal();
+  readonly hostDetectedTenantCode = this.portalContextService.suggestedTenantCode();
+  readonly selectedPortalType = signal<SessionPortalType>(
+    this.hostDetectedControlPlane ? "CONTROL_PLANE" : "TENANT"
+  );
+  readonly isControlPlanePortal = computed(
+    () => this.selectedPortalType() === "CONTROL_PLANE"
+  );
 
   constructor(
     private readonly authService: AuthService,
@@ -30,7 +37,7 @@ export class LoginPageComponent {
     private readonly portalContextService: PortalContextService,
     private readonly router: Router
   ) {
-    this.tenantCode.set(this.detectedTenantCode || "acme");
+    this.tenantCode.set(this.hostDetectedTenantCode || "acme");
 
     if (this.sessionService.isAuthenticated()) {
       void this.router.navigate(
@@ -48,13 +55,18 @@ export class LoginPageComponent {
     const username = this.username().trim();
     const password = this.password();
     const inputTenantCode = this.tenantCode().trim().toLowerCase();
+    const isControlPlaneLogin = this.isControlPlanePortal();
 
     if (!username || !password) {
       this.error.set("Preencha username e password.");
       this.loading.set(false);
       return;
     }
-    if (!this.isControlPlanePortal && !inputTenantCode && !this.detectedTenantCode) {
+    if (
+      !isControlPlaneLogin &&
+      !inputTenantCode &&
+      !this.hostDetectedTenantCode
+    ) {
       this.error.set("Tenant code obrigatório para o portal do tenant.");
       this.loading.set(false);
       return;
@@ -73,11 +85,12 @@ export class LoginPageComponent {
         ),
         switchMap(({ token, authenticatedUser }) => {
           const resolvedTenantCode = this.resolveTenantCode(
+            isControlPlaneLogin,
             inputTenantCode,
             authenticatedUser.memberships.map((membership) => membership.tenant_code)
           );
 
-          if (this.isControlPlanePortal) {
+          if (isControlPlaneLogin) {
             if (!authenticatedUser.platform_admin) {
               return throwError(
                 () => new Error("Usuário sem permissão para o portal Control Plane.")
@@ -129,11 +142,11 @@ export class LoginPageComponent {
             username: authenticatedUser.username,
             role: tenantMe?.role ?? fallbackRole,
             platformAdmin: authenticatedUser.platform_admin,
-            portalType: this.isControlPlanePortal ? "CONTROL_PLANE" : "TENANT",
+            portalType: isControlPlaneLogin ? "CONTROL_PLANE" : "TENANT",
           });
           this.loading.set(false);
           void this.router.navigate(
-            this.isControlPlanePortal ? ["/platform/tenants"] : ["/sales/flow"]
+            isControlPlaneLogin ? ["/platform/tenants"] : ["/sales/flow"]
           );
         },
         error: (err) => {
@@ -149,15 +162,24 @@ export class LoginPageComponent {
       });
   }
 
+  setPortalType(portalType: SessionPortalType): void {
+    this.selectedPortalType.set(portalType);
+    this.error.set("");
+    if (portalType === "TENANT" && !this.tenantCode().trim() && this.hostDetectedTenantCode) {
+      this.tenantCode.set(this.hostDetectedTenantCode);
+    }
+  }
+
   private resolveTenantCode(
+    isControlPlaneLogin: boolean,
     inputTenantCode: string,
     membershipTenantCodes: string[]
   ): string {
     if (inputTenantCode) {
       return inputTenantCode;
     }
-    if (this.detectedTenantCode) {
-      return this.detectedTenantCode;
+    if (!isControlPlaneLogin && this.hostDetectedTenantCode) {
+      return this.hostDetectedTenantCode;
     }
     if (membershipTenantCodes.length === 1) {
       return membershipTenantCodes[0];

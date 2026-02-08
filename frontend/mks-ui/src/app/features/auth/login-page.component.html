@@ -1,22 +1,40 @@
 <section
   class="login-wrap"
-  [class.control-plane]="isControlPlanePortal"
-  [class.tenant-portal]="!isControlPlanePortal"
+  [class.control-plane]="isControlPlanePortal()"
+  [class.tenant-portal]="!isControlPlanePortal()"
 >
   <div class="login-card">
     <div class="portal-badge">
-      {{ isControlPlanePortal ? "Portal Sistema" : "Portal Tenant" }}
+      {{ isControlPlanePortal() ? "Portal Sistema" : "Portal Tenant" }}
     </div>
-    <h1>{{ isControlPlanePortal ? "Acesso Control Plane" : "Acesso ao Tenant" }}</h1>
-    <p *ngIf="isControlPlanePortal">
+    <h1>{{ isControlPlanePortal() ? "Acesso Control Plane" : "Acesso ao Tenant" }}</h1>
+
+    <div class="portal-switch">
+      <button
+        type="button"
+        [class.active]="isControlPlanePortal()"
+        (click)="setPortalType('CONTROL_PLANE')"
+      >
+        Sistema
+      </button>
+      <button
+        type="button"
+        [class.active]="!isControlPlanePortal()"
+        (click)="setPortalType('TENANT')"
+      >
+        Tenant
+      </button>
+    </div>
+
+    <p *ngIf="isControlPlanePortal()">
       Login administrativo para gestão de tenants no subdomínio
       <strong>sistema</strong>.
     </p>
-    <p *ngIf="!isControlPlanePortal">
+    <p *ngIf="!isControlPlanePortal()">
       Entre com usuário e senha para carregar seu contexto de tenant.
     </p>
 
-    <label *ngIf="!isControlPlanePortal || !detectedTenantCode">
+    <label *ngIf="!isControlPlanePortal()">
       Tenant Code
       <input
         type="text"
@@ -24,8 +42,8 @@
         (ngModelChange)="tenantCode.set($event)"
       />
     </label>
-    <p *ngIf="detectedTenantCode && !isControlPlanePortal" class="hint">
-      Tenant detectado pelo subdomínio: <strong>{{ detectedTenantCode }}</strong>
+    <p *ngIf="hostDetectedTenantCode && !isControlPlanePortal()" class="hint">
+      Tenant detectado pelo subdomínio: <strong>{{ hostDetectedTenantCode }}</strong>
     </p>
 
     <label>
