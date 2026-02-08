@@ -21,7 +21,11 @@ interface NavItem {
 export class AppComponent {
   readonly session = computed(() => this.sessionService.session());
   readonly isAuthenticated = computed(() => this.sessionService.isAuthenticated());
-  readonly portalType = computed(() => this.portalContextService.portalType());
+  readonly portalType = computed(() => {
+    const session = this.session();
+    // Prefer the portal type chosen during login; fall back to hostname detection.
+    return session?.portalType ?? this.portalContextService.portalType();
+  });
   readonly hostname = this.portalContextService.hostname();
 
   private readonly controlPlaneMenu: NavItem[] = [
