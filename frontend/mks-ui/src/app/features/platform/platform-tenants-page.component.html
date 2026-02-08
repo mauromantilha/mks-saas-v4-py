@@ -143,6 +143,13 @@
               >
                 Failed
               </button>
+              <button
+                type="button"
+                (click)="executeProvisioning(tenant)"
+                [disabled]="loading()"
+              >
+                Executar Provisioning
+              </button>
             </div>
           </td>
         </tr>

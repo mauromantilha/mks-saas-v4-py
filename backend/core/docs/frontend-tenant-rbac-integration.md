@@ -13,10 +13,16 @@ And tenant membership management via:
 - `PATCH /api/auth/tenant-members/{membership_id}/`
 - `DELETE /api/auth/tenant-members/{membership_id}/`
 
-Headers required on all calls:
+Headers:
 
 - `Authorization: Token <token>`
-- `X-Tenant-ID: <tenant_code>`
+- `X-Tenant-ID: <tenant_code>` (optional when request host is tenant subdomain)
+
+Tenant resolution modes:
+
+- Header mode (local/dev): send `X-Tenant-ID`.
+- Subdomain mode (prod): call tenant API from `https://{tenant}.mksbrasil.com` and omit
+  tenant header.
 
 ## Behavior
 

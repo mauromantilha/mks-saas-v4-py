@@ -46,4 +46,14 @@ export class PlatformTenantsService {
       payload
     );
   }
+
+  executeProvisioning(
+    companyId: number,
+    payload?: { portal_url?: string }
+  ): Observable<PlatformTenantRecord> {
+    return this.http.post<PlatformTenantRecord>(
+      `${this.baseUrl}${companyId}/provision/execute/`,
+      payload ?? {}
+    );
+  }
 }

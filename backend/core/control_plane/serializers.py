@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from control_plane.models import TenantContract, TenantProvisioning
@@ -106,6 +107,15 @@ class TenantControlPlaneCreateSerializer(serializers.Serializer):
     contract = TenantContractPayloadSerializer(required=False)
     provisioning = TenantProvisioningPayloadSerializer(required=False)
 
+    def validate_subdomain(self, value: str) -> str:
+        subdomain = value.strip().lower()
+        reserved = set(getattr(settings, "TENANT_RESERVED_SUBDOMAINS", []))
+        if subdomain in reserved:
+            raise serializers.ValidationError(
+                f"Subdomain '{subdomain}' is reserved and cannot be used by tenants."
+            )
+        return subdomain
+
 
 class TenantControlPlaneUpdateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=150, required=False)
@@ -119,8 +129,21 @@ class TenantControlPlaneUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Send at least one field to update.")
         return attrs
 
+    def validate_subdomain(self, value: str) -> str:
+        subdomain = value.strip().lower()
+        reserved = set(getattr(settings, "TENANT_RESERVED_SUBDOMAINS", []))
+        if subdomain in reserved:
+            raise serializers.ValidationError(
+                f"Subdomain '{subdomain}' is reserved and cannot be used by tenants."
+            )
+        return subdomain
+
 
 class TenantProvisionActionSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=TenantProvisioning.STATUS_CHOICES)
     portal_url = serializers.URLField(required=False, allow_blank=True)
     last_error = serializers.CharField(required=False, allow_blank=True)
+
+
+class TenantProvisionExecuteSerializer(serializers.Serializer):
+    portal_url = serializers.URLField(required=False, allow_blank=True)

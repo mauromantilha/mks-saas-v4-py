@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from control_plane.models import TenantContract, TenantProvisioning
 from customers.models import Company
@@ -51,6 +51,12 @@ class ControlPlaneTenantTests(TestCase):
         self.client.force_login(self.regular_user)
         response = self.client.get("/platform/api/tenants/")
         self.assertEqual(response.status_code, 403)
+        execute_response = self.client.post(
+            f"/platform/api/tenants/{self.company.id}/provision/execute/",
+            data={},
+            content_type="application/json",
+        )
+        self.assertEqual(execute_response.status_code, 403)
 
     def test_platform_admin_can_list_tenants(self):
         self.client.force_login(self.platform_admin)
@@ -147,3 +153,166 @@ class ControlPlaneTenantTests(TestCase):
         self.assertEqual(payload["provisioning"]["status"], TenantProvisioning.STATUS_READY)
         self.assertEqual(payload["provisioning"]["portal_url"], "https://acme.crm.example.com")
         self.assertIsNotNone(payload["provisioning"]["provisioned_at"])
+
+    def test_platform_admin_can_execute_provisioning_with_noop_provider(self):
+        self.provisioning.status = TenantProvisioning.STATUS_PENDING
+        self.provisioning.provisioned_at = None
+        self.provisioning.portal_url = ""
+        self.provisioning.save(
+            update_fields=["status", "provisioned_at", "portal_url", "updated_at"]
+        )
+
+        self.client.force_login(self.platform_admin)
+        response = self.client.post(
+            f"/platform/api/tenants/{self.company.id}/provision/execute/",
+            data={},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["provisioning"]["status"], TenantProvisioning.STATUS_READY)
+        self.assertIsNotNone(payload["provisioning"]["provisioned_at"])
+
+    @override_settings(CONTROL_PLANE_PROVISIONER="unknown-provider")
+    def test_execute_provisioning_with_unknown_provider_marks_failed(self):
+        self.provisioning.status = TenantProvisioning.STATUS_PENDING
+        self.provisioning.provisioned_at = None
+        self.provisioning.last_error = ""
+        self.provisioning.save(
+            update_fields=["status", "provisioned_at", "last_error", "updated_at"]
+        )
+
+        self.client.force_login(self.platform_admin)
+        response = self.client.post(
+            f"/platform/api/tenants/{self.company.id}/provision/execute/",
+            data={},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertIn("Unknown control-plane provisioner", payload["detail"])
+        self.company.refresh_from_db()
+        self.assertEqual(
+            self.company.provisioning.status,
+            TenantProvisioning.STATUS_FAILED,
+        )
+
+    @override_settings(
+        CONTROL_PLANE_PROVISIONER="cloudsql_postgres",
+        CONTROL_PLANE_CLOUDSQL_ADMIN_USER="",
+        CONTROL_PLANE_CLOUDSQL_ADMIN_PASSWORD="",
+        CONTROL_PLANE_CLOUDSQL_ADMIN_HOST="127.0.0.1",
+    )
+    def test_execute_provisioning_cloudsql_without_admin_credentials_marks_failed(self):
+        self.provisioning.status = TenantProvisioning.STATUS_PENDING
+        self.provisioning.last_error = ""
+        self.provisioning.save(update_fields=["status", "last_error", "updated_at"])
+
+        self.client.force_login(self.platform_admin)
+        response = self.client.post(
+            f"/platform/api/tenants/{self.company.id}/provision/execute/",
+            data={},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertIn("CONTROL_PLANE_CLOUDSQL_ADMIN_USER", payload["detail"])
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.provisioning.status, TenantProvisioning.STATUS_FAILED)
+
+    @override_settings(
+        CONTROL_PLANE_PROVISIONER="cloudsql_postgres",
+        CONTROL_PLANE_CLOUDSQL_ADMIN_USER="admin",
+        CONTROL_PLANE_CLOUDSQL_ADMIN_PASSWORD="admin-password",
+        CONTROL_PLANE_CLOUDSQL_ADMIN_HOST="",
+    )
+    def test_execute_provisioning_cloudsql_without_host_marks_failed(self):
+        self.provisioning.status = TenantProvisioning.STATUS_PENDING
+        self.provisioning.last_error = ""
+        self.provisioning.save(update_fields=["status", "last_error", "updated_at"])
+
+        self.client.force_login(self.platform_admin)
+        response = self.client.post(
+            f"/platform/api/tenants/{self.company.id}/provision/execute/",
+            data={},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertIn("CONTROL_PLANE_CLOUDSQL_ADMIN_HOST", payload["detail"])
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.provisioning.status, TenantProvisioning.STATUS_FAILED)
+
+    @override_settings(TENANT_RESERVED_SUBDOMAINS=["sistema", "api"])
+    def test_platform_admin_cannot_create_tenant_with_reserved_subdomain(self):
+        self.client.force_login(self.platform_admin)
+        response = self.client.post(
+            "/platform/api/tenants/",
+            data={
+                "name": "Reserved Subdomain Inc",
+                "tenant_code": "reserved-subdomain-inc",
+                "subdomain": "sistema",
+                "is_active": True,
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertIn("subdomain", payload)
+
+    @override_settings(TENANT_RESERVED_SUBDOMAINS=["sistema", "api"])
+    def test_platform_admin_cannot_patch_tenant_to_reserved_subdomain(self):
+        self.client.force_login(self.platform_admin)
+        response = self.client.patch(
+            f"/platform/api/tenants/{self.company.id}/",
+            data={"subdomain": "api"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertIn("subdomain", payload)
+
+    @override_settings(
+        ALLOWED_HOSTS=["testserver", "sistema.mksbrasil.com", "acme-base.mksbrasil.com"],
+        CONTROL_PLANE_ALLOWED_HOSTS=["sistema.mksbrasil.com"],
+    )
+    def test_control_plane_host_restriction_blocks_tenant_host(self):
+        self.client.force_login(self.platform_admin)
+
+        blocked_response = self.client.get(
+            "/platform/api/tenants/",
+            HTTP_HOST="acme-base.mksbrasil.com",
+        )
+        self.assertEqual(blocked_response.status_code, 403)
+
+        allowed_response = self.client.get(
+            "/platform/api/tenants/",
+            HTTP_HOST="sistema.mksbrasil.com",
+        )
+        self.assertEqual(allowed_response.status_code, 200)
+
+    @override_settings(
+        CONTROL_PLANE_PROVISIONER="noop",
+        CONTROL_PLANE_PORTAL_URL_TEMPLATE="",
+        TENANT_BASE_DOMAIN="mksbrasil.com",
+    )
+    def test_execute_provisioning_generates_portal_url_from_tenant_base_domain(self):
+        self.provisioning.status = TenantProvisioning.STATUS_PENDING
+        self.provisioning.provisioned_at = None
+        self.provisioning.portal_url = ""
+        self.provisioning.save(
+            update_fields=["status", "provisioned_at", "portal_url", "updated_at"]
+        )
+
+        self.client.force_login(self.platform_admin)
+        response = self.client.post(
+            f"/platform/api/tenants/{self.company.id}/provision/execute/",
+            data={},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            payload["provisioning"]["portal_url"],
+            "https://acme-base.mksbrasil.com",
+        )

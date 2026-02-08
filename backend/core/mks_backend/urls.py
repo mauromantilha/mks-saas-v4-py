@@ -22,6 +22,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 from control_plane.views import (
     ControlPlaneTenantDetailAPIView,
     ControlPlaneTenantListCreateAPIView,
+    ControlPlaneTenantProvisionExecuteAPIView,
     ControlPlaneTenantProvisionAPIView,
 )
 from customers.views import (
@@ -80,6 +81,11 @@ urlpatterns = [
         "platform/api/tenants/<int:company_id>/provision/",
         ControlPlaneTenantProvisionAPIView.as_view(),
         name="platform-tenants-provision",
+    ),
+    path(
+        "platform/api/tenants/<int:company_id>/provision/execute/",
+        ControlPlaneTenantProvisionExecuteAPIView.as_view(),
+        name="platform-tenants-provision-execute",
     ),
     path("api/auth/token/", obtain_auth_token, name="api-token-auth"),
     path("api/auth/me/", AuthenticatedUserAPIView.as_view(), name="auth-me"),

@@ -7,11 +7,13 @@ from rest_framework.views import APIView
 
 from control_plane.models import TenantContract, TenantProvisioning
 from control_plane.permissions import IsPlatformAdmin
+from control_plane.provisioning import execute_tenant_provisioning
 from control_plane.serializers import (
     TenantControlPlaneCreateSerializer,
     TenantControlPlaneReadSerializer,
     TenantControlPlaneUpdateSerializer,
     TenantProvisionActionSerializer,
+    TenantProvisionExecuteSerializer,
 )
 from customers.models import Company
 
@@ -198,3 +200,35 @@ class ControlPlaneTenantProvisionAPIView(APIView):
         company.refresh_from_db()
         read_serializer = TenantControlPlaneReadSerializer(company)
         return Response(read_serializer.data)
+
+
+class ControlPlaneTenantProvisionExecuteAPIView(APIView):
+    permission_classes = [IsPlatformAdmin]
+
+    def post(self, request, company_id):
+        serializer = TenantProvisionExecuteSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
+
+        company = get_object_or_404(Company, id=company_id)
+        provisioning, _ = TenantProvisioning.objects.get_or_create(
+            company=company,
+            defaults=default_provisioning_values(company),
+        )
+        if "portal_url" in payload:
+            provisioning.portal_url = payload["portal_url"]
+            provisioning.save(update_fields=("portal_url", "updated_at"))
+
+        result = execute_tenant_provisioning(company, provisioning)
+        company.refresh_from_db()
+        read_serializer = TenantControlPlaneReadSerializer(company)
+        if result.success:
+            return Response(read_serializer.data)
+        return Response(
+            {
+                "detail": result.message,
+                "provider": result.provider,
+                "tenant": read_serializer.data,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )

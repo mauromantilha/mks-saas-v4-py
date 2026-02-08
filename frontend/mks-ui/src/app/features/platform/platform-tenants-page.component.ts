@@ -138,6 +138,23 @@ export class PlatformTenantsPageComponent {
       });
   }
 
+  executeProvisioning(tenant: PlatformTenantRecord): void {
+    this.loading.set(true);
+    this.error.set("");
+    this.success.set("");
+    this.platformTenantsService
+      .executeProvisioning(tenant.id, {
+        portal_url: tenant.provisioning?.portal_url ?? "",
+      })
+      .subscribe({
+        next: () => {
+          this.success.set("Provisioning executado com sucesso.");
+          this.load();
+        },
+        error: (err) => this.handleError(err, "Falha ao executar provisioning."),
+      });
+  }
+
   private handleError(err: unknown, fallbackMessage: string): void {
     const maybeError = err as { error?: { detail?: unknown } };
     this.error.set(

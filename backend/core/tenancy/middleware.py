@@ -31,6 +31,10 @@ class TenantContextMiddleware:
         self.public_hosts = set(
             host.lower() for host in getattr(settings, "TENANT_PUBLIC_HOSTS", [])
         )
+        self.reserved_subdomains = set(
+            subdomain.lower()
+            for subdomain in getattr(settings, "TENANT_RESERVED_SUBDOMAINS", [])
+        )
         self.base_domain = getattr(settings, "TENANT_BASE_DOMAIN", "").lower()
 
     def __call__(self, request):
@@ -103,6 +107,8 @@ class TenantContextMiddleware:
 
         subdomain = self._extract_subdomain(host)
         if not subdomain:
+            return None
+        if subdomain in self.reserved_subdomains:
             return None
 
         return (

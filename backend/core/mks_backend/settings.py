@@ -169,16 +169,48 @@ REST_FRAMEWORK = {
 }
 
 TENANT_ID_HEADER = env("TENANT_ID_HEADER", default="X-Tenant-ID")
-TENANT_BASE_DOMAIN = env("TENANT_BASE_DOMAIN", default="")
+TENANT_BASE_DOMAIN = env("TENANT_BASE_DOMAIN", default="").strip().lower()
 TENANT_REQUIRED_PATH_PREFIXES = env.list("TENANT_REQUIRED_PATH_PREFIXES", default=["/api/"])
 TENANT_EXEMPT_PATH_PREFIXES = env.list(
     "TENANT_EXEMPT_PATH_PREFIXES",
     default=["/api/auth/token/", "/api/auth/me/"],
 )
-TENANT_PUBLIC_HOSTS = env.list(
+CONTROL_PLANE_SUBDOMAIN = env("CONTROL_PLANE_SUBDOMAIN", default="sistema").strip().lower()
+CONTROL_PLANE_HOST = env("CONTROL_PLANE_HOST", default="").strip().lower()
+if not CONTROL_PLANE_HOST and TENANT_BASE_DOMAIN and CONTROL_PLANE_SUBDOMAIN:
+    CONTROL_PLANE_HOST = f"{CONTROL_PLANE_SUBDOMAIN}.{TENANT_BASE_DOMAIN}"
+
+tenant_public_hosts = [
+    host.strip().lower()
+    for host in env.list(
     "TENANT_PUBLIC_HOSTS",
     default=["localhost", "127.0.0.1", "testserver"],
-)
+    )
+    if host.strip()
+]
+if CONTROL_PLANE_HOST and CONTROL_PLANE_HOST not in tenant_public_hosts:
+    tenant_public_hosts.append(CONTROL_PLANE_HOST)
+TENANT_PUBLIC_HOSTS = tenant_public_hosts
+TENANT_RESERVED_SUBDOMAINS = [
+    subdomain.strip().lower()
+    for subdomain in env.list(
+        "TENANT_RESERVED_SUBDOMAINS",
+        default=["sistema", "www", "api", "admin", "static", "media"],
+    )
+    if subdomain.strip()
+]
+if CONTROL_PLANE_SUBDOMAIN and CONTROL_PLANE_SUBDOMAIN not in TENANT_RESERVED_SUBDOMAINS:
+    TENANT_RESERVED_SUBDOMAINS.append(CONTROL_PLANE_SUBDOMAIN)
+CONTROL_PLANE_ALLOWED_HOSTS = [
+    host.strip().lower()
+    for host in env.list(
+        "CONTROL_PLANE_ALLOWED_HOSTS",
+        default=["localhost", "127.0.0.1", "testserver"],
+    )
+    if host.strip()
+]
+if CONTROL_PLANE_HOST and CONTROL_PLANE_HOST not in CONTROL_PLANE_ALLOWED_HOSTS:
+    CONTROL_PLANE_ALLOWED_HOSTS.append(CONTROL_PLANE_HOST)
 
 raw_tenant_role_matrices = env("TENANT_ROLE_MATRICES", default="")
 try:
@@ -187,3 +219,49 @@ try:
     )
 except json.JSONDecodeError:
     TENANT_ROLE_MATRICES = {}
+
+CONTROL_PLANE_PROVISIONER = env("CONTROL_PLANE_PROVISIONER", default="noop")
+CONTROL_PLANE_PORTAL_URL_TEMPLATE = env("CONTROL_PLANE_PORTAL_URL_TEMPLATE", default="")
+CONTROL_PLANE_LOCAL_DB_ADMIN_DATABASE = env(
+    "CONTROL_PLANE_LOCAL_DB_ADMIN_DATABASE",
+    default="postgres",
+)
+CONTROL_PLANE_LOCAL_DB_ADMIN_USER = env("CONTROL_PLANE_LOCAL_DB_ADMIN_USER", default="")
+CONTROL_PLANE_LOCAL_DB_ADMIN_PASSWORD = env(
+    "CONTROL_PLANE_LOCAL_DB_ADMIN_PASSWORD",
+    default="",
+)
+CONTROL_PLANE_LOCAL_DB_ADMIN_HOST = env(
+    "CONTROL_PLANE_LOCAL_DB_ADMIN_HOST",
+    default=env("DATABASE_HOST", default="127.0.0.1"),
+)
+CONTROL_PLANE_LOCAL_DB_ADMIN_PORT = env.int(
+    "CONTROL_PLANE_LOCAL_DB_ADMIN_PORT",
+    default=env.int("DATABASE_PORT", default=5432),
+)
+CONTROL_PLANE_LOCAL_DB_PASSWORD_DEFAULT = env(
+    "CONTROL_PLANE_LOCAL_DB_PASSWORD_DEFAULT",
+    default="change-me-tenant-password",
+)
+CONTROL_PLANE_CLOUDSQL_ADMIN_DATABASE = env(
+    "CONTROL_PLANE_CLOUDSQL_ADMIN_DATABASE",
+    default="postgres",
+)
+CONTROL_PLANE_CLOUDSQL_ADMIN_USER = env("CONTROL_PLANE_CLOUDSQL_ADMIN_USER", default="")
+CONTROL_PLANE_CLOUDSQL_ADMIN_PASSWORD = env(
+    "CONTROL_PLANE_CLOUDSQL_ADMIN_PASSWORD",
+    default="",
+)
+CONTROL_PLANE_CLOUDSQL_ADMIN_HOST = env("CONTROL_PLANE_CLOUDSQL_ADMIN_HOST", default="")
+CONTROL_PLANE_CLOUDSQL_ADMIN_PORT = env.int(
+    "CONTROL_PLANE_CLOUDSQL_ADMIN_PORT",
+    default=5432,
+)
+CONTROL_PLANE_CLOUDSQL_ADMIN_SSLMODE = env(
+    "CONTROL_PLANE_CLOUDSQL_ADMIN_SSLMODE",
+    default="disable",
+)
+CONTROL_PLANE_CLOUDSQL_TENANT_PASSWORD_DEFAULT = env(
+    "CONTROL_PLANE_CLOUDSQL_TENANT_PASSWORD_DEFAULT",
+    default="change-me-tenant-password",
+)
