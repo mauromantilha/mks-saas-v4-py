@@ -265,3 +265,15 @@ CONTROL_PLANE_CLOUDSQL_TENANT_PASSWORD_DEFAULT = env(
     "CONTROL_PLANE_CLOUDSQL_TENANT_PASSWORD_DEFAULT",
     default="change-me-tenant-password",
 )
+
+VERTEX_AI_ENABLED = env.bool("VERTEX_AI_ENABLED", default=False)
+VERTEX_AI_PROJECT_ID = env(
+    "VERTEX_AI_PROJECT_ID",
+    default=env("GOOGLE_CLOUD_PROJECT", default=""),
+).strip()
+VERTEX_AI_LOCATION = env("VERTEX_AI_LOCATION", default="us-central1").strip()
+VERTEX_AI_MODEL = env("VERTEX_AI_MODEL", default="gemini-1.5-pro-002").strip()
+VERTEX_AI_TEMPERATURE = env.float("VERTEX_AI_TEMPERATURE", default=0.2)
+
+CNPJ_LOOKUP_ENDPOINT = env("CNPJ_LOOKUP_ENDPOINT", default="").strip()
+CNPJ_LOOKUP_TIMEOUT_SECONDS = env.float("CNPJ_LOOKUP_TIMEOUT_SECONDS", default=8.0)

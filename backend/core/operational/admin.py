@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from operational.models import Apolice, Customer, Endosso, Lead, Opportunity
+from operational.models import (
+    Apolice,
+    CommercialActivity,
+    Customer,
+    Endosso,
+    Lead,
+    Opportunity,
+)
 
 
 class TenantScopedAdmin(admin.ModelAdmin):
@@ -10,20 +17,21 @@ class TenantScopedAdmin(admin.ModelAdmin):
 
 @admin.register(Customer)
 class CustomerAdmin(TenantScopedAdmin):
-    list_display = ("name", "email", "company", "created_at")
-    search_fields = ("name", "email", "document")
-    list_filter = ("company",)
+    list_display = ("name", "email", "lifecycle_stage", "cnpj", "company", "created_at")
+    search_fields = ("name", "email", "document", "cnpj", "legal_name", "trade_name")
+    list_filter = ("company", "lifecycle_stage", "customer_type")
 
 
 @admin.register(Lead)
 class LeadAdmin(TenantScopedAdmin):
-    list_display = ("id", "source", "status", "company", "created_at")
+    list_display = ("id", "source", "company_name", "status", "qualification_score", "company")
     list_filter = ("status", "company")
+    search_fields = ("source", "full_name", "company_name", "email", "cnpj")
 
 
 @admin.register(Opportunity)
 class OpportunityAdmin(TenantScopedAdmin):
-    list_display = ("title", "customer", "stage", "amount", "company", "created_at")
+    list_display = ("title", "customer", "stage", "amount", "closing_probability", "company")
     search_fields = ("title", "customer__name")
     list_filter = ("stage", "company")
 
@@ -39,3 +47,19 @@ class ApoliceAdmin(TenantScopedAdmin):
 class EndossoAdmin(TenantScopedAdmin):
     list_display = ("numero_endosso", "tipo", "apolice", "company", "data_emissao")
     list_filter = ("tipo", "company")
+
+
+@admin.register(CommercialActivity)
+class CommercialActivityAdmin(TenantScopedAdmin):
+    list_display = (
+        "id",
+        "title",
+        "kind",
+        "channel",
+        "status",
+        "priority",
+        "due_at",
+        "company",
+    )
+    list_filter = ("kind", "channel", "status", "priority", "company")
+    search_fields = ("title", "description", "lead__source", "opportunity__title")

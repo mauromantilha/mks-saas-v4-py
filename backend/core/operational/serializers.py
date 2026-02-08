@@ -11,18 +11,85 @@ from operational.models import (
 
 
 class CustomerSerializer(serializers.ModelSerializer):
+    assigned_to_username = serializers.CharField(
+        source="assigned_to.username", read_only=True
+    )
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        company = getattr(request, "company", None)
+        assigned_to = attrs.get("assigned_to", getattr(self.instance, "assigned_to", None))
+
+        if company is not None and assigned_to is not None:
+            from customers.models import CompanyMembership
+
+            is_member = CompanyMembership.objects.filter(
+                company=company,
+                user=assigned_to,
+                is_active=True,
+            ).exists()
+            if not is_member:
+                raise serializers.ValidationError(
+                    "Assigned user is not an active member of this tenant."
+                )
+
+        return attrs
+
     class Meta:
         model = Customer
         fields = (
             "id",
             "name",
             "email",
+            "customer_type",
+            "lifecycle_stage",
+            "legal_name",
+            "trade_name",
             "phone",
+            "whatsapp",
             "document",
+            "cnpj",
+            "cpf",
+            "state_registration",
+            "municipal_registration",
+            "website",
+            "linkedin_url",
+            "instagram_url",
+            "facebook_url",
+            "lead_source",
+            "industry",
+            "company_size",
+            "annual_revenue",
+            "contact_name",
+            "contact_role",
+            "secondary_contact_name",
+            "secondary_contact_email",
+            "secondary_contact_phone",
+            "billing_email",
+            "billing_phone",
+            "zip_code",
+            "state",
+            "city",
+            "neighborhood",
+            "street",
+            "street_number",
+            "address_complement",
+            "assigned_to",
+            "assigned_to_username",
+            "last_contact_at",
+            "next_follow_up_at",
+            "notes",
+            "ai_insights",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "assigned_to_username",
+            "ai_insights",
+            "created_at",
+            "updated_at",
+        )
 
 
 class LeadSerializer(serializers.ModelSerializer):
@@ -39,13 +106,31 @@ class LeadSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "source",
+            "full_name",
+            "job_title",
+            "company_name",
+            "email",
+            "phone",
+            "whatsapp",
+            "cnpj",
+            "website",
+            "linkedin_url",
+            "instagram_url",
             "customer",
             "status",
+            "products_of_interest",
+            "estimated_budget",
+            "estimated_close_date",
+            "qualification_score",
+            "disqualification_reason",
+            "last_contact_at",
+            "next_follow_up_at",
             "notes",
+            "ai_insights",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = ("id", "ai_insights", "created_at", "updated_at")
 
 
 class OpportunitySerializer(serializers.ModelSerializer):
@@ -67,10 +152,17 @@ class OpportunitySerializer(serializers.ModelSerializer):
             "stage",
             "amount",
             "expected_close_date",
+            "closing_probability",
+            "next_step",
+            "next_step_due_at",
+            "loss_reason",
+            "competitors",
+            "notes",
+            "ai_insights",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = ("id", "ai_insights", "created_at", "updated_at")
 
 
 class ApoliceSerializer(serializers.ModelSerializer):
@@ -86,10 +178,11 @@ class ApoliceSerializer(serializers.ModelSerializer):
             "inicio_vigencia",
             "fim_vigencia",
             "status",
+            "ai_insights",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = ("id", "ai_insights", "created_at", "updated_at")
 
 
 class EndossoSerializer(serializers.ModelSerializer):
@@ -107,10 +200,11 @@ class EndossoSerializer(serializers.ModelSerializer):
             "valor_comissao",
             "data_emissao",
             "observacoes",
+            "ai_insights",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = ("id", "ai_insights", "created_at", "updated_at")
 
 
 class LeadConvertSerializer(serializers.Serializer):
@@ -136,6 +230,7 @@ class LeadConvertSerializer(serializers.Serializer):
         default=0,
     )
     expected_close_date = serializers.DateField(required=False, allow_null=True)
+    create_customer_if_missing = serializers.BooleanField(required=False, default=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -167,6 +262,8 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
             "kind",
             "title",
             "description",
+            "channel",
+            "outcome",
             "status",
             "priority",
             "due_at",
@@ -175,6 +272,11 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
             "sla_hours",
             "sla_due_at",
             "completed_at",
+            "started_at",
+            "ended_at",
+            "duration_minutes",
+            "meeting_url",
+            "location",
             "lead",
             "opportunity",
             "assigned_to",
@@ -183,6 +285,7 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
             "created_by_username",
             "is_overdue",
             "is_sla_breached",
+            "ai_insights",
             "created_at",
             "updated_at",
         )
@@ -191,11 +294,13 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
             "reminder_sent",
             "sla_due_at",
             "completed_at",
+            "duration_minutes",
             "created_by",
             "assigned_to_username",
             "created_by_username",
             "is_overdue",
             "is_sla_breached",
+            "ai_insights",
             "created_at",
             "updated_at",
         )
@@ -257,9 +362,27 @@ class OpportunityHistorySerializer(serializers.Serializer):
     activities = CommercialActivitySerializer(many=True)
 
 
+class AIInsightRequestSerializer(serializers.Serializer):
+    focus = serializers.CharField(required=False, allow_blank=True, max_length=500)
+    include_cnpj_enrichment = serializers.BooleanField(required=False, default=True)
+
+
+class CNPJEnrichmentRequestSerializer(serializers.Serializer):
+    cnpj = serializers.CharField(required=False, allow_blank=True, max_length=18)
+
+
+class SalesMetricsPeriodSerializer(serializers.Serializer):
+    from_date = serializers.DateField(allow_null=True, required=False)
+    to_date = serializers.DateField(allow_null=True, required=False)
+    assigned_to_user_id = serializers.IntegerField(allow_null=True, required=False)
+
+
 class SalesMetricsSerializer(serializers.Serializer):
     tenant_code = serializers.CharField()
+    period = SalesMetricsPeriodSerializer()
     lead_funnel = serializers.DictField(child=serializers.IntegerField())
     opportunity_funnel = serializers.DictField(child=serializers.IntegerField())
     activities = serializers.DictField(child=serializers.IntegerField())
+    activities_by_priority = serializers.DictField(child=serializers.IntegerField())
+    pipeline_value = serializers.DictField(child=serializers.FloatField())
     conversion = serializers.DictField(child=serializers.FloatField())

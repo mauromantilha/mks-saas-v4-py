@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -9,10 +10,82 @@ from tenancy.models import BaseTenantModel
 
 
 class Customer(BaseTenantModel):
+    TYPE_INDIVIDUAL = "INDIVIDUAL"
+    TYPE_COMPANY = "COMPANY"
+    TYPE_CHOICES = [
+        (TYPE_INDIVIDUAL, "Pessoa Física"),
+        (TYPE_COMPANY, "Pessoa Jurídica"),
+    ]
+
+    STAGE_LEAD = "LEAD"
+    STAGE_PROSPECT = "PROSPECT"
+    STAGE_CUSTOMER = "CUSTOMER"
+    STAGE_INACTIVE = "INACTIVE"
+    STAGE_CHOICES = [
+        (STAGE_LEAD, "Lead"),
+        (STAGE_PROSPECT, "Prospect"),
+        (STAGE_CUSTOMER, "Cliente"),
+        (STAGE_INACTIVE, "Inativo"),
+    ]
+
     name = models.CharField(max_length=255)
     email = models.EmailField()
+    customer_type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default=TYPE_COMPANY,
+    )
+    lifecycle_stage = models.CharField(
+        max_length=20,
+        choices=STAGE_CHOICES,
+        default=STAGE_PROSPECT,
+    )
+    legal_name = models.CharField(max_length=255, blank=True)
+    trade_name = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=30, blank=True)
+    whatsapp = models.CharField(max_length=30, blank=True)
     document = models.CharField(max_length=20, blank=True)
+    cnpj = models.CharField(max_length=18, blank=True, db_index=True)
+    cpf = models.CharField(max_length=14, blank=True, db_index=True)
+    state_registration = models.CharField(max_length=50, blank=True)
+    municipal_registration = models.CharField(max_length=50, blank=True)
+    website = models.URLField(blank=True)
+    linkedin_url = models.URLField(blank=True)
+    instagram_url = models.URLField(blank=True)
+    facebook_url = models.URLField(blank=True)
+    lead_source = models.CharField(max_length=120, blank=True)
+    industry = models.CharField(max_length=120, blank=True)
+    company_size = models.CharField(max_length=50, blank=True)
+    annual_revenue = models.DecimalField(
+        max_digits=16,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    contact_name = models.CharField(max_length=255, blank=True)
+    contact_role = models.CharField(max_length=120, blank=True)
+    secondary_contact_name = models.CharField(max_length=255, blank=True)
+    secondary_contact_email = models.EmailField(blank=True)
+    secondary_contact_phone = models.CharField(max_length=30, blank=True)
+    billing_email = models.EmailField(blank=True)
+    billing_phone = models.CharField(max_length=30, blank=True)
+    zip_code = models.CharField(max_length=12, blank=True)
+    state = models.CharField(max_length=60, blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    neighborhood = models.CharField(max_length=120, blank=True)
+    street = models.CharField(max_length=255, blank=True)
+    street_number = models.CharField(max_length=30, blank=True)
+    address_complement = models.CharField(max_length=120, blank=True)
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="assigned_customers",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    last_contact_at = models.DateTimeField(null=True, blank=True)
+    next_follow_up_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
 
     class Meta:
         ordering = ("name",)
@@ -20,6 +93,11 @@ class Customer(BaseTenantModel):
             models.UniqueConstraint(
                 fields=("company", "email"),
                 name="uq_customer_email_per_company",
+            ),
+            models.UniqueConstraint(
+                fields=("company", "cnpj"),
+                name="uq_customer_cnpj_per_company",
+                condition=~models.Q(cnpj=""),
             ),
         ]
 
@@ -36,6 +114,16 @@ class Lead(BaseTenantModel):
     ]
 
     source = models.CharField(max_length=100)
+    full_name = models.CharField(max_length=255, blank=True)
+    job_title = models.CharField(max_length=120, blank=True)
+    company_name = models.CharField(max_length=255, blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    whatsapp = models.CharField(max_length=30, blank=True)
+    cnpj = models.CharField(max_length=18, blank=True, db_index=True)
+    website = models.URLField(blank=True)
+    linkedin_url = models.URLField(blank=True)
+    instagram_url = models.URLField(blank=True)
     customer = models.ForeignKey(
         Customer,
         related_name="leads",
@@ -44,6 +132,22 @@ class Lead(BaseTenantModel):
         blank=True,
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="NEW")
+    products_of_interest = models.CharField(max_length=255, blank=True)
+    estimated_budget = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    estimated_close_date = models.DateField(null=True, blank=True)
+    qualification_score = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    disqualification_reason = models.TextField(blank=True)
+    last_contact_at = models.DateTimeField(null=True, blank=True)
+    next_follow_up_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
 
     class Meta:
@@ -51,6 +155,20 @@ class Lead(BaseTenantModel):
 
     def __str__(self):
         return f"Lead {self.id} - {self.source}"
+
+    def best_customer_name(self) -> str:
+        for candidate in (
+            self.company_name,
+            self.full_name,
+            self.source,
+        ):
+            candidate = (candidate or "").strip()
+            if candidate:
+                return candidate
+        return f"Lead {self.id}"
+
+    def best_customer_email(self) -> str:
+        return (self.email or "").strip().lower()
 
     STATUS_TRANSITIONS = {
         "NEW": frozenset(("QUALIFIED", "DISQUALIFIED")),
@@ -100,6 +218,15 @@ class Opportunity(BaseTenantModel):
     stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default="DISCOVERY")
     amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     expected_close_date = models.DateField(null=True, blank=True)
+    closing_probability = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    next_step = models.CharField(max_length=255, blank=True)
+    next_step_due_at = models.DateTimeField(null=True, blank=True)
+    loss_reason = models.TextField(blank=True)
+    competitors = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
 
     class Meta:
         ordering = ("-created_at",)
@@ -161,9 +288,51 @@ class CommercialActivity(BaseTenantModel):
         (PRIORITY_URGENT, "Urgent"),
     ]
 
+    CHANNEL_EMAIL = "EMAIL"
+    CHANNEL_PHONE = "PHONE"
+    CHANNEL_WHATSAPP = "WHATSAPP"
+    CHANNEL_MEETING = "MEETING"
+    CHANNEL_VISIT = "VISIT"
+    CHANNEL_LINKEDIN = "LINKEDIN"
+    CHANNEL_OTHER = "OTHER"
+    CHANNEL_CHOICES = [
+        (CHANNEL_EMAIL, "Email"),
+        (CHANNEL_PHONE, "Phone"),
+        (CHANNEL_WHATSAPP, "WhatsApp"),
+        (CHANNEL_MEETING, "Meeting"),
+        (CHANNEL_VISIT, "Visit"),
+        (CHANNEL_LINKEDIN, "LinkedIn"),
+        (CHANNEL_OTHER, "Other"),
+    ]
+
+    OUTCOME_CONNECTED = "CONNECTED"
+    OUTCOME_NO_ANSWER = "NO_ANSWER"
+    OUTCOME_INTERESTED = "INTERESTED"
+    OUTCOME_NOT_INTERESTED = "NOT_INTERESTED"
+    OUTCOME_FOLLOW_UP_SCHEDULED = "FOLLOW_UP_SCHEDULED"
+    OUTCOME_PROPOSAL_SENT = "PROPOSAL_SENT"
+    OUTCOME_CLOSED_WON = "CLOSED_WON"
+    OUTCOME_CLOSED_LOST = "CLOSED_LOST"
+    OUTCOME_CHOICES = [
+        (OUTCOME_CONNECTED, "Connected"),
+        (OUTCOME_NO_ANSWER, "No answer"),
+        (OUTCOME_INTERESTED, "Interested"),
+        (OUTCOME_NOT_INTERESTED, "Not interested"),
+        (OUTCOME_FOLLOW_UP_SCHEDULED, "Follow-up scheduled"),
+        (OUTCOME_PROPOSAL_SENT, "Proposal sent"),
+        (OUTCOME_CLOSED_WON, "Closed won"),
+        (OUTCOME_CLOSED_LOST, "Closed lost"),
+    ]
+
     kind = models.CharField(max_length=20, choices=KIND_CHOICES, default=KIND_TASK)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    channel = models.CharField(
+        max_length=20,
+        choices=CHANNEL_CHOICES,
+        default=CHANNEL_EMAIL,
+    )
+    outcome = models.CharField(max_length=30, choices=OUTCOME_CHOICES, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     priority = models.CharField(
         max_length=20,
@@ -176,6 +345,11 @@ class CommercialActivity(BaseTenantModel):
     sla_hours = models.PositiveIntegerField(null=True, blank=True)
     sla_due_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    duration_minutes = models.PositiveIntegerField(null=True, blank=True)
+    meeting_url = models.URLField(blank=True)
+    location = models.CharField(max_length=255, blank=True)
 
     lead = models.ForeignKey(
         Lead,
@@ -242,6 +416,8 @@ class CommercialActivity(BaseTenantModel):
             raise ValidationError("Activity and Opportunity must belong to the same company.")
         if self.reminder_at and self.due_at and self.reminder_at > self.due_at:
             raise ValidationError("Reminder must be before due date.")
+        if self.started_at and self.ended_at and self.ended_at < self.started_at:
+            raise ValidationError("Activity end date must be after start date.")
 
     def save(self, *args, **kwargs):
         if self.status == self.STATUS_DONE and self.completed_at is None:
@@ -250,6 +426,9 @@ class CommercialActivity(BaseTenantModel):
             self.completed_at = None
         if self.sla_hours and self.sla_due_at is None:
             self.sla_due_at = timezone.now() + timedelta(hours=self.sla_hours)
+        if self.started_at and self.ended_at:
+            elapsed = self.ended_at - self.started_at
+            self.duration_minutes = int(elapsed.total_seconds() // 60)
         return super().save(*args, **kwargs)
 
     def mark_done(self):

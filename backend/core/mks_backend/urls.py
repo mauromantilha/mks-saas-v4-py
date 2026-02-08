@@ -35,6 +35,7 @@ from customers.views import (
 )
 from operational.views import (
     ApoliceDetailAPIView,
+    ApoliceAIInsightsAPIView,
     ApoliceListCreateAPIView,
     CommercialActivityCompleteAPIView,
     CommercialActivityDetailAPIView,
@@ -43,16 +44,22 @@ from operational.views import (
     CommercialActivityRemindersAPIView,
     CommercialActivityReopenAPIView,
     CustomerDetailAPIView,
+    CustomerAIInsightsAPIView,
+    CustomerCNPJEnrichmentAPIView,
     CustomerListCreateAPIView,
     EndossoDetailAPIView,
+    EndossoAIInsightsAPIView,
     EndossoListCreateAPIView,
     LeadHistoryAPIView,
+    LeadAIInsightsAPIView,
     LeadConvertAPIView,
+    LeadCNPJEnrichmentAPIView,
     LeadDisqualifyAPIView,
     LeadQualifyAPIView,
     LeadDetailAPIView,
     LeadListCreateAPIView,
     OpportunityHistoryAPIView,
+    OpportunityAIInsightsAPIView,
     OpportunityStageUpdateAPIView,
     OpportunityDetailAPIView,
     OpportunityListCreateAPIView,
@@ -120,6 +127,16 @@ urlpatterns = [
         CustomerDetailAPIView.as_view(),
         name="customers-detail",
     ),
+    path(
+        "api/customers/<int:pk>/ai-insights/",
+        CustomerAIInsightsAPIView.as_view(),
+        name="customers-ai-insights",
+    ),
+    path(
+        "api/customers/<int:pk>/ai-enrich-cnpj/",
+        CustomerCNPJEnrichmentAPIView.as_view(),
+        name="customers-ai-enrich-cnpj",
+    ),
     path("api/leads/", LeadListCreateAPIView.as_view(), name="leads-list"),
     path("api/leads/<int:pk>/", LeadDetailAPIView.as_view(), name="leads-detail"),
     path("api/leads/<int:pk>/qualify/", LeadQualifyAPIView.as_view(), name="leads-qualify"),
@@ -130,6 +147,16 @@ urlpatterns = [
     ),
     path("api/leads/<int:pk>/convert/", LeadConvertAPIView.as_view(), name="leads-convert"),
     path("api/leads/<int:pk>/history/", LeadHistoryAPIView.as_view(), name="leads-history"),
+    path(
+        "api/leads/<int:pk>/ai-insights/",
+        LeadAIInsightsAPIView.as_view(),
+        name="leads-ai-insights",
+    ),
+    path(
+        "api/leads/<int:pk>/ai-enrich-cnpj/",
+        LeadCNPJEnrichmentAPIView.as_view(),
+        name="leads-ai-enrich-cnpj",
+    ),
     path(
         "api/opportunities/",
         OpportunityListCreateAPIView.as_view(),
@@ -144,6 +171,11 @@ urlpatterns = [
         "api/opportunities/<int:pk>/history/",
         OpportunityHistoryAPIView.as_view(),
         name="opportunities-history",
+    ),
+    path(
+        "api/opportunities/<int:pk>/ai-insights/",
+        OpportunityAIInsightsAPIView.as_view(),
+        name="opportunities-ai-insights",
     ),
     path(
         "api/opportunities/<int:pk>/stage/",
@@ -187,10 +219,20 @@ urlpatterns = [
         ApoliceDetailAPIView.as_view(),
         name="apolices-detail",
     ),
+    path(
+        "api/apolices/<int:pk>/ai-insights/",
+        ApoliceAIInsightsAPIView.as_view(),
+        name="apolices-ai-insights",
+    ),
     path("api/endossos/", EndossoListCreateAPIView.as_view(), name="endossos-list"),
     path(
         "api/endossos/<int:pk>/",
         EndossoDetailAPIView.as_view(),
         name="endossos-detail",
+    ),
+    path(
+        "api/endossos/<int:pk>/ai-insights/",
+        EndossoAIInsightsAPIView.as_view(),
+        name="endossos-ai-insights",
     ),
 ]

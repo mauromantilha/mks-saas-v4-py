@@ -11,6 +11,7 @@ class BaseTenantModel(models.Model):
         on_delete=models.PROTECT,
         related_name="%(app_label)s_%(class)s_set",
     )
+    ai_insights = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

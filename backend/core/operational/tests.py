@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -634,6 +635,38 @@ class TenantIsolationTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_convert_qualified_lead_auto_creates_customer_from_lead(self):
+        lead = Lead.all_objects.create(
+            company=self.company_a,
+            source="Inbound LP",
+            customer=None,
+            status="QUALIFIED",
+            full_name="Carla Lima",
+            company_name="Lima Transportes LTDA",
+            email="contato@limatransportes.com",
+            phone="11999990000",
+            cnpj="12888877000190",
+            products_of_interest="Seguro frota",
+            notes="Lead com intenção de fechamento em 15 dias.",
+        )
+        self.client.force_login(self.user_manager)
+        response = self.client.post(
+            f"/api/leads/{lead.id}/convert/",
+            data={
+                "title": "Oportunidade auto-criada",
+                "amount": "9800.00",
+            },
+            content_type="application/json",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertTrue(payload["customer_created"])
+        self.assertEqual(payload["customer"]["email"], "contato@limatransportes.com")
+        self.assertEqual(payload["customer"]["cnpj"], "12888877000190")
+        self.assertEqual(payload["lead"]["status"], "CONVERTED")
+        self.assertEqual(payload["opportunity"]["source_lead"], lead.id)
+
     def test_convert_lead_rejects_cross_tenant_customer(self):
         lead = Lead.all_objects.create(
             company=self.company_a,
@@ -849,6 +882,66 @@ class TenantIsolationTests(TestCase):
         returned_ids = {item["id"] for item in payload["activities"]}
         self.assertIn(activity.id, returned_ids)
 
+    def test_manager_can_generate_lead_ai_insights(self):
+        self.client.force_login(self.user_manager)
+        response = self.client.post(
+            f"/api/leads/{self.lead_a.id}/ai-insights/",
+            data={"focus": "estratégia de fechamento"},
+            content_type="application/json",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["entity_type"], "LEAD")
+        self.assertEqual(payload["entity_id"], self.lead_a.id)
+        self.assertIn("insights", payload)
+        self.assertIn("summary", payload["insights"])
+        self.lead_a.refresh_from_db()
+        self.assertIn("latest", self.lead_a.ai_insights)
+
+    def test_member_cannot_generate_lead_ai_insights(self):
+        self.client.force_login(self.user_member)
+        response = self.client.post(
+            f"/api/leads/{self.lead_a.id}/ai-insights/",
+            data={},
+            content_type="application/json",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @patch("operational.views.lookup_cnpj_profile")
+    def test_lead_cnpj_enrichment_endpoint_updates_lead(self, lookup_mock):
+        lead = Lead.all_objects.create(
+            company=self.company_a,
+            source="CNPJ source",
+            status="NEW",
+            cnpj="12888877000190",
+        )
+        lookup_mock.return_value = {
+            "success": True,
+            "provider": "cnpj_lookup",
+            "cnpj": "12888877000190",
+            "payload": {
+                "razao_social": "Empresa Exemplo LTDA",
+                "nome_fantasia": "Exemplo",
+                "uf": "SP",
+                "municipio": "São Paulo",
+                "qsa": [{"nome_socio": "Fulano de Tal"}],
+            },
+        }
+
+        self.client.force_login(self.user_manager)
+        response = self.client.post(
+            f"/api/leads/{lead.id}/ai-enrich-cnpj/",
+            data={},
+            content_type="application/json",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 200)
+        lead.refresh_from_db()
+        self.assertEqual(lead.company_name, "Empresa Exemplo LTDA")
+        self.assertIn("Sócios identificados", lead.notes)
+
     def test_metrics_endpoint_returns_funnel_and_activity_kpis(self):
         self.client.force_login(self.user_member)
         response = self.client.get(
@@ -861,6 +954,103 @@ class TenantIsolationTests(TestCase):
         self.assertIn("lead_funnel", payload)
         self.assertIn("opportunity_funnel", payload)
         self.assertIn("activities", payload)
+        self.assertIn("activities_by_priority", payload)
+        self.assertIn("pipeline_value", payload)
+        self.assertIn("period", payload)
         self.assertIn("conversion", payload)
         self.assertGreaterEqual(payload["activities"]["open_total"], 1)
         self.assertGreaterEqual(payload["activities"]["sla_breached_total"], 1)
+
+    def test_metrics_endpoint_supports_filters_and_pipeline_values(self):
+        old_lead = Lead.all_objects.create(
+            company=self.company_a,
+            source="Old campaign",
+            customer=self.customer_a,
+            status="CONVERTED",
+        )
+        old_opportunity = Opportunity.all_objects.create(
+            company=self.company_a,
+            customer=self.customer_a,
+            title="Old Won",
+            stage="WON",
+            amount=9000,
+            expected_close_date=timezone.localdate() - timedelta(days=40),
+        )
+        historical_timestamp = timezone.now() - timedelta(days=60)
+        Lead.all_objects.filter(pk=old_lead.pk).update(created_at=historical_timestamp)
+        Opportunity.all_objects.filter(pk=old_opportunity.pk).update(
+            created_at=historical_timestamp
+        )
+
+        Opportunity.all_objects.create(
+            company=self.company_a,
+            customer=self.customer_a,
+            title="Close soon",
+            stage="PROPOSAL",
+            amount=3200,
+            expected_close_date=timezone.localdate() + timedelta(days=10),
+        )
+        CommercialActivity.all_objects.create(
+            company=self.company_a,
+            kind=CommercialActivity.KIND_TASK,
+            title="Manager assigned",
+            status=CommercialActivity.STATUS_PENDING,
+            priority=CommercialActivity.PRIORITY_HIGH,
+            due_at=timezone.now() + timedelta(days=1),
+            lead=self.lead_a,
+            assigned_to=self.user_manager,
+            created_by=self.user_manager,
+        )
+        CommercialActivity.all_objects.create(
+            company=self.company_a,
+            kind=CommercialActivity.KIND_TASK,
+            title="Member assigned",
+            status=CommercialActivity.STATUS_PENDING,
+            priority=CommercialActivity.PRIORITY_MEDIUM,
+            due_at=timezone.now() + timedelta(days=1),
+            lead=self.lead_a,
+            assigned_to=self.user_member,
+            created_by=self.user_manager,
+        )
+
+        from_date = (timezone.localdate() - timedelta(days=30)).isoformat()
+        to_date = timezone.localdate().isoformat()
+
+        self.client.force_login(self.user_member)
+        response = self.client.get(
+            f"/api/sales/metrics/?from={from_date}&to={to_date}&assigned_to={self.user_manager.id}",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["period"]["from_date"], from_date)
+        self.assertEqual(payload["period"]["to_date"], to_date)
+        self.assertEqual(payload["period"]["assigned_to_user_id"], self.user_manager.id)
+        self.assertEqual(payload["activities"]["open_total"], 1)
+        self.assertEqual(payload["activities_by_priority"]["HIGH"], 1)
+        self.assertEqual(payload["activities_by_priority"]["MEDIUM"], 0)
+        self.assertAlmostEqual(payload["pipeline_value"]["open_total_amount"], 4200.0, places=2)
+        self.assertAlmostEqual(
+            payload["pipeline_value"]["expected_close_next_30d_amount"],
+            3200.0,
+            places=2,
+        )
+        self.assertAlmostEqual(payload["pipeline_value"]["won_total_amount"], 0.0, places=2)
+
+    def test_metrics_endpoint_rejects_invalid_date_range(self):
+        self.client.force_login(self.user_member)
+        response = self.client.get(
+            "/api/sales/metrics/?from=2026-12-31&to=2026-01-01",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("from", response.json()["detail"])
+
+    def test_metrics_endpoint_rejects_invalid_assigned_to(self):
+        self.client.force_login(self.user_member)
+        response = self.client.get(
+            "/api/sales/metrics/?assigned_to=abc",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("assigned_to", response.json()["detail"])
