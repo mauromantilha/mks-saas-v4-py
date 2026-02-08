@@ -19,6 +19,11 @@ from django.http import JsonResponse
 from django.urls import path
 from rest_framework.authtoken.views import obtain_auth_token
 
+from control_plane.views import (
+    ControlPlaneTenantDetailAPIView,
+    ControlPlaneTenantListCreateAPIView,
+    ControlPlaneTenantProvisionAPIView,
+)
 from customers.views import (
     ActiveTenantUserAPIView,
     AuthenticatedUserAPIView,
@@ -30,18 +35,27 @@ from customers.views import (
 from operational.views import (
     ApoliceDetailAPIView,
     ApoliceListCreateAPIView,
+    CommercialActivityCompleteAPIView,
+    CommercialActivityDetailAPIView,
+    CommercialActivityListCreateAPIView,
+    CommercialActivityMarkRemindedAPIView,
+    CommercialActivityRemindersAPIView,
+    CommercialActivityReopenAPIView,
     CustomerDetailAPIView,
     CustomerListCreateAPIView,
     EndossoDetailAPIView,
     EndossoListCreateAPIView,
+    LeadHistoryAPIView,
     LeadConvertAPIView,
     LeadDisqualifyAPIView,
     LeadQualifyAPIView,
     LeadDetailAPIView,
     LeadListCreateAPIView,
+    OpportunityHistoryAPIView,
     OpportunityStageUpdateAPIView,
     OpportunityDetailAPIView,
     OpportunityListCreateAPIView,
+    SalesMetricsAPIView,
 )
 
 
@@ -52,6 +66,21 @@ def healthz(_request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("healthz/", healthz, name="healthz"),
+    path(
+        "platform/api/tenants/",
+        ControlPlaneTenantListCreateAPIView.as_view(),
+        name="platform-tenants-list",
+    ),
+    path(
+        "platform/api/tenants/<int:company_id>/",
+        ControlPlaneTenantDetailAPIView.as_view(),
+        name="platform-tenants-detail",
+    ),
+    path(
+        "platform/api/tenants/<int:company_id>/provision/",
+        ControlPlaneTenantProvisionAPIView.as_view(),
+        name="platform-tenants-provision",
+    ),
     path("api/auth/token/", obtain_auth_token, name="api-token-auth"),
     path("api/auth/me/", AuthenticatedUserAPIView.as_view(), name="auth-me"),
     path(
@@ -94,6 +123,7 @@ urlpatterns = [
         name="leads-disqualify",
     ),
     path("api/leads/<int:pk>/convert/", LeadConvertAPIView.as_view(), name="leads-convert"),
+    path("api/leads/<int:pk>/history/", LeadHistoryAPIView.as_view(), name="leads-history"),
     path(
         "api/opportunities/",
         OpportunityListCreateAPIView.as_view(),
@@ -105,10 +135,46 @@ urlpatterns = [
         name="opportunities-detail",
     ),
     path(
+        "api/opportunities/<int:pk>/history/",
+        OpportunityHistoryAPIView.as_view(),
+        name="opportunities-history",
+    ),
+    path(
         "api/opportunities/<int:pk>/stage/",
         OpportunityStageUpdateAPIView.as_view(),
         name="opportunities-stage",
     ),
+    path(
+        "api/activities/",
+        CommercialActivityListCreateAPIView.as_view(),
+        name="activities-list",
+    ),
+    path(
+        "api/activities/reminders/",
+        CommercialActivityRemindersAPIView.as_view(),
+        name="activities-reminders",
+    ),
+    path(
+        "api/activities/<int:pk>/",
+        CommercialActivityDetailAPIView.as_view(),
+        name="activities-detail",
+    ),
+    path(
+        "api/activities/<int:pk>/complete/",
+        CommercialActivityCompleteAPIView.as_view(),
+        name="activities-complete",
+    ),
+    path(
+        "api/activities/<int:pk>/reopen/",
+        CommercialActivityReopenAPIView.as_view(),
+        name="activities-reopen",
+    ),
+    path(
+        "api/activities/<int:pk>/mark-reminded/",
+        CommercialActivityMarkRemindedAPIView.as_view(),
+        name="activities-mark-reminded",
+    ),
+    path("api/sales/metrics/", SalesMetricsAPIView.as_view(), name="sales-metrics"),
     path("api/apolices/", ApoliceListCreateAPIView.as_view(), name="apolices-list"),
     path(
         "api/apolices/<int:pk>/",

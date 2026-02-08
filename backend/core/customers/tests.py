@@ -73,6 +73,7 @@ class AuthEndpointsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["username"], self.user_member.username)
+        self.assertFalse(payload["platform_admin"])
         self.assertEqual(len(payload["memberships"]), 1)
         self.assertEqual(payload["memberships"][0]["tenant_code"], "auth-company")
 
@@ -109,6 +110,10 @@ class AuthEndpointsTests(TestCase):
         self.assertTrue(payload["capabilities"]["customers"]["list"])
         self.assertFalse(payload["capabilities"]["customers"]["create"])
         self.assertFalse(payload["capabilities"]["customers"]["delete"])
+        self.assertTrue(payload["capabilities"]["activities"]["list"])
+        self.assertFalse(payload["capabilities"]["activities"]["create"])
+        self.assertTrue(payload["capabilities"]["metrics"]["list"])
+        self.assertFalse(payload["capabilities"]["metrics"]["create"])
         self.assertFalse(payload["capabilities"]["apolices"]["create"])
         self.assertFalse(payload["capabilities"]["endossos"]["create"])
 
@@ -123,6 +128,8 @@ class AuthEndpointsTests(TestCase):
         self.assertEqual(payload["role"], CompanyMembership.ROLE_MANAGER)
         self.assertTrue(payload["capabilities"]["customers"]["create"])
         self.assertTrue(payload["capabilities"]["leads"]["create"])
+        self.assertTrue(payload["capabilities"]["activities"]["create"])
+        self.assertFalse(payload["capabilities"]["metrics"]["create"])
         self.assertFalse(payload["capabilities"]["apolices"]["create"])
         self.assertFalse(payload["capabilities"]["endossos"]["create"])
         self.assertFalse(payload["capabilities"]["customers"]["delete"])

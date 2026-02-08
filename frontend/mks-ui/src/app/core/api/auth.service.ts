@@ -4,6 +4,7 @@ import { Observable } from "rxjs";
 
 import { environment } from "../../../environments/environment";
 import {
+  AuthenticatedUserResponse,
   TenantCapabilitiesResponse,
   TenantMeResponse,
   TokenResponse,
@@ -20,6 +21,9 @@ export class AuthService {
   private readonly capabilitiesUrl = environment.apiBaseUrl
     ? `${environment.apiBaseUrl}/api/auth/capabilities/`
     : "/api/auth/capabilities/";
+  private readonly meUrl = environment.apiBaseUrl
+    ? `${environment.apiBaseUrl}/api/auth/me/`
+    : "/api/auth/me/";
 
   constructor(private readonly http: HttpClient) {}
 
@@ -38,6 +42,14 @@ export class AuthService {
 
   getTenantCapabilities(): Observable<TenantCapabilitiesResponse> {
     return this.http.get<TenantCapabilitiesResponse>(this.capabilitiesUrl);
+  }
+
+  getAuthenticatedUser(token: string): Observable<AuthenticatedUserResponse> {
+    return this.http.get<AuthenticatedUserResponse>(this.meUrl, {
+      headers: new HttpHeaders({
+        Authorization: `Token ${token}`,
+      }),
+    });
   }
 
   private buildHeaders(tenantCode: string, token: string): HttpHeaders {

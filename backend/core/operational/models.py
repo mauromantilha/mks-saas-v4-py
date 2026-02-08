@@ -1,5 +1,9 @@
+from datetime import timedelta
+
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from tenancy.models import BaseTenantModel
 
@@ -85,6 +89,13 @@ class Opportunity(BaseTenantModel):
         related_name="opportunities",
         on_delete=models.CASCADE,
     )
+    source_lead = models.ForeignKey(
+        Lead,
+        related_name="converted_opportunities",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     title = models.CharField(max_length=200)
     stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default="DISCOVERY")
     amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
@@ -118,6 +129,138 @@ class Opportunity(BaseTenantModel):
         self.stage = target_stage
         if save:
             self.save(update_fields=("stage", "updated_at"))
+
+
+class CommercialActivity(BaseTenantModel):
+    KIND_TASK = "TASK"
+    KIND_FOLLOW_UP = "FOLLOW_UP"
+    KIND_NOTE = "NOTE"
+    KIND_CHOICES = [
+        (KIND_TASK, "Task"),
+        (KIND_FOLLOW_UP, "Follow-up"),
+        (KIND_NOTE, "Note"),
+    ]
+
+    STATUS_PENDING = "PENDING"
+    STATUS_DONE = "DONE"
+    STATUS_CANCELED = "CANCELED"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_DONE, "Done"),
+        (STATUS_CANCELED, "Canceled"),
+    ]
+
+    PRIORITY_LOW = "LOW"
+    PRIORITY_MEDIUM = "MEDIUM"
+    PRIORITY_HIGH = "HIGH"
+    PRIORITY_URGENT = "URGENT"
+    PRIORITY_CHOICES = [
+        (PRIORITY_LOW, "Low"),
+        (PRIORITY_MEDIUM, "Medium"),
+        (PRIORITY_HIGH, "High"),
+        (PRIORITY_URGENT, "Urgent"),
+    ]
+
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES, default=KIND_TASK)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default=PRIORITY_MEDIUM,
+    )
+    due_at = models.DateTimeField(null=True, blank=True)
+    reminder_at = models.DateTimeField(null=True, blank=True)
+    reminder_sent = models.BooleanField(default=False)
+    sla_hours = models.PositiveIntegerField(null=True, blank=True)
+    sla_due_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    lead = models.ForeignKey(
+        Lead,
+        related_name="activities",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    opportunity = models.ForeignKey(
+        Opportunity,
+        related_name="activities",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="assigned_commercial_activities",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="created_commercial_activities",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ("status", "due_at", "-created_at")
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(lead__isnull=False) | models.Q(opportunity__isnull=False),
+                name="ck_activity_requires_lead_or_opportunity",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.kind} - {self.title}"
+
+    @property
+    def is_overdue(self):
+        return (
+            self.status == self.STATUS_PENDING
+            and self.due_at is not None
+            and self.due_at < timezone.now()
+        )
+
+    @property
+    def is_sla_breached(self):
+        return (
+            self.status == self.STATUS_PENDING
+            and self.sla_due_at is not None
+            and self.sla_due_at < timezone.now()
+        )
+
+    def clean(self):
+        super().clean()
+        if self.lead_id and self.lead.company_id != self.company_id:
+            raise ValidationError("Activity and Lead must belong to the same company.")
+        if self.opportunity_id and self.opportunity.company_id != self.company_id:
+            raise ValidationError("Activity and Opportunity must belong to the same company.")
+        if self.reminder_at and self.due_at and self.reminder_at > self.due_at:
+            raise ValidationError("Reminder must be before due date.")
+
+    def save(self, *args, **kwargs):
+        if self.status == self.STATUS_DONE and self.completed_at is None:
+            self.completed_at = timezone.now()
+        if self.status != self.STATUS_DONE:
+            self.completed_at = None
+        if self.sla_hours and self.sla_due_at is None:
+            self.sla_due_at = timezone.now() + timedelta(hours=self.sla_hours)
+        return super().save(*args, **kwargs)
+
+    def mark_done(self):
+        self.status = self.STATUS_DONE
+        self.completed_at = timezone.now()
+        self.save(update_fields=("status", "completed_at", "updated_at"))
+
+    def reopen(self):
+        self.status = self.STATUS_PENDING
+        self.completed_at = None
+        self.save(update_fields=("status", "completed_at", "updated_at"))
 
 
 class Apolice(BaseTenantModel):

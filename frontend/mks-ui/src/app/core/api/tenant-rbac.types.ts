@@ -13,6 +13,8 @@ export type TenantResource =
   | "customers"
   | "leads"
   | "opportunities"
+  | "activities"
+  | "metrics"
   | "apolices"
   | "endossos";
 

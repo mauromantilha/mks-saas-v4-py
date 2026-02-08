@@ -27,7 +27,11 @@ export class LoginPageComponent {
     private readonly router: Router
   ) {
     if (this.sessionService.isAuthenticated()) {
-      void this.router.navigate(["/tenant/rbac"]);
+      void this.router.navigate(
+        this.sessionService.session()?.platformAdmin
+          ? ["/platform/tenants"]
+          : ["/tenant/rbac"]
+      );
     }
   }
 
@@ -51,19 +55,34 @@ export class LoginPageComponent {
         switchMap((tokenResponse) =>
           this.authService
             .getTenantMe(tenantCode, tokenResponse.token)
-            .pipe(map((tenantMe) => ({ token: tokenResponse.token, tenantMe })))
+            .pipe(
+              switchMap((tenantMe) =>
+                this.authService
+                  .getAuthenticatedUser(tokenResponse.token)
+                  .pipe(
+                    map((authenticatedUser) => ({
+                      token: tokenResponse.token,
+                      tenantMe,
+                      authenticatedUser,
+                    }))
+                  )
+              )
+            )
         )
       )
       .subscribe({
-        next: ({ token, tenantMe }) => {
+        next: ({ token, tenantMe, authenticatedUser }) => {
           this.sessionService.saveSession({
             token,
             tenantCode: tenantMe.tenant_code,
             username: tenantMe.username,
             role: tenantMe.role,
+            platformAdmin: authenticatedUser.platform_admin,
           });
           this.loading.set(false);
-          void this.router.navigate(["/tenant/rbac"]);
+          void this.router.navigate(
+            authenticatedUser.platform_admin ? ["/platform/tenants"] : ["/tenant/rbac"]
+          );
         },
         error: (err) => {
           this.error.set(

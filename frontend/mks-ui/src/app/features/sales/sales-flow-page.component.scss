@@ -21,11 +21,42 @@
   gap: 16px;
 }
 
+.secondary-grid {
+  margin-top: 16px;
+}
+
 .card {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 12px;
+}
+
+.metrics-card {
+  margin-bottom: 16px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.metric-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.metric-label {
+  display: block;
+  color: #475467;
+  font-size: 12px;
+}
+
+.metric-value {
+  font-size: 20px;
 }
 
 .table {
@@ -45,6 +76,50 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.form-grid input,
+.form-grid textarea,
+.form-grid select {
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.field-full {
+  grid-column: 1 / -1;
+}
+
+.top-gap {
+  margin-top: 10px;
+}
+
+.badge-alert {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.history-card {
+  min-height: 180px;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .error {

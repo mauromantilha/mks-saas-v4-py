@@ -5,4 +5,5 @@ export interface UserSession {
   tenantCode: string;
   username: string;
   role: TenantUserRole;
+  platformAdmin: boolean;
 }

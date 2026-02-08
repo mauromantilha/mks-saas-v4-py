@@ -12,6 +12,7 @@ Frontend Angular criado do zero no caminho `frontend/mks-ui`.
 - Scaffold Angular (configuração e estrutura de app).
 - Roteamento com:
   - `/login` (username/password/tenant code)
+  - `/platform/tenants` (Control Plane, somente platform admin)
   - `/tenant/members` (protegida por sessão)
   - `/tenant/rbac` (protegida por sessão)
 - Sessão com persistência em `localStorage`.
@@ -30,6 +31,7 @@ Frontend Angular criado do zero no caminho `frontend/mks-ui`.
   - `GET /api/auth/tenant-me/`
   - `GET /api/auth/capabilities/`
 - Proxy local para backend Django em `http://127.0.0.1:8002`.
+- Proxy local para Control Plane em `/platform/api/*` -> `http://127.0.0.1:8002/platform/api/*`.
 
 ## Executar local
 

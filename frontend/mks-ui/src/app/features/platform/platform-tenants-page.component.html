@@ -1,0 +1,153 @@
+<section class="platform-wrap">
+  <h1>Control Plane: Gestão de Tenants</h1>
+
+  <div class="meta" *ngIf="session()">
+    <span><strong>Usuário:</strong> {{ session()?.username }}</span>
+    <span><strong>Tenant ativo:</strong> {{ session()?.tenantCode }}</span>
+    <span><strong>Platform Admin:</strong> {{ session()?.platformAdmin ? "Sim" : "Não" }}</span>
+  </div>
+
+  <p *ngIf="loading()">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="success()" class="success">{{ success() }}</p>
+
+  <article class="card">
+    <h2>Buscar</h2>
+    <div class="search-row">
+      <input
+        type="text"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        placeholder="Buscar por nome do tenant"
+      />
+      <button type="button" (click)="load()" [disabled]="loading()">Pesquisar</button>
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>Novo Tenant</h2>
+    <div class="create-grid">
+      <label>
+        Nome
+        <input
+          type="text"
+          [ngModel]="createName()"
+          (ngModelChange)="createName.set($event)"
+          placeholder="Acme Seguros"
+        />
+      </label>
+      <label>
+        Tenant Code
+        <input
+          type="text"
+          [ngModel]="createTenantCode()"
+          (ngModelChange)="createTenantCode.set($event)"
+          placeholder="acme"
+        />
+      </label>
+      <label>
+        Subdomain
+        <input
+          type="text"
+          [ngModel]="createSubdomain()"
+          (ngModelChange)="createSubdomain.set($event)"
+          placeholder="acme"
+        />
+      </label>
+      <label>
+        Plano
+        <select [ngModel]="createPlan()" (ngModelChange)="createPlan.set($event)">
+          <option value="STARTER">STARTER</option>
+          <option value="PRO">PRO</option>
+          <option value="ENTERPRISE">ENTERPRISE</option>
+        </select>
+      </label>
+    </div>
+    <div class="actions top-gap">
+      <button type="button" (click)="createTenant()" [disabled]="loading()">
+        Criar tenant
+      </button>
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>Tenants</h2>
+    <table *ngIf="tenants().length > 0" class="table">
+      <thead>
+        <tr>
+          <th>Tenant</th>
+          <th>Plano/Contrato</th>
+          <th>Provisioning</th>
+          <th>Banco</th>
+          <th>Portal</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let tenant of tenants()">
+          <td>
+            <strong>{{ tenant.name }}</strong><br />
+            <small>{{ tenant.tenant_code }} | {{ tenant.subdomain }}</small><br />
+            <small>Status: {{ tenant.is_active ? "Ativo" : "Inativo" }}</small>
+          </td>
+          <td>
+            <span *ngIf="tenant.contract; else noContract">
+              {{ tenant.contract.plan }} / {{ tenant.contract.status }}<br />
+              Seats: {{ tenant.contract.seats }}<br />
+              Fee: {{ tenant.contract.monthly_fee }}
+            </span>
+            <ng-template #noContract>Sem contrato</ng-template>
+          </td>
+          <td>
+            <span *ngIf="tenant.provisioning; else noProvisioning">
+              {{ tenant.provisioning.status }}<br />
+              {{ tenant.provisioning.isolation_model }}
+            </span>
+            <ng-template #noProvisioning>Sem provisioning</ng-template>
+          </td>
+          <td>
+            <span *ngIf="tenant.provisioning">
+              {{ tenant.provisioning.database_alias }}<br />
+              {{ tenant.provisioning.database_name }}
+            </span>
+          </td>
+          <td>
+            <a *ngIf="tenant.provisioning?.portal_url" [href]="tenant.provisioning?.portal_url" target="_blank">
+              {{ tenant.provisioning?.portal_url }}
+            </a>
+            <span *ngIf="!tenant.provisioning?.portal_url">-</span>
+          </td>
+          <td>
+            <div class="actions">
+              <button type="button" (click)="toggleTenantActive(tenant)" [disabled]="loading()">
+                {{ tenant.is_active ? "Desativar" : "Ativar" }}
+              </button>
+              <button
+                type="button"
+                (click)="setProvisionStatus(tenant, 'PROVISIONING')"
+                [disabled]="loading()"
+              >
+                Provisioning
+              </button>
+              <button
+                type="button"
+                (click)="setProvisionStatus(tenant, 'READY')"
+                [disabled]="loading()"
+              >
+                Ready
+              </button>
+              <button
+                type="button"
+                (click)="setProvisionStatus(tenant, 'FAILED')"
+                [disabled]="loading()"
+              >
+                Failed
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="tenants().length === 0">Nenhum tenant encontrado.</p>
+  </article>
+</section>

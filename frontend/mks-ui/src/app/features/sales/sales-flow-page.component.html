@@ -14,6 +14,48 @@
   <p *ngIf="loading()">Carregando...</p>
   <p *ngIf="error()" class="error">{{ error() }}</p>
 
+  <article class="card metrics-card" *ngIf="metrics() as currentMetrics">
+    <h2>Métricas do Funil</h2>
+    <div class="metrics-grid">
+      <div class="metric-item">
+        <span class="metric-label">Leads Novos</span>
+        <strong class="metric-value">{{ currentMetrics.lead_funnel.NEW }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Leads Qualificados</span>
+        <strong class="metric-value">{{ currentMetrics.lead_funnel.QUALIFIED }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Leads Convertidos</span>
+        <strong class="metric-value">{{ currentMetrics.lead_funnel.CONVERTED }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Oportunidades Ganhas</span>
+        <strong class="metric-value">{{ currentMetrics.opportunity_funnel.WON }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Atividades em Aberto</span>
+        <strong class="metric-value">{{ currentMetrics.activities.open_total }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Atividades Atrasadas</span>
+        <strong class="metric-value">{{ currentMetrics.activities.overdue_total }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Taxa Lead → Oportunidade</span>
+        <strong class="metric-value"
+          >{{ currentMetrics.conversion.lead_to_opportunity_rate }}%</strong
+        >
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Taxa de Fechamento</span>
+        <strong class="metric-value"
+          >{{ currentMetrics.conversion.opportunity_win_rate }}%</strong
+        >
+      </div>
+    </div>
+  </article>
+
   <div class="grid">
     <article class="card">
       <h2>Leads</h2>
@@ -23,6 +65,7 @@
             <th>ID</th>
             <th>Source</th>
             <th>Status</th>
+            <th>Histórico</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -31,6 +74,11 @@
             <td>{{ lead.id }}</td>
             <td>{{ lead.source }}</td>
             <td>{{ lead.status }}</td>
+            <td>
+              <button type="button" (click)="viewLeadHistory(lead)" [disabled]="loading()">
+                Ver histórico
+              </button>
+            </td>
             <td>
               <div class="actions">
                 <button
@@ -71,6 +119,7 @@
             <th>Título</th>
             <th>Estágio</th>
             <th>Valor</th>
+            <th>Histórico</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -80,6 +129,15 @@
             <td>{{ opp.title }}</td>
             <td>{{ opp.stage }}</td>
             <td>{{ opp.amount }}</td>
+            <td>
+              <button
+                type="button"
+                (click)="viewOpportunityHistory(opp)"
+                [disabled]="loading()"
+              >
+                Ver histórico
+              </button>
+            </td>
             <td>
               <div class="actions">
                 <button
@@ -102,6 +160,255 @@
         </tbody>
       </table>
       <p *ngIf="opportunities().length === 0">Nenhuma oportunidade encontrada.</p>
+    </article>
+  </div>
+
+  <div class="grid secondary-grid">
+    <article class="card">
+      <h2>Nova Atividade / Follow-up</h2>
+      <div class="form-grid">
+        <label>
+          Tipo
+          <select
+            [ngModel]="activityKind()"
+            (ngModelChange)="activityKind.set($event)"
+            [disabled]="loading() || !canWrite()"
+          >
+            <option value="TASK">Task</option>
+            <option value="FOLLOW_UP">Follow-up</option>
+            <option value="NOTE">Note</option>
+          </select>
+        </label>
+
+        <label>
+          Prioridade
+          <select
+            [ngModel]="activityPriority()"
+            (ngModelChange)="activityPriority.set($event)"
+            [disabled]="loading() || !canWrite()"
+          >
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent</option>
+          </select>
+        </label>
+
+        <label class="field-full">
+          Título
+          <input
+            type="text"
+            [ngModel]="activityTitle()"
+            (ngModelChange)="activityTitle.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Ex.: Follow-up proposta renovação"
+          />
+        </label>
+
+        <label class="field-full">
+          Descrição
+          <textarea
+            rows="3"
+            [ngModel]="activityDescription()"
+            (ngModelChange)="activityDescription.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Detalhes do contato/atividade"
+          ></textarea>
+        </label>
+
+        <label>
+          Vínculo
+          <select
+            [ngModel]="activityTargetType()"
+            (ngModelChange)="onActivityTargetTypeChange($event)"
+            [disabled]="loading() || !canWrite()"
+          >
+            <option value="LEAD">Lead</option>
+            <option value="OPPORTUNITY">Oportunidade</option>
+          </select>
+        </label>
+
+        <label>
+          Registro
+          <select
+            [ngModel]="activityTargetId()"
+            (ngModelChange)="activityTargetId.set($event)"
+            [disabled]="loading() || !canWrite()"
+          >
+            <option value="">Selecione...</option>
+            <ng-container *ngIf="activityTargetType() === 'LEAD'">
+              <option *ngFor="let lead of leads()" [value]="lead.id">
+                Lead #{{ lead.id }} - {{ lead.source }}
+              </option>
+            </ng-container>
+            <ng-container *ngIf="activityTargetType() === 'OPPORTUNITY'">
+              <option *ngFor="let opp of opportunities()" [value]="opp.id">
+                Opp #{{ opp.id }} - {{ opp.title }}
+              </option>
+            </ng-container>
+          </select>
+        </label>
+
+        <label>
+          Vencimento
+          <input
+            type="datetime-local"
+            [ngModel]="activityDueAt()"
+            (ngModelChange)="activityDueAt.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+
+        <label>
+          Lembrete
+          <input
+            type="datetime-local"
+            [ngModel]="activityReminderAt()"
+            (ngModelChange)="activityReminderAt.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+
+        <label>
+          SLA (horas)
+          <input
+            type="number"
+            min="1"
+            [ngModel]="activitySlaHours()"
+            (ngModelChange)="activitySlaHours.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="24"
+          />
+        </label>
+      </div>
+
+      <div class="actions top-gap">
+        <button type="button" (click)="createActivity()" [disabled]="loading() || !canWrite()">
+          Criar atividade
+        </button>
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>Atividades</h2>
+      <table *ngIf="activities().length > 0" class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Status</th>
+            <th>Prioridade</th>
+            <th>Vínculo</th>
+            <th>Due</th>
+            <th>SLA</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let activity of activities()">
+            <td>{{ activity.id }}</td>
+            <td>{{ activity.title }}</td>
+            <td>{{ activity.status }}</td>
+            <td>{{ activity.priority }}</td>
+            <td>
+              <span *ngIf="activity.lead">Lead #{{ activity.lead }}</span>
+              <span *ngIf="activity.opportunity">Opp #{{ activity.opportunity }}</span>
+            </td>
+            <td>{{ activity.due_at || "-" }}</td>
+            <td>
+              <span [class.badge-alert]="activity.is_sla_breached">
+                {{ activity.sla_due_at || "-" }}
+              </span>
+            </td>
+            <td>
+              <div class="actions">
+                <button
+                  type="button"
+                  (click)="completeActivity(activity)"
+                  [disabled]="loading() || !canWrite() || activity.status === 'DONE'"
+                >
+                  Concluir
+                </button>
+                <button
+                  type="button"
+                  (click)="reopenActivity(activity)"
+                  [disabled]="loading() || !canWrite() || activity.status !== 'DONE'"
+                >
+                  Reabrir
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="activities().length === 0">Nenhuma atividade cadastrada.</p>
+    </article>
+  </div>
+
+  <div class="grid secondary-grid">
+    <article class="card">
+      <h2>Lembretes Pendentes</h2>
+      <table *ngIf="reminderActivities().length > 0" class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Lembrete</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let activity of reminderActivities()">
+            <td>{{ activity.id }}</td>
+            <td>{{ activity.title }}</td>
+            <td>{{ activity.reminder_at }}</td>
+            <td>
+              <button
+                type="button"
+                (click)="markReminderSent(activity)"
+                [disabled]="loading() || !canWrite() || activity.reminder_sent"
+              >
+                Marcar enviado
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="reminderActivities().length === 0">
+        Não há lembretes pendentes para envio.
+      </p>
+    </article>
+
+    <article class="card history-card">
+      <div class="history-header">
+        <h2>Histórico</h2>
+        <button type="button" (click)="clearHistory()" [disabled]="loading()">
+          Limpar
+        </button>
+      </div>
+
+      <div *ngIf="leadHistory() as leadPayload">
+        <p>
+          <strong>Lead #{{ leadPayload.lead.id }}</strong> -
+          {{ leadPayload.lead.source }} ({{ leadPayload.lead.status }})
+        </p>
+        <p>
+          Atividades: {{ leadPayload.activities.length }} |
+          Oportunidades geradas: {{ leadPayload.converted_opportunities.length }}
+        </p>
+      </div>
+
+      <div *ngIf="opportunityHistory() as opportunityPayload">
+        <p>
+          <strong>Opp #{{ opportunityPayload.opportunity.id }}</strong> -
+          {{ opportunityPayload.opportunity.title }} ({{ opportunityPayload.opportunity.stage }})
+        </p>
+        <p>Atividades: {{ opportunityPayload.activities.length }}</p>
+      </div>
+
+      <p *ngIf="!leadHistory() && !opportunityHistory()">
+        Selecione um lead ou oportunidade para visualizar o histórico consolidado.
+      </p>
     </article>
   </div>
 </section>

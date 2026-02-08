@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from operational.models import Apolice, Customer, Endosso, Lead, Opportunity
+from operational.models import (
+    Apolice,
+    CommercialActivity,
+    Customer,
+    Endosso,
+    Lead,
+    Opportunity,
+)
 
 
 class CustomerSerializer(serializers.ModelSerializer):
@@ -55,6 +62,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "customer",
+            "source_lead",
             "title",
             "stage",
             "amount",
@@ -140,3 +148,118 @@ class LeadConvertSerializer(serializers.Serializer):
 
 class OpportunityStageUpdateSerializer(serializers.Serializer):
     stage = serializers.ChoiceField(choices=Opportunity.STAGE_CHOICES)
+
+
+class CommercialActivitySerializer(serializers.ModelSerializer):
+    assigned_to_username = serializers.CharField(
+        source="assigned_to.username", read_only=True
+    )
+    created_by_username = serializers.CharField(
+        source="created_by.username", read_only=True
+    )
+    is_overdue = serializers.BooleanField(read_only=True)
+    is_sla_breached = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = CommercialActivity
+        fields = (
+            "id",
+            "kind",
+            "title",
+            "description",
+            "status",
+            "priority",
+            "due_at",
+            "reminder_at",
+            "reminder_sent",
+            "sla_hours",
+            "sla_due_at",
+            "completed_at",
+            "lead",
+            "opportunity",
+            "assigned_to",
+            "assigned_to_username",
+            "created_by",
+            "created_by_username",
+            "is_overdue",
+            "is_sla_breached",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "reminder_sent",
+            "sla_due_at",
+            "completed_at",
+            "created_by",
+            "assigned_to_username",
+            "created_by_username",
+            "is_overdue",
+            "is_sla_breached",
+            "created_at",
+            "updated_at",
+        )
+
+    def validate(self, attrs):
+        lead = attrs.get("lead", getattr(self.instance, "lead", None))
+        opportunity = attrs.get(
+            "opportunity",
+            getattr(self.instance, "opportunity", None),
+        )
+        assigned_to = attrs.get(
+            "assigned_to",
+            getattr(self.instance, "assigned_to", None),
+        )
+        if lead is None and opportunity is None:
+            raise serializers.ValidationError(
+                "Activity must be linked to a lead or an opportunity."
+            )
+
+        if (
+            lead is not None
+            and opportunity is not None
+            and lead.company_id != opportunity.company_id
+        ):
+            raise serializers.ValidationError(
+                "Lead and Opportunity must belong to the same tenant."
+            )
+
+        request = self.context.get("request")
+        company = getattr(request, "company", None)
+        if company is not None:
+            if lead is not None and lead.company_id != company.id:
+                raise serializers.ValidationError("Lead belongs to another tenant.")
+            if opportunity is not None and opportunity.company_id != company.id:
+                raise serializers.ValidationError("Opportunity belongs to another tenant.")
+            if assigned_to is not None:
+                from customers.models import CompanyMembership
+
+                is_member = CompanyMembership.objects.filter(
+                    company=company,
+                    user=assigned_to,
+                    is_active=True,
+                ).exists()
+                if not is_member:
+                    raise serializers.ValidationError(
+                        "Assigned user is not an active member of this tenant."
+                    )
+        return attrs
+
+
+class LeadHistorySerializer(serializers.Serializer):
+    lead = LeadSerializer()
+    activities = CommercialActivitySerializer(many=True)
+    converted_opportunities = OpportunitySerializer(many=True)
+
+
+class OpportunityHistorySerializer(serializers.Serializer):
+    opportunity = OpportunitySerializer()
+    activities = CommercialActivitySerializer(many=True)
+
+
+class SalesMetricsSerializer(serializers.Serializer):
+    tenant_code = serializers.CharField()
+    lead_funnel = serializers.DictField(child=serializers.IntegerField())
+    opportunity_funnel = serializers.DictField(child=serializers.IntegerField())
+    activities = serializers.DictField(child=serializers.IntegerField())
+    conversion = serializers.DictField(child=serializers.FloatField())

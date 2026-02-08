@@ -3,6 +3,12 @@
     <strong>MKS CRM</strong>
     <nav>
       <a routerLink="/login">Login</a>
+      <a
+        routerLink="/platform/tenants"
+        *ngIf="sessionService.session()?.platformAdmin"
+      >
+        Control Plane
+      </a>
       <a routerLink="/sales/flow">Fluxo Comercial</a>
       <a routerLink="/tenant/members">Tenant Members</a>
       <a routerLink="/tenant/rbac">Tenant RBAC</a>

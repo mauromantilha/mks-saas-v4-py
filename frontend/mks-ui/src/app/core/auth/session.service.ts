@@ -55,6 +55,7 @@ export class SessionService {
         tenantCode: parsed.tenantCode,
         username: parsed.username,
         role: parsed.role ?? null,
+        platformAdmin: Boolean(parsed.platformAdmin),
       };
     } catch {
       return null;

@@ -1,10 +1,18 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from customers.models import Company, CompanyMembership
-from operational.models import Apolice, Customer, Endosso, Lead, Opportunity
+from operational.models import (
+    Apolice,
+    CommercialActivity,
+    Customer,
+    Endosso,
+    Lead,
+    Opportunity,
+)
 from tenancy.context import reset_current_company, set_current_company
 
 
@@ -125,6 +133,41 @@ class TenantIsolationTests(TestCase):
             numero_endosso="0",
             tipo="EMISSAO",
             data_emissao=date(2026, 1, 2),
+        )
+        now = timezone.now()
+        self.activity_a = CommercialActivity.all_objects.create(
+            company=self.company_a,
+            kind=CommercialActivity.KIND_FOLLOW_UP,
+            title="Contato inicial",
+            status=CommercialActivity.STATUS_PENDING,
+            priority=CommercialActivity.PRIORITY_HIGH,
+            due_at=now + timedelta(hours=6),
+            reminder_at=now - timedelta(minutes=30),
+            lead=self.lead_a,
+            created_by=self.user_manager,
+            sla_hours=8,
+        )
+        self.activity_a_breached = CommercialActivity.all_objects.create(
+            company=self.company_a,
+            kind=CommercialActivity.KIND_TASK,
+            title="SLA vencido",
+            status=CommercialActivity.STATUS_PENDING,
+            priority=CommercialActivity.PRIORITY_URGENT,
+            due_at=now - timedelta(hours=2),
+            reminder_at=now - timedelta(hours=3),
+            lead=self.lead_a,
+            created_by=self.user_manager,
+            sla_due_at=now - timedelta(minutes=10),
+        )
+        self.activity_b = CommercialActivity.all_objects.create(
+            company=self.company_b,
+            kind=CommercialActivity.KIND_TASK,
+            title="Atividade tenant B",
+            status=CommercialActivity.STATUS_PENDING,
+            priority=CommercialActivity.PRIORITY_MEDIUM,
+            due_at=now + timedelta(days=1),
+            lead=self.lead_b,
+            created_by=self.user_b,
         )
 
     def test_header_based_isolation(self):
@@ -573,6 +616,7 @@ class TenantIsolationTests(TestCase):
         payload = response.json()
         self.assertEqual(payload["lead"]["status"], "CONVERTED")
         self.assertEqual(payload["opportunity"]["title"], "Opp converted")
+        self.assertEqual(payload["opportunity"]["source_lead"], self.lead_a.id)
 
     def test_convert_lead_without_customer_requires_payload_customer(self):
         lead = Lead.all_objects.create(
@@ -656,3 +700,167 @@ class TenantIsolationTests(TestCase):
             HTTP_X_TENANT_ID=self.company_a.tenant_code,
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_member_can_read_activities_but_cannot_create(self):
+        self.client.force_login(self.user_member)
+        list_response = self.client.get(
+            "/api/activities/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(list_response.status_code, 200)
+        returned_ids = {row["id"] for row in list_response.json()}
+        self.assertIn(self.activity_a.id, returned_ids)
+        self.assertNotIn(self.activity_b.id, returned_ids)
+
+        create_response = self.client.post(
+            "/api/activities/",
+            data={
+                "kind": "FOLLOW_UP",
+                "title": "Follow-up member",
+                "lead": self.lead_a.id,
+            },
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(create_response.status_code, 403)
+
+    def test_manager_can_create_activity_for_lead(self):
+        self.client.force_login(self.user_manager)
+        response = self.client.post(
+            "/api/activities/",
+            data={
+                "kind": "TASK",
+                "title": "Enviar proposta",
+                "description": "Enviar proposta em PDF",
+                "priority": "HIGH",
+                "lead": self.lead_a.id,
+                "sla_hours": 24,
+            },
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(payload["lead"], self.lead_a.id)
+        self.assertEqual(payload["opportunity"], None)
+        self.assertIsNotNone(payload["sla_due_at"])
+
+    def test_manager_cannot_create_activity_with_cross_tenant_lead(self):
+        self.client.force_login(self.user_manager)
+        response = self.client.post(
+            "/api/activities/",
+            data={
+                "kind": "TASK",
+                "title": "Cross tenant activity",
+                "lead": self.lead_b.id,
+            },
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_manager_can_complete_and_reopen_activity(self):
+        self.client.force_login(self.user_manager)
+        complete_response = self.client.post(
+            f"/api/activities/{self.activity_a.id}/complete/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(complete_response.status_code, 200)
+        self.assertEqual(complete_response.json()["status"], "DONE")
+        self.assertIsNotNone(complete_response.json()["completed_at"])
+
+        reopen_response = self.client.post(
+            f"/api/activities/{self.activity_a.id}/reopen/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(reopen_response.status_code, 200)
+        self.assertEqual(reopen_response.json()["status"], "PENDING")
+        self.assertIsNone(reopen_response.json()["completed_at"])
+
+    def test_member_cannot_complete_activity(self):
+        self.client.force_login(self.user_member)
+        response = self.client.post(
+            f"/api/activities/{self.activity_a.id}/complete/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_activity_detail_is_isolated_by_tenant(self):
+        self.client.force_login(self.user_manager)
+        response = self.client.get(
+            f"/api/activities/{self.activity_b.id}/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_reminders_endpoint_returns_due_unsent_only_from_tenant(self):
+        self.client.force_login(self.user_manager)
+        response = self.client.get(
+            "/api/activities/reminders/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 200)
+        returned_ids = {row["id"] for row in response.json()}
+        self.assertIn(self.activity_a.id, returned_ids)
+        self.assertIn(self.activity_a_breached.id, returned_ids)
+        self.assertNotIn(self.activity_b.id, returned_ids)
+
+    def test_manager_can_mark_activity_reminded(self):
+        self.client.force_login(self.user_manager)
+        response = self.client.post(
+            f"/api/activities/{self.activity_a.id}/mark-reminded/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["reminder_sent"])
+
+    def test_lead_history_returns_activities_and_converted_opportunities(self):
+        Opportunity.all_objects.create(
+            company=self.company_a,
+            customer=self.customer_a,
+            source_lead=self.lead_a,
+            title="Opp from lead A",
+            stage="DISCOVERY",
+            amount=1800,
+        )
+        self.client.force_login(self.user_manager)
+        response = self.client.get(
+            f"/api/leads/{self.lead_a.id}/history/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["lead"]["id"], self.lead_a.id)
+        self.assertGreaterEqual(len(payload["activities"]), 1)
+        self.assertGreaterEqual(len(payload["converted_opportunities"]), 1)
+
+    def test_opportunity_history_returns_related_activities(self):
+        activity = CommercialActivity.all_objects.create(
+            company=self.company_a,
+            kind=CommercialActivity.KIND_NOTE,
+            title="Nota da oportunidade",
+            opportunity=self.opportunity_a,
+            created_by=self.user_manager,
+        )
+        self.client.force_login(self.user_manager)
+        response = self.client.get(
+            f"/api/opportunities/{self.opportunity_a.id}/history/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        returned_ids = {item["id"] for item in payload["activities"]}
+        self.assertIn(activity.id, returned_ids)
+
+    def test_metrics_endpoint_returns_funnel_and_activity_kpis(self):
+        self.client.force_login(self.user_member)
+        response = self.client.get(
+            "/api/sales/metrics/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["tenant_code"], self.company_a.tenant_code)
+        self.assertIn("lead_funnel", payload)
+        self.assertIn("opportunity_funnel", payload)
+        self.assertIn("activities", payload)
+        self.assertIn("conversion", payload)
+        self.assertGreaterEqual(payload["activities"]["open_total"], 1)
+        self.assertGreaterEqual(payload["activities"]["sla_breached_total"], 1)

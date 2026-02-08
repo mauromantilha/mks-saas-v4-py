@@ -38,6 +38,9 @@ class AuthenticatedUserAPIView(APIView):
                 "id": request.user.id,
                 "username": request.user.username,
                 "email": request.user.email,
+                "is_staff": request.user.is_staff,
+                "is_superuser": request.user.is_superuser,
+                "platform_admin": request.user.is_staff or request.user.is_superuser,
                 "memberships": [
                     {
                         "company_id": membership.company_id,

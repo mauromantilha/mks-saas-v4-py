@@ -26,3 +26,20 @@ export interface TenantMeResponse {
   tenant_code: string;
   role: TenantUserRole;
 }
+
+export interface AuthenticatedMembership {
+  company_id: number;
+  company_name: string;
+  tenant_code: string;
+  role: TenantUserRole;
+}
+
+export interface AuthenticatedUserResponse {
+  id: number;
+  username: string;
+  email: string;
+  is_staff: boolean;
+  is_superuser: boolean;
+  platform_admin: boolean;
+  memberships: AuthenticatedMembership[];
+}

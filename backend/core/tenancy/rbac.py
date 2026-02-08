@@ -14,6 +14,7 @@ VALID_METHODS = frozenset(("GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DE
 READ_ROLES = frozenset((ROLE_MEMBER, ROLE_MANAGER, ROLE_OWNER))
 WRITE_ROLES = frozenset((ROLE_MANAGER, ROLE_OWNER))
 OWNER_ROLES = frozenset((ROLE_OWNER,))
+NO_ROLES = frozenset()
 
 
 def build_role_matrix(
@@ -39,6 +40,13 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
     "customers": build_role_matrix(),
     "leads": build_role_matrix(),
     "opportunities": build_role_matrix(),
+    "activities": build_role_matrix(),
+    "metrics": build_role_matrix(
+        post_roles=NO_ROLES,
+        put_roles=NO_ROLES,
+        patch_roles=NO_ROLES,
+        delete_roles=NO_ROLES,
+    ),
     "apolices": build_role_matrix(
         post_roles=OWNER_ROLES,
         put_roles=OWNER_ROLES,

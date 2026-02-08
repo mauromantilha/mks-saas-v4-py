@@ -1,19 +1,32 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from operational.models import Apolice, Customer, Endosso, Lead, Opportunity
+from operational.models import (
+    Apolice,
+    CommercialActivity,
+    Customer,
+    Endosso,
+    Lead,
+    Opportunity,
+)
 from operational.serializers import (
     ApoliceSerializer,
+    CommercialActivitySerializer,
     CustomerSerializer,
+    LeadHistorySerializer,
     LeadConvertSerializer,
     EndossoSerializer,
     LeadSerializer,
+    OpportunityHistorySerializer,
     OpportunityStageUpdateSerializer,
     OpportunitySerializer,
+    SalesMetricsSerializer,
 )
 from tenancy.permissions import IsTenantRoleAllowed
 
@@ -164,6 +177,7 @@ class LeadConvertAPIView(APIView):
             opportunity = Opportunity.objects.create(
                 company=request.company,
                 customer=customer,
+                source_lead=lead,
                 title=title,
                 stage=serializer.validated_data.get("stage", "DISCOVERY"),
                 amount=serializer.validated_data.get("amount", 0),
@@ -196,3 +210,185 @@ class OpportunityStageUpdateAPIView(APIView):
             return Response({"detail": exc.messages}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(OpportunitySerializer(opportunity).data)
+
+
+class CommercialActivityListCreateAPIView(
+    TenantScopedAPIViewMixin, generics.ListCreateAPIView
+):
+    model = CommercialActivity
+    serializer_class = CommercialActivitySerializer
+    ordering = ("status", "due_at", "-created_at")
+    tenant_resource_key = "activities"
+
+    def perform_create(self, serializer):
+        serializer.save(
+            company=self.request.company,
+            created_by=self.request.user,
+        )
+
+
+class CommercialActivityDetailAPIView(
+    TenantScopedAPIViewMixin, generics.RetrieveUpdateDestroyAPIView
+):
+    model = CommercialActivity
+    serializer_class = CommercialActivitySerializer
+    tenant_resource_key = "activities"
+
+
+class CommercialActivityCompleteAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "activities"
+
+    def post(self, request, pk):
+        activity = get_object_or_404(CommercialActivity.objects.all(), pk=pk)
+        activity.mark_done()
+        return Response(CommercialActivitySerializer(activity).data)
+
+
+class CommercialActivityReopenAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "activities"
+
+    def post(self, request, pk):
+        activity = get_object_or_404(CommercialActivity.objects.all(), pk=pk)
+        activity.reopen()
+        return Response(CommercialActivitySerializer(activity).data)
+
+
+class CommercialActivityRemindersAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "activities"
+
+    def get(self, request):
+        now = timezone.now()
+        reminders = (
+            CommercialActivity.objects.filter(
+                status=CommercialActivity.STATUS_PENDING,
+                reminder_sent=False,
+                reminder_at__isnull=False,
+                reminder_at__lte=now,
+            )
+            .select_related("assigned_to", "created_by")
+            .order_by("reminder_at", "priority")
+        )
+        serializer = CommercialActivitySerializer(reminders, many=True)
+        return Response(serializer.data)
+
+
+class CommercialActivityMarkRemindedAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "activities"
+
+    def post(self, request, pk):
+        activity = get_object_or_404(CommercialActivity.objects.all(), pk=pk)
+        activity.reminder_sent = True
+        activity.save(update_fields=("reminder_sent", "updated_at"))
+        return Response(CommercialActivitySerializer(activity).data)
+
+
+class LeadHistoryAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "leads"
+
+    def get(self, request, pk):
+        lead = get_object_or_404(Lead.objects.all(), pk=pk)
+        activities = CommercialActivity.objects.filter(lead=lead).select_related(
+            "assigned_to", "created_by"
+        )
+        opportunities = Opportunity.objects.filter(source_lead=lead)
+        payload = LeadHistorySerializer(
+            {
+                "lead": lead,
+                "activities": activities,
+                "converted_opportunities": opportunities,
+            }
+        ).data
+        return Response(payload)
+
+
+class OpportunityHistoryAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "opportunities"
+
+    def get(self, request, pk):
+        opportunity = get_object_or_404(Opportunity.objects.all(), pk=pk)
+        activities = CommercialActivity.objects.filter(opportunity=opportunity).select_related(
+            "assigned_to", "created_by"
+        )
+        payload = OpportunityHistorySerializer(
+            {"opportunity": opportunity, "activities": activities}
+        ).data
+        return Response(payload)
+
+
+class SalesMetricsAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "metrics"
+
+    def get(self, request):
+        lead_counts = {
+            row["status"]: row["total"]
+            for row in Lead.objects.values("status")
+            .annotate(total=Count("id"))
+            .order_by()
+        }
+        opportunity_counts = {
+            row["stage"]: row["total"]
+            for row in Opportunity.objects.values("stage")
+            .annotate(total=Count("id"))
+            .order_by()
+        }
+
+        now = timezone.now()
+        activities_qs = CommercialActivity.objects.filter(
+            status=CommercialActivity.STATUS_PENDING
+        )
+        activities_info = {
+            "open_total": activities_qs.count(),
+            "overdue_total": activities_qs.filter(due_at__lt=now).count(),
+            "due_today_total": activities_qs.filter(due_at__date=now.date()).count(),
+            "reminders_due_total": activities_qs.filter(
+                reminder_sent=False,
+                reminder_at__isnull=False,
+                reminder_at__lte=now,
+            ).count(),
+            "sla_breached_total": activities_qs.filter(sla_due_at__lt=now).count(),
+        }
+
+        total_leads = sum(lead_counts.values()) or 0
+        converted_leads = lead_counts.get("CONVERTED", 0)
+        total_opportunities = sum(opportunity_counts.values()) or 0
+        won_opportunities = opportunity_counts.get("WON", 0)
+
+        conversion = {
+            "lead_to_opportunity_rate": (
+                round((converted_leads / total_leads) * 100, 2) if total_leads else 0.0
+            ),
+            "opportunity_win_rate": (
+                round((won_opportunities / total_opportunities) * 100, 2)
+                if total_opportunities
+                else 0.0
+            ),
+        }
+
+        payload = SalesMetricsSerializer(
+            {
+                "tenant_code": request.company.tenant_code,
+                "lead_funnel": {
+                    "NEW": lead_counts.get("NEW", 0),
+                    "QUALIFIED": lead_counts.get("QUALIFIED", 0),
+                    "DISQUALIFIED": lead_counts.get("DISQUALIFIED", 0),
+                    "CONVERTED": lead_counts.get("CONVERTED", 0),
+                },
+                "opportunity_funnel": {
+                    "DISCOVERY": opportunity_counts.get("DISCOVERY", 0),
+                    "PROPOSAL": opportunity_counts.get("PROPOSAL", 0),
+                    "NEGOTIATION": opportunity_counts.get("NEGOTIATION", 0),
+                    "WON": opportunity_counts.get("WON", 0),
+                    "LOST": opportunity_counts.get("LOST", 0),
+                },
+                "activities": activities_info,
+                "conversion": conversion,
+            }
+        ).data
+        return Response(payload)
