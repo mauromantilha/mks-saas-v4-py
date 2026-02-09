@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 
 from tenancy.models import BaseTenantModel
+from finance.fiscal.crypto import decrypt_token, encrypt_token
 
 
 class FiscalProvider(models.Model):
@@ -55,7 +56,10 @@ class TenantFiscalConfig(BaseTenantModel):
         on_delete=models.PROTECT,
         related_name="tenant_configs",
     )
-    api_token = models.TextField(blank=True)
+    api_token = models.TextField(
+        blank=True,
+        help_text="Encrypted API token for the provider (do not store plaintext).",
+    )
     environment = models.CharField(
         max_length=20,
         choices=Environment.choices,
@@ -89,6 +93,12 @@ class TenantFiscalConfig(BaseTenantModel):
     def __str__(self) -> str:  # pragma: no cover
         status = "active" if self.active else "inactive"
         return f"{self.company_id} - {self.provider.provider_type} ({self.environment}, {status})"
+
+    def set_api_token(self, token: str) -> None:
+        self.api_token = encrypt_token(token)
+
+    def get_api_token(self) -> str:
+        return decrypt_token(self.api_token)
 
 
 class FiscalDocument(BaseTenantModel):
