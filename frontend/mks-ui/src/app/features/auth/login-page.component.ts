@@ -24,6 +24,10 @@ export class LoginPageComponent {
   error = signal("");
   readonly hostDetectedControlPlane = this.portalContextService.isControlPlanePortal();
   readonly hostDetectedTenantCode = this.portalContextService.suggestedTenantCode();
+  readonly hostname = this.portalContextService.hostname();
+  readonly allowPortalToggle = this.hostname === "localhost"
+    || this.hostname === "127.0.0.1"
+    || this.hostname.endsWith(".localhost");
   readonly selectedPortalType = signal<SessionPortalType>(
     this.hostDetectedControlPlane ? "CONTROL_PLANE" : "TENANT"
   );
@@ -37,7 +41,10 @@ export class LoginPageComponent {
     private readonly portalContextService: PortalContextService,
     private readonly router: Router
   ) {
-    this.tenantCode.set(this.hostDetectedTenantCode || "acme");
+    this.tenantCode.set(this.hostDetectedTenantCode || "");
+    if (this.hostDetectedControlPlane) {
+      this.tenantCode.set("");
+    }
 
     if (this.sessionService.isAuthenticated()) {
       void this.router.navigate(
@@ -163,6 +170,9 @@ export class LoginPageComponent {
   }
 
   setPortalType(portalType: SessionPortalType): void {
+    if (!this.allowPortalToggle) {
+      return;
+    }
     this.selectedPortalType.set(portalType);
     this.error.set("");
     if (portalType === "TENANT" && !this.tenantCode().trim() && this.hostDetectedTenantCode) {

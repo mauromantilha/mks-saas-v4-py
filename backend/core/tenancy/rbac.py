@@ -56,6 +56,13 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
         patch_roles=NO_ROLES,
         delete_roles=NO_ROLES,
     ),
+    "ledger": build_role_matrix(
+        read_roles=WRITE_ROLES,
+        post_roles=NO_ROLES,
+        put_roles=NO_ROLES,
+        patch_roles=NO_ROLES,
+        delete_roles=NO_ROLES,
+    ),
     "apolices": build_role_matrix(
         post_roles=OWNER_ROLES,
         put_roles=OWNER_ROLES,

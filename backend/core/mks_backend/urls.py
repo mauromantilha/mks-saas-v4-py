@@ -33,6 +33,7 @@ from customers.views import (
     TenantMembersAPIView,
     TenantRBACAPIView,
 )
+from ledger.views import PlatformLedgerEntryListAPIView, TenantLedgerEntryListAPIView
 from operational.views import (
     ApoliceDetailAPIView,
     ApoliceAIInsightsAPIView,
@@ -104,6 +105,11 @@ urlpatterns = [
         ControlPlaneTenantProvisionExecuteAPIView.as_view(),
         name="platform-tenants-provision-execute",
     ),
+    path(
+        "platform/api/ledger/",
+        PlatformLedgerEntryListAPIView.as_view(),
+        name="platform-ledger-list",
+    ),
     path("api/auth/token/", obtain_auth_token, name="api-token-auth"),
     path("api/auth/me/", AuthenticatedUserAPIView.as_view(), name="auth-me"),
     path(
@@ -131,6 +137,7 @@ urlpatterns = [
         TenantMemberDetailAPIView.as_view(),
         name="auth-tenant-members-detail",
     ),
+    path("api/ledger/", TenantLedgerEntryListAPIView.as_view(), name="tenant-ledger-list"),
     path("api/customers/", CustomerListCreateAPIView.as_view(), name="customers-list"),
     path(
         "api/customers/<int:pk>/",

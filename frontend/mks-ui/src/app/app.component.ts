@@ -44,6 +44,7 @@ export class AppComponent {
     { label: "Pedidos de Emissão", path: "/tenant/policy-requests" },
     { label: "Propostas", path: "/tenant/proposal-options" },
     { label: "Membros", path: "/tenant/members" },
+    { label: "Auditoria", path: "/tenant/ledger" },
     { label: "RBAC", path: "/tenant/rbac" },
   ];
 
@@ -60,9 +61,16 @@ export class AppComponent {
 
   readonly portalTitle = computed(() => {
     if (this.portalType() === "CONTROL_PLANE") {
-      return "Control Plane";
+      return "Portal Sistema";
     }
     return "Portal Tenant";
+  });
+
+  readonly brandTitle = computed(() => {
+    if (this.portalType() === "CONTROL_PLANE") {
+      return "MKS Sistema";
+    }
+    return "MKS CRM";
   });
 
   constructor(

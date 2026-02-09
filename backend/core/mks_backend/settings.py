@@ -1,3 +1,4 @@
+import importlib.util
 import json
 from pathlib import Path
 
@@ -65,7 +66,18 @@ INSTALLED_APPS = [
     "control_plane",
     "customers",
     "operational",
+    "ledger",
 ]
+
+if importlib.util.find_spec("guardian") is not None:
+    INSTALLED_APPS.append("guardian")
+    AUTHENTICATION_BACKENDS = (
+        "django.contrib.auth.backends.ModelBackend",
+        "guardian.backends.ObjectPermissionBackend",
+    )
+    ANONYMOUS_USER_ID = -1
+else:
+    AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

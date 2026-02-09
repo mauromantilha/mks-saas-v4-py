@@ -1,6 +1,7 @@
 import { Routes } from "@angular/router";
 
 import { authGuard } from "./core/auth/auth.guard";
+import { portalGuard } from "./core/portal/portal.guard";
 import { LoginPageComponent } from "./features/auth/login-page.component";
 import { PlatformTenantsPageComponent } from "./features/platform/platform-tenants-page.component";
 import { SalesFlowPageComponent } from "./features/sales/sales-flow-page.component";
@@ -11,17 +12,24 @@ import { TenantDashboardPageComponent } from "./features/tenant/tenant-dashboard
 import { TenantLeadsPageComponent } from "./features/tenant/tenant-leads-page.component";
 import { TenantOpportunitiesPageComponent } from "./features/tenant/tenant-opportunities-page.component";
 import { TenantMembersPageComponent } from "./features/tenant-settings/tenant-members-page.component";
+import { TenantLedgerPageComponent } from "./features/tenant-settings/tenant-ledger-page.component";
 import { TenantRbacPageComponent } from "./features/tenant-settings/tenant-rbac-page.component";
 
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "login" },
   { path: "login", component: LoginPageComponent },
-  { path: "sales/flow", component: SalesFlowPageComponent, canActivate: [authGuard] },
+  {
+    path: "sales/flow",
+    component: SalesFlowPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: { portal: "TENANT" },
+  },
   {
     path: "tenant/dashboard",
     component: TenantDashboardPageComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, portalGuard],
     data: {
+      portal: "TENANT",
       title: "Painel do Tenant",
       description:
         "Resumo operacional do tenant: funil, emissão, renovação e alertas.",
@@ -30,8 +38,9 @@ export const routes: Routes = [
   {
     path: "tenant/customers",
     component: TenantCustomersPageComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, portalGuard],
     data: {
+      portal: "TENANT",
       title: "Clientes",
       description:
         "Cadastro completo de clientes e histórico comercial consolidado.",
@@ -40,8 +49,9 @@ export const routes: Routes = [
   {
     path: "tenant/leads",
     component: TenantLeadsPageComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, portalGuard],
     data: {
+      portal: "TENANT",
       title: "Leads",
       description:
         "Entrada de leads por webhook/API/importação, com enriquecimento por IA.",
@@ -50,8 +60,9 @@ export const routes: Routes = [
   {
     path: "tenant/opportunities",
     component: TenantOpportunitiesPageComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, portalGuard],
     data: {
+      portal: "TENANT",
       title: "Oportunidades",
       description:
         "Gestão detalhada do pipeline comercial com etapas e KPIs de conversão.",
@@ -60,8 +71,9 @@ export const routes: Routes = [
   {
     path: "tenant/activities",
     component: TenantActivitiesPageComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, portalGuard],
     data: {
+      portal: "TENANT",
       title: "Atividades e Follow-up",
       description:
         "Tarefas comerciais com SLA, lembretes e histórico por lead/oportunidade.",
@@ -70,8 +82,9 @@ export const routes: Routes = [
   {
     path: "tenant/policy-requests",
     component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, portalGuard],
     data: {
+      portal: "TENANT",
       title: "Pedidos de Emissão",
       description:
         "Handover de venda para emissão com vistoria e dados de cobrança.",
@@ -80,19 +93,26 @@ export const routes: Routes = [
   {
     path: "tenant/proposal-options",
     component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, portalGuard],
     data: {
+      portal: "TENANT",
       title: "Propostas Comparativas",
       description:
         "Comparativo de seguradoras, plano recomendado e estratégia comercial.",
     },
   },
-  { path: "platform/tenants", component: PlatformTenantsPageComponent, canActivate: [authGuard] },
+  {
+    path: "platform/tenants",
+    component: PlatformTenantsPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: { portal: "CONTROL_PLANE" },
+  },
   {
     path: "platform/contracts",
     component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, portalGuard],
     data: {
+      portal: "CONTROL_PLANE",
       title: "Control Plane: Contratos",
       description:
         "Gestão de contrato, plano, assentos, vigência e cobrança de tenants.",
@@ -101,14 +121,31 @@ export const routes: Routes = [
   {
     path: "platform/monitoring",
     component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, portalGuard],
     data: {
+      portal: "CONTROL_PLANE",
       title: "Control Plane: Monitoramento",
       description:
         "Saúde de provisionamento, banco por tenant e telemetria operacional.",
     },
   },
-  { path: "tenant/members", component: TenantMembersPageComponent, canActivate: [authGuard] },
-  { path: "tenant/rbac", component: TenantRbacPageComponent, canActivate: [authGuard] },
+  {
+    path: "tenant/members",
+    component: TenantMembersPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: { portal: "TENANT" },
+  },
+  {
+    path: "tenant/ledger",
+    component: TenantLedgerPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: { portal: "TENANT" },
+  },
+  {
+    path: "tenant/rbac",
+    component: TenantRbacPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: { portal: "TENANT" },
+  },
   { path: "**", redirectTo: "login" },
 ];

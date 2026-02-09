@@ -11,6 +11,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ledger.services import append_ledger_entry
 from operational.ai import (
     apply_cnpj_profile_to_customer,
     apply_cnpj_profile_to_lead,
@@ -60,6 +61,59 @@ class TenantScopedAPIViewMixin:
         if self.ordering:
             return queryset.order_by(*self.ordering)
         return queryset
+
+    def _ledger_resource_label(self) -> str:
+        model = getattr(self, "model", None)
+        if model is None:
+            return self.__class__.__name__
+        return model._meta.label
+
+    def _append_ledger(self, action: str, instance, *, before=None, after=None, metadata=None):
+        metadata_payload = {}
+        if isinstance(metadata, dict):
+            metadata_payload.update(metadata)
+        resource_key = getattr(self, "tenant_resource_key", "")
+        if resource_key:
+            metadata_payload.setdefault("tenant_resource_key", resource_key)
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=getattr(self.request, "company", None),
+            actor=getattr(self.request, "user", None),
+            action=action,
+            resource_label=self._ledger_resource_label(),
+            resource_pk=str(getattr(instance, "pk", "")),
+            request=self.request,
+            data_before=before,
+            data_after=after,
+            metadata=metadata_payload,
+        )
+
+    def perform_create(self, serializer):
+        instance = serializer.save(company=self.request.company)
+        self._append_ledger(
+            "CREATE",
+            instance,
+            after=_instance_payload(instance),
+        )
+        return instance
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        before = _instance_payload(instance)
+        updated = serializer.save()
+        self._append_ledger(
+            "UPDATE",
+            updated,
+            before=before,
+            after=_instance_payload(updated),
+        )
+        return updated
+
+    def perform_destroy(self, instance):
+        before = _instance_payload(instance)
+        self._append_ledger("DELETE", instance, before=before)
+        instance.delete()
 
 
 def _score_label_from_qualification_score(score: int | None) -> str:
@@ -152,7 +206,7 @@ class CustomerListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPI
     tenant_resource_key = "customers"
 
     def perform_create(self, serializer):
-        customer = serializer.save(company=self.request.company)
+        customer = super().perform_create(serializer)
         _auto_populate_customer_intelligence(customer)
 
 
@@ -169,7 +223,7 @@ class LeadListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView
     tenant_resource_key = "leads"
 
     def perform_create(self, serializer):
-        lead = serializer.save(company=self.request.company)
+        lead = super().perform_create(serializer)
         _auto_populate_lead_intelligence(lead)
 
 
@@ -269,10 +323,25 @@ class LeadQualifyAPIView(APIView):
 
     def post(self, request, pk):
         lead = get_object_or_404(Lead.objects.all(), pk=pk)
+        before = _instance_payload(lead)
         try:
             lead.transition_status("QUALIFIED")
         except ValidationError as exc:
             return Response({"detail": exc.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="UPDATE",
+            resource_label=Lead._meta.label,
+            resource_pk=str(lead.pk),
+            request=request,
+            event_type="Lead.QUALIFY",
+            data_before=before,
+            data_after=_instance_payload(lead),
+            metadata={"tenant_resource_key": "leads"},
+        )
         return Response(LeadSerializer(lead).data)
 
 
@@ -282,10 +351,25 @@ class LeadDisqualifyAPIView(APIView):
 
     def post(self, request, pk):
         lead = get_object_or_404(Lead.objects.all(), pk=pk)
+        before = _instance_payload(lead)
         try:
             lead.transition_status("DISQUALIFIED")
         except ValidationError as exc:
             return Response({"detail": exc.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="UPDATE",
+            resource_label=Lead._meta.label,
+            resource_pk=str(lead.pk),
+            request=request,
+            event_type="Lead.DISQUALIFY",
+            data_before=before,
+            data_after=_instance_payload(lead),
+            metadata={"tenant_resource_key": "leads"},
+        )
         return Response(LeadSerializer(lead).data)
 
 
@@ -377,6 +461,7 @@ class LeadConvertAPIView(APIView):
 
     def post(self, request, pk):
         lead = get_object_or_404(Lead.objects.select_related("customer"), pk=pk)
+        lead_before = _instance_payload(lead)
         serializer = LeadConvertSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
@@ -399,10 +484,12 @@ class LeadConvertAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         customer_created = False
+        customer_before = _instance_payload(customer) if customer is not None else None
 
         if customer is None and create_customer_if_missing:
             customer = _build_customer_from_lead(lead, request.company)
             customer_created = customer is not None
+            customer_before = None
 
         if customer is None:
             return Response(
@@ -419,6 +506,8 @@ class LeadConvertAPIView(APIView):
         if not title:
             title = f"Opportunity from lead #{lead.id}"
 
+        opportunity = None
+        policy_request = None
         with transaction.atomic():
             if lead.customer_id is None:
                 lead.customer = customer
@@ -435,7 +524,6 @@ class LeadConvertAPIView(APIView):
                 expected_close_date=serializer.validated_data.get("expected_close_date"),
                 needs_payload=lead.needs_payload or {},
             )
-            policy_request = None
             if create_policy_request:
                 policy_request = PolicyRequest.objects.create(
                     company=request.company,
@@ -446,6 +534,68 @@ class LeadConvertAPIView(APIView):
                     issue_deadline_at=timezone.now() + timedelta(days=2),
                 )
             lead.transition_status("CONVERTED")
+
+            # Ledger: tenant-safe, append-only auditing of the conversion chain.
+            append_ledger_entry(
+                scope="TENANT",
+                company=request.company,
+                actor=request.user,
+                action="UPDATE",
+                resource_label=Lead._meta.label,
+                resource_pk=str(lead.pk),
+                request=request,
+                event_type="Lead.CONVERT",
+                data_before=lead_before,
+                data_after=_instance_payload(lead),
+                metadata={
+                    "tenant_resource_key": "leads",
+                    "customer_id": customer.id,
+                    "customer_created": customer_created,
+                    "opportunity_id": opportunity.id,
+                    "policy_request_id": policy_request.id if policy_request else None,
+                },
+            )
+            append_ledger_entry(
+                scope="TENANT",
+                company=request.company,
+                actor=request.user,
+                action="CREATE",
+                resource_label=Opportunity._meta.label,
+                resource_pk=str(opportunity.pk),
+                request=request,
+                event_type="Opportunity.CREATE_FROM_LEAD",
+                data_before=None,
+                data_after=_instance_payload(opportunity),
+                metadata={"tenant_resource_key": "opportunities", "source_lead_id": lead.id},
+            )
+            if policy_request is not None:
+                append_ledger_entry(
+                    scope="TENANT",
+                    company=request.company,
+                    actor=request.user,
+                    action="CREATE",
+                    resource_label=PolicyRequest._meta.label,
+                    resource_pk=str(policy_request.pk),
+                    request=request,
+                    event_type="PolicyRequest.CREATE_FROM_LEAD",
+                    data_before=None,
+                    data_after=_instance_payload(policy_request),
+                    metadata={"tenant_resource_key": "policy_requests", "opportunity_id": opportunity.id},
+                )
+            if customer is not None:
+                append_ledger_entry(
+                    scope="TENANT",
+                    company=request.company,
+                    actor=request.user,
+                    action="UPDATE" if not customer_created else "CREATE",
+                    resource_label=Customer._meta.label,
+                    resource_pk=str(customer.pk),
+                    request=request,
+                    event_type="Customer.SYNC_FROM_LEAD" if not customer_created else "Customer.CREATE_FROM_LEAD",
+                    data_before=customer_before,
+                    data_after=_instance_payload(customer),
+                    metadata={"tenant_resource_key": "customers", "source_lead_id": lead.id},
+                )
 
         return Response(
             {
@@ -472,6 +622,7 @@ class OpportunityStageUpdateAPIView(APIView):
             Opportunity.objects.select_related("customer"),
             pk=pk,
         )
+        before = _instance_payload(opportunity)
         serializer = OpportunityStageUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -485,13 +636,27 @@ class OpportunityStageUpdateAPIView(APIView):
             with transaction.atomic():
                 # Ensure the customer is promoted to "CUSTOMER" on a won deal.
                 customer = opportunity.customer
+                customer_before = _instance_payload(customer)
                 if customer.lifecycle_stage != Customer.STAGE_CUSTOMER:
                     customer.lifecycle_stage = Customer.STAGE_CUSTOMER
                     customer.save(update_fields=("lifecycle_stage", "updated_at"))
+                    append_ledger_entry(
+                        scope="TENANT",
+                        company=request.company,
+                        actor=request.user,
+                        action="UPDATE",
+                        resource_label=Customer._meta.label,
+                        resource_pk=str(customer.pk),
+                        request=request,
+                        event_type="Customer.PROMOTE_TO_CUSTOMER",
+                        data_before=customer_before,
+                        data_after=_instance_payload(customer),
+                        metadata={"tenant_resource_key": "customers", "opportunity_id": opportunity.id},
+                    )
 
                 # Auto-create the handover object if it doesn't exist yet.
                 if not hasattr(opportunity, "policy_request"):
-                    PolicyRequest.objects.create(
+                    policy_request = PolicyRequest.objects.create(
                         company=request.company,
                         opportunity=opportunity,
                         customer=customer,
@@ -499,6 +664,33 @@ class OpportunityStageUpdateAPIView(APIView):
                         product_line=opportunity.product_line,
                         issue_deadline_at=timezone.now() + timedelta(days=2),
                     )
+                    append_ledger_entry(
+                        scope="TENANT",
+                        company=request.company,
+                        actor=request.user,
+                        action="CREATE",
+                        resource_label=PolicyRequest._meta.label,
+                        resource_pk=str(policy_request.pk),
+                        request=request,
+                        event_type="PolicyRequest.AUTO_CREATE_ON_WON",
+                        data_before=None,
+                        data_after=_instance_payload(policy_request),
+                        metadata={"tenant_resource_key": "policy_requests", "opportunity_id": opportunity.id},
+                    )
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="UPDATE",
+            resource_label=Opportunity._meta.label,
+            resource_pk=str(opportunity.pk),
+            request=request,
+            event_type="Opportunity.STAGE_CHANGE",
+            data_before=before,
+            data_after=_instance_payload(opportunity),
+            metadata={"tenant_resource_key": "opportunities", "target_stage": target_stage},
+        )
 
         return Response(OpportunitySerializer(opportunity).data)
 
@@ -671,10 +863,17 @@ class CommercialActivityListCreateAPIView(
     tenant_resource_key = "activities"
 
     def perform_create(self, serializer):
-        serializer.save(
+        activity = serializer.save(
             company=self.request.company,
             created_by=self.request.user,
         )
+        self._append_ledger(
+            "CREATE",
+            activity,
+            after=_instance_payload(activity),
+            metadata={"created_by_user_id": self.request.user.id},
+        )
+        return activity
 
 
 class CommercialActivityDetailAPIView(
@@ -691,7 +890,21 @@ class CommercialActivityCompleteAPIView(APIView):
 
     def post(self, request, pk):
         activity = get_object_or_404(CommercialActivity.objects.all(), pk=pk)
+        before = _instance_payload(activity)
         activity.mark_done()
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="UPDATE",
+            resource_label=CommercialActivity._meta.label,
+            resource_pk=str(activity.pk),
+            request=request,
+            event_type="CommercialActivity.COMPLETE",
+            data_before=before,
+            data_after=_instance_payload(activity),
+            metadata={"tenant_resource_key": "activities"},
+        )
         return Response(CommercialActivitySerializer(activity).data)
 
 
@@ -701,7 +914,21 @@ class CommercialActivityReopenAPIView(APIView):
 
     def post(self, request, pk):
         activity = get_object_or_404(CommercialActivity.objects.all(), pk=pk)
+        before = _instance_payload(activity)
         activity.reopen()
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="UPDATE",
+            resource_label=CommercialActivity._meta.label,
+            resource_pk=str(activity.pk),
+            request=request,
+            event_type="CommercialActivity.REOPEN",
+            data_before=before,
+            data_after=_instance_payload(activity),
+            metadata={"tenant_resource_key": "activities"},
+        )
         return Response(CommercialActivitySerializer(activity).data)
 
 
@@ -731,8 +958,22 @@ class CommercialActivityMarkRemindedAPIView(APIView):
 
     def post(self, request, pk):
         activity = get_object_or_404(CommercialActivity.objects.all(), pk=pk)
+        before = _instance_payload(activity)
         activity.reminder_sent = True
         activity.save(update_fields=("reminder_sent", "updated_at"))
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="UPDATE",
+            resource_label=CommercialActivity._meta.label,
+            resource_pk=str(activity.pk),
+            request=request,
+            event_type="CommercialActivity.MARK_REMINDED",
+            data_before=before,
+            data_after=_instance_payload(activity),
+            metadata={"tenant_resource_key": "activities"},
+        )
         return Response(CommercialActivitySerializer(activity).data)
 
 

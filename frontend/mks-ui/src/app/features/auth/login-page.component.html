@@ -9,7 +9,7 @@
     </div>
     <h1>{{ isControlPlanePortal() ? "Acesso Control Plane" : "Acesso ao Tenant" }}</h1>
 
-    <div class="portal-switch">
+    <div class="portal-switch" *ngIf="allowPortalToggle">
       <button
         type="button"
         [class.active]="isControlPlanePortal()"
