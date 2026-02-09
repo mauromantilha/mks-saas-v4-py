@@ -88,6 +88,7 @@ if DJANGO_TENANTS_ENABLED:
         "tenancy.apps.TenancyConfig",
         "operational.apps.OperationalConfig",
         "insurance_core.apps.InsuranceCoreConfig",
+        "finance.fiscal.apps.FinanceFiscalConfig",
         "ledger.apps.LedgerConfig",
     ]
 
@@ -140,6 +141,7 @@ else:
         "customers.apps.CustomersConfig",
         "operational.apps.OperationalConfig",
         "insurance_core.apps.InsuranceCoreConfig",
+        "finance.fiscal.apps.FinanceFiscalConfig",
         "ledger.apps.LedgerConfig",
     ]
     if guardian_available:

@@ -273,4 +273,6 @@ urlpatterns = [
     ),
     # Insurance core (bounded context): insurers, products, coverages
     path("api/insurance/", include("insurance_core.api.urls")),
+    # Finance fiscal (bounded context): NF issuance/cancellation (tenant-scoped)
+    path("api/finance/", include("finance.fiscal.api.urls")),
 ]

@@ -56,6 +56,7 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
         patch_roles=NO_ROLES,
         delete_roles=NO_ROLES,
     ),
+    "fiscal_documents": build_role_matrix(),
     "ledger": build_role_matrix(
         read_roles=WRITE_ROLES,
         post_roles=NO_ROLES,

@@ -317,4 +317,5 @@ urlpatterns = [
         name="endossos-ai-insights",
     ),
     path("api/insurance/", include("insurance_core.api.urls")),
+    path("api/finance/", include("finance.fiscal.api.urls")),
 ]
