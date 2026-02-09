@@ -9,6 +9,7 @@ interface NavItem {
   label: string;
   path: string;
   exact?: boolean;
+  accent?: string;
 }
 
 @Component({
@@ -29,23 +30,24 @@ export class AppComponent {
   readonly hostname = this.portalContextService.hostname();
 
   private readonly controlPlaneMenu: NavItem[] = [
-    { label: "Tenants", path: "/platform/tenants" },
-    { label: "Contratos", path: "/platform/contracts" },
-    { label: "Monitoramento", path: "/platform/monitoring" },
+    { label: "Tenants", path: "/platform/tenants", accent: "#f97316" },
+    { label: "Contratos", path: "/platform/contracts", accent: "#fb7185" },
+    { label: "Monitoramento", path: "/platform/monitoring", accent: "#f59e0b" },
   ];
 
   private readonly tenantMenu: NavItem[] = [
-    { label: "Fluxo Comercial", path: "/sales/flow" },
-    { label: "Painel Tenant", path: "/tenant/dashboard" },
-    { label: "Clientes", path: "/tenant/customers" },
-    { label: "Leads", path: "/tenant/leads" },
-    { label: "Oportunidades", path: "/tenant/opportunities" },
-    { label: "Atividades", path: "/tenant/activities" },
-    { label: "Pedidos de Emissão", path: "/tenant/policy-requests" },
-    { label: "Propostas", path: "/tenant/proposal-options" },
-    { label: "Membros", path: "/tenant/members" },
-    { label: "Auditoria", path: "/tenant/ledger" },
-    { label: "RBAC", path: "/tenant/rbac" },
+    { label: "Dashboard", path: "/tenant/dashboard", exact: true, accent: "#0ea5e9" },
+    { label: "Fluxo Comercial", path: "/sales/flow", accent: "#38bdf8" },
+    { label: "Clientes", path: "/tenant/customers", accent: "#14b8a6" },
+    { label: "Leads", path: "/tenant/leads", accent: "#f59e0b" },
+    { label: "Oportunidades", path: "/tenant/opportunities", accent: "#10b981" },
+    { label: "Atividades", path: "/tenant/activities", accent: "#a855f7" },
+    { label: "Seguradoras", path: "/tenant/insurers", accent: "#6366f1" },
+    { label: "Pedidos de Emissão", path: "/tenant/policy-requests", accent: "#22c55e" },
+    { label: "Propostas", path: "/tenant/proposal-options", accent: "#06b6d4" },
+    { label: "Membros", path: "/tenant/members", accent: "#64748b" },
+    { label: "Auditoria", path: "/tenant/ledger", accent: "#94a3b8" },
+    { label: "RBAC", path: "/tenant/rbac", accent: "#475569" },
   ];
 
   readonly menuItems = computed(() => {

@@ -51,7 +51,7 @@ export class LoginPageComponent {
       void this.router.navigate(
         this.sessionService.session()?.portalType === "CONTROL_PLANE"
           ? ["/platform/tenants"]
-          : ["/sales/flow"]
+          : ["/tenant/dashboard"]
       );
     }
   }
@@ -154,7 +154,7 @@ export class LoginPageComponent {
           });
           this.loading.set(false);
           void this.router.navigate(
-            isControlPlaneLogin ? ["/platform/tenants"] : ["/sales/flow"]
+            isControlPlaneLogin ? ["/platform/tenants"] : ["/tenant/dashboard"]
           );
         },
         error: (err) => {

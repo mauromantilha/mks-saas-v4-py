@@ -11,6 +11,7 @@ import { SectionPlaceholderPageComponent } from "./features/shared/section-place
 import { TenantActivitiesPageComponent } from "./features/tenant/tenant-activities-page.component";
 import { TenantCustomersPageComponent } from "./features/tenant/tenant-customers-page.component";
 import { TenantDashboardPageComponent } from "./features/tenant/tenant-dashboard-page.component";
+import { TenantInsurersPageComponent } from "./features/tenant/tenant-insurers-page.component";
 import { TenantLeadsPageComponent } from "./features/tenant/tenant-leads-page.component";
 import { TenantOpportunitiesPageComponent } from "./features/tenant/tenant-opportunities-page.component";
 import { TenantMembersPageComponent } from "./features/tenant-settings/tenant-members-page.component";
@@ -81,6 +82,17 @@ export const routes: Routes = [
       title: "Atividades e Follow-up",
       description:
         "Tarefas comerciais com SLA, lembretes e histórico por lead/oportunidade.",
+    },
+  },
+  {
+    path: "tenant/insurers",
+    component: TenantInsurersPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Seguradoras",
+      description:
+        "Cadastro e gestão de seguradoras (insurers) com regras de integração por tenant.",
     },
   },
   {

@@ -24,7 +24,7 @@ export const portalGuard: CanActivateFn = (route) => {
     if (hostPortal === "CONTROL_PLANE") {
       return router.createUrlTree([sessionService.isAuthenticated() ? "/platform/tenants" : "/login"]);
     }
-    return router.createUrlTree([sessionService.isAuthenticated() ? "/sales/flow" : "/login"]);
+    return router.createUrlTree([sessionService.isAuthenticated() ? "/tenant/dashboard" : "/login"]);
   }
 
   if (!sessionService.isAuthenticated()) {
@@ -46,4 +46,3 @@ export const portalGuard: CanActivateFn = (route) => {
 
   return true;
 };
-

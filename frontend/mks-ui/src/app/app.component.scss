@@ -1,9 +1,10 @@
 :host {
   --shell-bg: #f6f8fb;
-  --sidebar-bg: #0b1f35;
-  --sidebar-text: #dbe7f3;
-  --sidebar-muted: #9cb3c9;
-  --sidebar-active: #1f7a8c;
+  --sidebar-bg: #ffffff;
+  --sidebar-gradient-to: #eef7fb;
+  --sidebar-text: #0f172a;
+  --sidebar-muted: #475467;
+  --sidebar-active: #0ea5e9;
   --content-text: #0f172a;
   --border-color: #d0d5dd;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -19,19 +20,15 @@
 
 .shell.tenant-portal {
   --shell-bg: #eef7fb;
-  --sidebar-bg: #0b1f35;
-  --sidebar-text: #dbe7f3;
-  --sidebar-muted: #9cb3c9;
-  --sidebar-active: #1f7a8c;
+  --sidebar-gradient-to: #eaf6ff;
+  --sidebar-active: #0ea5e9;
 }
 
 .shell.control-plane {
   --shell-bg: #fff5ea;
-  --sidebar-bg: #3a1d0b;
-  --sidebar-text: #ffe6d1;
-  --sidebar-muted: #f2bf9a;
-  --sidebar-active: #d9632e;
-  --content-text: #35190c;
+  --sidebar-gradient-to: #fff0e5;
+  --sidebar-active: #f97316;
+  --content-text: #1f2937;
 }
 
 .shell.no-session {
@@ -39,18 +36,13 @@
 }
 
 .sidebar {
-  background: linear-gradient(180deg, #06203b 0%, var(--sidebar-bg) 70%);
+  background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-gradient-to) 100%);
   color: var(--sidebar-text);
   padding: 18px 14px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  border-right: 1px solid #0f3357;
-}
-
-.shell.control-plane .sidebar {
-  background: linear-gradient(180deg, #5d2d10 0%, var(--sidebar-bg) 70%);
-  border-right: 1px solid #7b4120;
+  border-right: 1px solid var(--border-color);
 }
 
 .brand {
@@ -72,16 +64,12 @@
 }
 
 .session-meta {
-  border: 1px solid #1e4367;
+  border: 1px solid color-mix(in srgb, var(--sidebar-active) 25%, var(--border-color));
   border-radius: 10px;
   padding: 10px;
-  background: rgba(7, 39, 67, 0.55);
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(10px);
   font-size: 0.85rem;
-}
-
-.shell.control-plane .session-meta {
-  border: 1px solid #8a4b26;
-  background: rgba(85, 40, 16, 0.55);
 }
 
 .session-meta p {
@@ -100,58 +88,61 @@
 }
 
 .menu a {
+  --accent: var(--sidebar-active);
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--sidebar-text);
   text-decoration: none;
-  border-radius: 9px;
-  padding: 10px 11px;
+  border-radius: 12px;
+  padding: 10px 10px;
   font-weight: 600;
   border: 1px solid transparent;
 }
 
-.menu a:hover {
-  border-color: #25557f;
-  background: rgba(24, 83, 129, 0.38);
+.menu .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 35%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, #ffffff);
+  flex: 0 0 auto;
 }
 
-.shell.control-plane .menu a:hover {
-  border-color: #955127;
-  background: rgba(140, 69, 31, 0.35);
+.menu .label {
+  line-height: 1.1;
+}
+
+.menu a:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-color));
+  background: color-mix(in srgb, var(--accent) 10%, #ffffff);
 }
 
 .menu a.active {
-  background: linear-gradient(90deg, #1b6b80, var(--sidebar-active));
-  border-color: #59a8bd;
-  color: #f8fdff;
+  background: color-mix(in srgb, var(--accent) 16%, #ffffff);
+  border-color: color-mix(in srgb, var(--accent) 55%, #ffffff);
+  color: var(--sidebar-text);
 }
 
-.shell.control-plane .menu a.active {
-  background: linear-gradient(90deg, #b44c1f, var(--sidebar-active));
-  border-color: #efaa7f;
-  color: #fff6f0;
+.menu a.active .dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .logout-btn {
   margin-top: auto;
-  border: 1px solid #3f6f98;
-  background: transparent;
-  color: #dbe7f3;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--sidebar-text);
   border-radius: 10px;
   padding: 10px 12px;
   font-weight: 700;
   cursor: pointer;
 }
 
-.shell.control-plane .logout-btn {
-  border: 1px solid #b86e43;
-  color: #ffe6d1;
-}
-
 .logout-btn:hover {
-  background: rgba(67, 114, 151, 0.24);
-}
-
-.shell.control-plane .logout-btn:hover {
-  background: rgba(145, 73, 32, 0.35);
+  background: #fff;
 }
 
 .content {
@@ -165,7 +156,7 @@
 
   .sidebar {
     border-right: 0;
-    border-bottom: 1px solid #0f3357;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .menu {
