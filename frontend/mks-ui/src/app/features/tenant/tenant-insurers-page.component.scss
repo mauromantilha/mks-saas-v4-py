@@ -95,6 +95,71 @@ select {
   background: #fff;
 }
 
+.inline-field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.inline-field input {
+  flex: 1;
+}
+
+button.ghost {
+  background: transparent;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
+button.danger.ghost {
+  color: #b42318;
+  border-color: #fecaca;
+}
+
+.contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.contact-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.contact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.contact-title {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.contact-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.radio input {
+  width: 16px;
+  height: 16px;
+}
+
 .actions {
   display: flex;
   gap: 8px;
@@ -157,4 +222,3 @@ select {
 .error {
   color: #b42318;
 }
-

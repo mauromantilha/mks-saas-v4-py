@@ -42,6 +42,14 @@ export interface InsurerRecord {
   name: string;
   legal_name: string;
   cnpj: string;
+  zip_code: string;
+  state: string;
+  city: string;
+  neighborhood: string;
+  street: string;
+  street_number: string;
+  address_complement: string;
+  contacts?: InsurerContactRecord[];
   status: InsurerStatus;
   integration_type: InsurerIntegrationType;
   integration_config: Record<string, unknown>;
@@ -50,10 +58,40 @@ export interface InsurerRecord {
   updated_at: string;
 }
 
+export interface InsurerContactRecord {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  is_primary: boolean;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateInsurerContactPayload {
+  id?: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  is_primary?: boolean;
+  notes?: string;
+}
+
 export interface CreateInsurerPayload {
   name: string;
   legal_name?: string;
   cnpj?: string;
+  zip_code?: string;
+  state?: string;
+  city?: string;
+  neighborhood?: string;
+  street?: string;
+  street_number?: string;
+  address_complement?: string;
+  contacts?: CreateInsurerContactPayload[];
   status?: InsurerStatus;
   integration_type?: InsurerIntegrationType;
   integration_config?: Record<string, unknown>;
@@ -63,9 +101,26 @@ export interface UpdateInsurerPayload {
   name?: string;
   legal_name?: string;
   cnpj?: string;
+  zip_code?: string;
+  state?: string;
+  city?: string;
+  neighborhood?: string;
+  street?: string;
+  street_number?: string;
+  address_complement?: string;
+  contacts?: CreateInsurerContactPayload[];
   status?: InsurerStatus;
   integration_type?: InsurerIntegrationType;
   integration_config?: Record<string, unknown>;
+}
+
+export interface CepLookupResponse {
+  zip_code: string;
+  street: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  provider: string;
 }
 
 export interface InsuranceProductRecord {

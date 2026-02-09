@@ -4,6 +4,7 @@ import { Observable } from "rxjs";
 
 import { environment } from "../../../environments/environment";
 import {
+  CepLookupResponse,
   CreateInsurerPayload,
   CreateEndorsementPayload,
   CreatePolicyCoveragePayload,
@@ -29,6 +30,9 @@ import {
 
 @Injectable({ providedIn: "root" })
 export class InsuranceCoreService {
+  private readonly apiRoot = environment.apiBaseUrl
+    ? `${environment.apiBaseUrl}/api`
+    : "/api";
   private readonly apiBase = environment.apiBaseUrl
     ? `${environment.apiBaseUrl}/api/insurance`
     : "/api/insurance";
@@ -55,6 +59,11 @@ export class InsuranceCoreService {
 
   updateInsurer(id: number, payload: UpdateInsurerPayload): Observable<InsurerRecord> {
     return this.http.patch<InsurerRecord>(`${this.apiBase}/insurers/${id}/`, payload);
+  }
+
+  lookupCep(cep: string): Observable<CepLookupResponse> {
+    const encoded = encodeURIComponent((cep || "").trim());
+    return this.http.get<CepLookupResponse>(`${this.apiRoot}/utils/cep/${encoded}/`);
   }
 
   deactivateInsurer(id: number): Observable<void> {

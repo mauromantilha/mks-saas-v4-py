@@ -5,13 +5,25 @@ import { Router } from "@angular/router";
 
 import { InsuranceCoreService } from "../../core/api/insurance-core.service";
 import {
+  CreateInsurerContactPayload,
   CreateInsurerPayload,
+  InsurerContactRecord,
   InsurerIntegrationType,
   InsurerRecord,
   InsurerStatus,
   UpdateInsurerPayload,
 } from "../../core/api/insurance-core.types";
 import { SessionService } from "../../core/auth/session.service";
+
+type ContactDraft = {
+  id?: number;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  is_primary: boolean;
+  notes: string;
+};
 
 @Component({
   selector: "app-tenant-insurers-page",
@@ -40,6 +52,16 @@ export class TenantInsurersPageComponent {
   name = signal("");
   legalName = signal("");
   cnpj = signal("");
+  zipCode = signal("");
+  street = signal("");
+  streetNumber = signal("");
+  addressComplement = signal("");
+  neighborhood = signal("");
+  city = signal("");
+  state = signal("");
+  contacts = signal<ContactDraft[]>([]);
+  cepLoading = signal(false);
+  cepError = signal("");
   integrationType = signal<InsurerIntegrationType>("NONE");
 
   // Edit state.
@@ -47,6 +69,16 @@ export class TenantInsurersPageComponent {
   editName = signal("");
   editLegalName = signal("");
   editCnpj = signal("");
+  editZipCode = signal("");
+  editStreet = signal("");
+  editStreetNumber = signal("");
+  editAddressComplement = signal("");
+  editNeighborhood = signal("");
+  editCity = signal("");
+  editState = signal("");
+  editContacts = signal<ContactDraft[]>([]);
+  editCepLoading = signal(false);
+  editCepError = signal("");
   editStatus = signal<InsurerStatus>("ACTIVE");
   editIntegrationType = signal<InsurerIntegrationType>("NONE");
 
@@ -67,6 +99,163 @@ export class TenantInsurersPageComponent {
       return;
     }
     this.load();
+  }
+
+  private digitsOnly(value: string): string {
+    return (value || "").replace(/\D/g, "");
+  }
+
+  private blankContact(isPrimary = false): ContactDraft {
+    return {
+      id: undefined,
+      name: "",
+      email: "",
+      phone: "",
+      role: "",
+      is_primary: isPrimary,
+      notes: "",
+    };
+  }
+
+  private toDrafts(value: InsurerContactRecord[] | undefined): ContactDraft[] {
+    if (!value || value.length === 0) {
+      return [];
+    }
+    return value.map((c) => ({
+      id: c.id,
+      name: c.name ?? "",
+      email: c.email ?? "",
+      phone: c.phone ?? "",
+      role: c.role ?? "",
+      is_primary: Boolean(c.is_primary),
+      notes: c.notes ?? "",
+    }));
+  }
+
+  private normalizeContacts(drafts: ContactDraft[]): CreateInsurerContactPayload[] | undefined {
+    const normalized = drafts
+      .map((c) => ({
+        id: c.id,
+        name: c.name.trim(),
+        email: c.email.trim(),
+        phone: c.phone.trim(),
+        role: c.role.trim(),
+        is_primary: c.is_primary,
+        notes: c.notes.trim(),
+      }))
+      .filter((c) => c.name);
+
+    if (normalized.length === 0) {
+      return undefined;
+    }
+    if (!normalized.some((c) => c.is_primary)) {
+      normalized[0].is_primary = true;
+    }
+    return normalized;
+  }
+
+  addContact(target: typeof this.contacts | typeof this.editContacts): void {
+    const rows = target();
+    const next = [...rows, this.blankContact(rows.length === 0)];
+    target.set(next);
+  }
+
+  removeContact(target: typeof this.contacts | typeof this.editContacts, index: number): void {
+    const rows = target();
+    if (index < 0 || index >= rows.length) {
+      return;
+    }
+    const next = rows.filter((_row, i) => i !== index);
+    if (next.length > 0 && !next.some((c) => c.is_primary)) {
+      next[0] = { ...next[0], is_primary: true };
+    }
+    target.set(next);
+  }
+
+  markPrimary(target: typeof this.contacts | typeof this.editContacts, index: number): void {
+    const rows = target();
+    const next = rows.map((row, i) => ({ ...row, is_primary: i === index }));
+    target.set(next);
+  }
+
+  updateContact(
+    target: typeof this.contacts | typeof this.editContacts,
+    index: number,
+    key: keyof ContactDraft,
+    value: string
+  ): void {
+    const rows = target();
+    if (index < 0 || index >= rows.length) {
+      return;
+    }
+    const next = rows.map((row, i) => (i === index ? { ...row, [key]: value } : row));
+    target.set(next);
+  }
+
+  lookupCepCreate(): void {
+    const raw = this.zipCode().trim();
+    const cep = this.digitsOnly(raw);
+    if (!cep) {
+      this.cepError.set("");
+      return;
+    }
+    if (cep.length !== 8) {
+      this.cepError.set("CEP inválido. Informe 8 dígitos.");
+      return;
+    }
+
+    this.cepLoading.set(true);
+    this.cepError.set("");
+
+    this.insuranceCoreService.lookupCep(cep).subscribe({
+      next: (resp) => {
+        this.zipCode.set(resp.zip_code || raw);
+        this.street.set(resp.street || this.street());
+        this.neighborhood.set(resp.neighborhood || this.neighborhood());
+        this.city.set(resp.city || this.city());
+        this.state.set(resp.state || this.state());
+        this.cepLoading.set(false);
+      },
+      error: (err) => {
+        this.cepError.set(
+          err?.error?.detail ? String(err.error.detail) : "Falha ao consultar CEP."
+        );
+        this.cepLoading.set(false);
+      },
+    });
+  }
+
+  lookupCepEdit(): void {
+    const raw = this.editZipCode().trim();
+    const cep = this.digitsOnly(raw);
+    if (!cep) {
+      this.editCepError.set("");
+      return;
+    }
+    if (cep.length !== 8) {
+      this.editCepError.set("CEP inválido. Informe 8 dígitos.");
+      return;
+    }
+
+    this.editCepLoading.set(true);
+    this.editCepError.set("");
+
+    this.insuranceCoreService.lookupCep(cep).subscribe({
+      next: (resp) => {
+        this.editZipCode.set(resp.zip_code || raw);
+        this.editStreet.set(resp.street || this.editStreet());
+        this.editNeighborhood.set(resp.neighborhood || this.editNeighborhood());
+        this.editCity.set(resp.city || this.editCity());
+        this.editState.set(resp.state || this.editState());
+        this.editCepLoading.set(false);
+      },
+      error: (err) => {
+        this.editCepError.set(
+          err?.error?.detail ? String(err.error.detail) : "Falha ao consultar CEP."
+        );
+        this.editCepLoading.set(false);
+      },
+    });
   }
 
   load(): void {
@@ -103,10 +292,20 @@ export class TenantInsurersPageComponent {
       return;
     }
 
+    const contacts = this.normalizeContacts(this.contacts());
+
     const payload: CreateInsurerPayload = {
       name: this.name().trim(),
       legal_name: this.legalName().trim() || undefined,
       cnpj: this.cnpj().trim() || undefined,
+      zip_code: this.zipCode().trim() || undefined,
+      street: this.street().trim() || undefined,
+      street_number: this.streetNumber().trim() || undefined,
+      address_complement: this.addressComplement().trim() || undefined,
+      neighborhood: this.neighborhood().trim() || undefined,
+      city: this.city().trim() || undefined,
+      state: this.state().trim() || undefined,
+      contacts,
       integration_type: this.integrationType(),
       status: "ACTIVE",
       integration_config: {},
@@ -150,6 +349,15 @@ export class TenantInsurersPageComponent {
     this.editName.set(insurer.name);
     this.editLegalName.set(insurer.legal_name ?? "");
     this.editCnpj.set(insurer.cnpj ?? "");
+    this.editZipCode.set(insurer.zip_code ?? "");
+    this.editStreet.set(insurer.street ?? "");
+    this.editStreetNumber.set(insurer.street_number ?? "");
+    this.editAddressComplement.set(insurer.address_complement ?? "");
+    this.editNeighborhood.set(insurer.neighborhood ?? "");
+    this.editCity.set(insurer.city ?? "");
+    this.editState.set(insurer.state ?? "");
+    this.editContacts.set(this.toDrafts(insurer.contacts));
+    this.editCepError.set("");
     this.editStatus.set(insurer.status);
     this.editIntegrationType.set(insurer.integration_type);
     this.notice.set("");
@@ -170,10 +378,20 @@ export class TenantInsurersPageComponent {
       return;
     }
 
+    const contacts = this.normalizeContacts(this.editContacts());
+
     const payload: UpdateInsurerPayload = {
       name: this.editName().trim(),
       legal_name: this.editLegalName().trim() || "",
       cnpj: this.editCnpj().trim() || "",
+      zip_code: this.editZipCode().trim() || "",
+      street: this.editStreet().trim() || "",
+      street_number: this.editStreetNumber().trim() || "",
+      address_complement: this.editAddressComplement().trim() || "",
+      neighborhood: this.editNeighborhood().trim() || "",
+      city: this.editCity().trim() || "",
+      state: this.editState().trim() || "",
+      contacts: contacts ?? [],
       status: this.editStatus(),
       integration_type: this.editIntegrationType(),
     };
@@ -250,7 +468,16 @@ export class TenantInsurersPageComponent {
     this.name.set("");
     this.legalName.set("");
     this.cnpj.set("");
+    this.zipCode.set("");
+    this.street.set("");
+    this.streetNumber.set("");
+    this.addressComplement.set("");
+    this.neighborhood.set("");
+    this.city.set("");
+    this.state.set("");
+    this.contacts.set([]);
+    this.cepLoading.set(false);
+    this.cepError.set("");
     this.integrationType.set("NONE");
   }
 }
-

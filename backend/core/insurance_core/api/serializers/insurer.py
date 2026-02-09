@@ -2,11 +2,35 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from insurance_core.models import Insurer
+from insurance_core.models import Insurer, InsurerContact
 from tenancy.context import get_current_company
 
 
+class InsurerContactSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = InsurerContact
+        fields = (
+            "id",
+            "name",
+            "email",
+            "phone",
+            "role",
+            "is_primary",
+            "notes",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "created_at",
+            "updated_at",
+        )
+
+
 class InsurerSerializer(serializers.ModelSerializer):
+    contacts = InsurerContactSerializer(many=True, required=False)
+
     class Meta:
         model = Insurer
         fields = (
@@ -14,6 +38,14 @@ class InsurerSerializer(serializers.ModelSerializer):
             "name",
             "legal_name",
             "cnpj",
+            "zip_code",
+            "state",
+            "city",
+            "neighborhood",
+            "street",
+            "street_number",
+            "address_complement",
+            "contacts",
             "status",
             "integration_type",
             "integration_config",
@@ -34,6 +66,14 @@ class InsurerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("name is required.")
         return value
 
+    def validate_contacts(self, value):
+        if not value:
+            return value
+        primary_count = sum(bool(item.get("is_primary")) for item in value)
+        if primary_count > 1:
+            raise serializers.ValidationError("Only one contact can be marked as primary.")
+        return value
+
     def validate(self, attrs):
         company = (
             self.context.get("company")
@@ -50,4 +90,3 @@ class InsurerSerializer(serializers.ModelSerializer):
                     {"name": "Insurer name must be unique within the tenant."}
                 )
         return attrs
-

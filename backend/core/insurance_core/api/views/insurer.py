@@ -23,7 +23,11 @@ class InsurerViewSet(viewsets.ModelViewSet):
         if company is None:
             return Insurer.objects.none()
 
-        queryset = Insurer.all_objects.filter(company=company).order_by("name", "id")
+        queryset = (
+            Insurer.all_objects.filter(company=company)
+            .prefetch_related("contacts")
+            .order_by("name", "id")
+        )
 
         status_filter = (self.request.query_params.get("status") or "").strip().upper()
         if status_filter:
