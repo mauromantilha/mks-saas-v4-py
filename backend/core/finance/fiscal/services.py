@@ -106,7 +106,13 @@ def _build_adapter_payload(
     return payload
 
 
-def issue_nf_from_invoice(invoice_id: int, *, actor=None, request=None) -> FiscalDocument:
+def issue_nf_from_invoice(
+    invoice_id: int,
+    *,
+    actor=None,
+    request=None,
+    auto_issue: bool = False,
+) -> FiscalDocument:
     """Issue a fiscal document (NF-e) from a finance invoice reference.
 
     Steps:
@@ -195,6 +201,7 @@ def issue_nf_from_invoice(invoice_id: int, *, actor=None, request=None) -> Fisca
             address=customer_snapshot.address,
         )
 
+        event_type = "finance.fiscal.auto_issue" if auto_issue else "finance.fiscal.issue"
         append_ledger_entry(
             scope=LedgerEntry.SCOPE_TENANT,
             company=company,
@@ -203,7 +210,7 @@ def issue_nf_from_invoice(invoice_id: int, *, actor=None, request=None) -> Fisca
             resource_label="finance.fiscal.FiscalDocument",
             resource_pk=str(doc.id),
             request=request,
-            event_type="finance.fiscal.issue",
+            event_type=event_type,
             data_after={
                 "id": doc.id,
                 "invoice_id": doc.invoice_id,
@@ -211,6 +218,7 @@ def issue_nf_from_invoice(invoice_id: int, *, actor=None, request=None) -> Fisca
             },
             metadata={
                 "provider_type": provider_type,
+                "auto_issue": bool(auto_issue),
             },
         )
 
@@ -223,6 +231,59 @@ def issue_nf_from_invoice(invoice_id: int, *, actor=None, request=None) -> Fisca
         provider_type,
     )
     return doc
+
+
+def auto_issue_nf_from_invoice(invoice_id: int, *, actor=None, request=None) -> FiscalDocument | None:
+    """Auto-issue NF when invoice is PAID and tenant config has auto_issue enabled.
+
+    This should be called by the finance invoice workflow when a payment is confirmed.
+    It is idempotent: if a FiscalDocument already exists for the invoice, it returns it.
+    """
+
+    company = get_current_company()
+    if company is None:
+        raise FiscalIssueTenantMissing(
+            "Tenant context is required. Call within a tenant-scoped request."
+        )
+
+    invoice = resolve_invoice_for_fiscal(invoice_id=invoice_id, company_id=company.id)
+    status_value = str(invoice.get("status") or "").strip().upper()
+    if status_value != "PAID":
+        logger.info(
+            "fiscal.auto_issue.skipped company_id=%s invoice_id=%s invoice_status=%s",
+            company.id,
+            invoice_id,
+            status_value or "UNKNOWN",
+        )
+        return None
+
+    config = TenantFiscalConfig.all_objects.filter(company_id=company.id, active=True).first()
+    if config is None:
+        logger.info(
+            "fiscal.auto_issue.skipped company_id=%s invoice_id=%s reason=no_active_config",
+            company.id,
+            invoice_id,
+        )
+        return None
+
+    if not config.auto_issue:
+        logger.info(
+            "fiscal.auto_issue.skipped company_id=%s invoice_id=%s reason=auto_issue_disabled",
+            company.id,
+            invoice_id,
+        )
+        return None
+
+    existing = (
+        FiscalDocument.all_objects.filter(company=company, invoice_id=invoice_id)
+        .order_by("-id")
+        .first()
+    )
+    if existing is not None:
+        return existing
+
+    # Issue using the existing service (manual issuance path), but tag ledger metadata.
+    return issue_nf_from_invoice(invoice_id, actor=actor, request=request, auto_issue=True)
 
 
 def cancel_nf(document_id: str, *, actor=None, request=None) -> FiscalDocument:

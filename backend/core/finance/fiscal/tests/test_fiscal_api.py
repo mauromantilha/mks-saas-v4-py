@@ -145,7 +145,12 @@ class FiscalTenantIsolationAPITests(TestCase):
         self.client.force_login(self.member_a)
         denied = self.client.post(
             "/api/finance/fiscal/config/",
-            data={"provider": "mock", "token": "plain-token", "environment": "SANDBOX"},
+            data={
+                "provider": "mock",
+                "token": "plain-token",
+                "environment": "SANDBOX",
+                "auto_issue": True,
+            },
             HTTP_X_TENANT_ID="acme",
         )
         self.assertEqual(denied.status_code, 403)
@@ -153,11 +158,17 @@ class FiscalTenantIsolationAPITests(TestCase):
         self.client.force_login(self.owner_a)
         ok = self.client.post(
             "/api/finance/fiscal/config/",
-            data={"provider": "mock", "token": "plain-token", "environment": "SANDBOX"},
+            data={
+                "provider": "mock",
+                "token": "plain-token",
+                "environment": "SANDBOX",
+                "auto_issue": True,
+            },
             HTTP_X_TENANT_ID="acme",
         )
         self.assertEqual(ok.status_code, 201)
         self.assertNotIn("token", ok.json())
+        self.assertTrue(ok.json()["auto_issue"])
 
         cfg = TenantFiscalConfig.all_objects.get(company=self.company_a, active=True)
         self.assertNotEqual(cfg.api_token, "plain-token")
@@ -167,12 +178,12 @@ class FiscalTenantIsolationAPITests(TestCase):
         self.client.force_login(self.owner_a)
         self.client.post(
             "/api/finance/fiscal/config/",
-            data={"provider": "mock", "token": "t1", "environment": "SANDBOX"},
+            data={"provider": "mock", "token": "t1", "environment": "SANDBOX", "auto_issue": True},
             HTTP_X_TENANT_ID="acme",
         )
         self.client.post(
             "/api/finance/fiscal/config/",
-            data={"provider": "dummy", "token": "t2", "environment": "PRODUCTION"},
+            data={"provider": "dummy", "token": "t2", "environment": "PRODUCTION", "auto_issue": False},
             HTTP_X_TENANT_ID="acme",
         )
 
@@ -185,7 +196,7 @@ class FiscalTenantIsolationAPITests(TestCase):
         self.client.force_login(self.owner_a)
         self.client.post(
             "/api/finance/fiscal/config/",
-            data={"provider": "mock", "token": "t1", "environment": "SANDBOX"},
+            data={"provider": "mock", "token": "t1", "environment": "SANDBOX", "auto_issue": True},
             HTTP_X_TENANT_ID="acme",
         )
 
@@ -241,7 +252,7 @@ class FiscalTenantIsolationAPITests(TestCase):
         self.client.force_login(self.owner_a)
         self.client.post(
             "/api/finance/fiscal/config/",
-            data={"provider": "mock", "token": "t1", "environment": "SANDBOX"},
+            data={"provider": "mock", "token": "t1", "environment": "SANDBOX", "auto_issue": True},
             HTTP_X_TENANT_ID="acme",
         )
 
@@ -256,7 +267,7 @@ class FiscalTenantIsolationAPITests(TestCase):
         self.client.force_login(self.owner_a)
         self.client.post(
             "/api/finance/fiscal/config/",
-            data={"provider": "dummy", "token": "t2", "environment": "PRODUCTION"},
+            data={"provider": "dummy", "token": "t2", "environment": "PRODUCTION", "auto_issue": False},
             HTTP_X_TENANT_ID="acme",
         )
         active = TenantFiscalConfig.all_objects.get(company=self.company_a, active=True)
@@ -274,7 +285,7 @@ class FiscalTenantIsolationAPITests(TestCase):
         self.client.force_login(self.owner_a)
         self.client.post(
             "/api/finance/fiscal/config/",
-            data={"provider": "mock", "token": "t1", "environment": "SANDBOX"},
+            data={"provider": "mock", "token": "t1", "environment": "SANDBOX", "auto_issue": True},
             HTTP_X_TENANT_ID="acme",
         )
 

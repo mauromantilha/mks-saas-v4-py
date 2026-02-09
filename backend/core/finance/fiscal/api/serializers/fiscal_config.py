@@ -9,6 +9,7 @@ class TenantFiscalConfigUpsertSerializer(serializers.Serializer):
     provider = serializers.CharField()
     token = serializers.CharField(allow_blank=True, required=False, default="")
     environment = serializers.ChoiceField(choices=TenantFiscalConfig.Environment.choices)
+    auto_issue = serializers.BooleanField(required=False, default=False)
 
 
 class TenantFiscalConfigReadSerializer(serializers.ModelSerializer):
@@ -24,6 +25,7 @@ class TenantFiscalConfigReadSerializer(serializers.ModelSerializer):
             "provider_type",
             "provider_name",
             "environment",
+            "auto_issue",
             "active",
             "has_token",
             "created_at",
@@ -56,4 +58,3 @@ def resolve_provider(*, provider_value: str) -> FiscalProvider:
         },
     )
     return provider
-

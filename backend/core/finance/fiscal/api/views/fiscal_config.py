@@ -38,13 +38,15 @@ class TenantFiscalConfigUpsertAPIView(APIView):
 
         provider = resolve_provider(provider_value=serializer.validated_data["provider"])
         environment = serializer.validated_data["environment"]
+        auto_issue = bool(serializer.validated_data.get("auto_issue", False))
         token_plain = serializer.validated_data.get("token", "") or ""
 
         logger.info(
-            "fiscal.config.upsert.started company_id=%s provider_type=%s environment=%s",
+            "fiscal.config.upsert.started company_id=%s provider_type=%s environment=%s auto_issue=%s",
             company.id,
             provider.provider_type,
             environment,
+            auto_issue,
         )
 
         encrypted = encrypt_token(token_plain) if token_plain else ""
@@ -61,6 +63,7 @@ class TenantFiscalConfigUpsertAPIView(APIView):
                     "id": previous.id,
                     "provider_type": previous.provider.provider_type,
                     "environment": previous.environment,
+                    "auto_issue": previous.auto_issue,
                     "active": previous.active,
                 }
 
@@ -69,6 +72,7 @@ class TenantFiscalConfigUpsertAPIView(APIView):
 
             defaults = {
                 "environment": environment,
+                "auto_issue": auto_issue,
                 "active": True,
             }
             if encrypted:
@@ -94,6 +98,7 @@ class TenantFiscalConfigUpsertAPIView(APIView):
                     "id": config.id,
                     "provider_type": provider.provider_type,
                     "environment": config.environment,
+                    "auto_issue": config.auto_issue,
                     "active": config.active,
                 },
                 metadata={"tenant_resource_key": "fiscal_config"},
@@ -110,4 +115,3 @@ class TenantFiscalConfigUpsertAPIView(APIView):
             TenantFiscalConfigReadSerializer(config).data,
             status=status.HTTP_201_CREATED,
         )
-

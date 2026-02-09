@@ -12,6 +12,7 @@ def mock_invoice_resolver(*, invoice_id: int, company_id: int) -> Mapping[str, A
 
     return {
         "invoice_id": invoice_id,
+        "status": "PAID",
         "amount": f"{invoice_id}.00",
         "issue_date": "2026-02-09",
         "currency": "BRL",
@@ -25,3 +26,8 @@ def mock_invoice_resolver(*, invoice_id: int, company_id: int) -> Mapping[str, A
         ],
     }
 
+
+def mock_invoice_resolver_unpaid(*, invoice_id: int, company_id: int) -> Mapping[str, Any]:
+    payload = dict(mock_invoice_resolver(invoice_id=invoice_id, company_id=company_id))
+    payload["status"] = "DRAFT"
+    return payload

@@ -66,6 +66,11 @@ class TenantFiscalConfig(BaseTenantModel):
         default=Environment.SANDBOX,
         db_index=True,
     )
+    auto_issue = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="If true, automatically issue NF when an invoice is marked as PAID.",
+    )
     active = models.BooleanField(default=True, db_index=True)
 
     class Meta:
