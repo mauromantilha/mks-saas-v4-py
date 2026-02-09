@@ -6,6 +6,7 @@ import { environment } from "../../../environments/environment";
 import {
   AIInsightResponse,
   AIInsightsRequestPayload,
+  CepLookupResponse,
   CommercialActivityRecord,
   CNPJEnrichmentResponse,
   CreatePolicyRequestPayload,
@@ -44,6 +45,11 @@ export class SalesFlowService {
 
   createCustomer(payload: CreateCustomerPayload): Observable<CustomerRecord> {
     return this.http.post<CustomerRecord>(`${this.apiBase}/customers/`, payload);
+  }
+
+  lookupCep(cep: string): Observable<CepLookupResponse> {
+    const encoded = encodeURIComponent((cep || "").trim());
+    return this.http.get<CepLookupResponse>(`${this.apiBase}/utils/cep/${encoded}/`);
   }
 
   listLeads(): Observable<LeadRecord[]> {

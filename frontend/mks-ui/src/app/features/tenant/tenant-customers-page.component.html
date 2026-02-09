@@ -17,10 +17,22 @@
   <article class="card">
     <h2>Novo Cliente</h2>
     <p class="muted">
-      O modelo suporta dezenas de campos. Aqui é um cadastro inicial para acelerar o pipeline.
+      Cadastre cliente com endereço completo. Ao informar o CEP, o sistema busca e completa o
+      endereço automaticamente. Para Pessoa Jurídica, adicione múltiplos contatos.
     </p>
 
     <div class="form-grid">
+      <label>
+        Tipo de cliente
+        <select
+          [ngModel]="customerType()"
+          (ngModelChange)="setCustomerType($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="INDIVIDUAL">Pessoa Física</option>
+          <option value="COMPANY">Pessoa Jurídica</option>
+        </select>
+      </label>
       <label>
         Nome (obrigatório)
         <input
@@ -39,8 +51,17 @@
           [disabled]="loading() || !canWrite()"
         />
       </label>
-      <label>
-        CNPJ
+      <label *ngIf="customerType() === 'INDIVIDUAL'">
+        CPF (obrigatório)
+        <input
+          type="text"
+          [ngModel]="cpf()"
+          (ngModelChange)="cpf.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label *ngIf="customerType() === 'COMPANY'">
+        CNPJ (obrigatório)
         <input
           type="text"
           [ngModel]="cnpj()"
@@ -58,11 +79,87 @@
         />
       </label>
       <label>
-        Contato principal
+        WhatsApp
         <input
           type="text"
-          [ngModel]="contactName()"
-          (ngModelChange)="contactName.set($event)"
+          [ngModel]="whatsapp()"
+          (ngModelChange)="whatsapp.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        CEP (obrigatório)
+        <div class="inline-field">
+          <input
+            type="text"
+            [ngModel]="zipCode()"
+            (ngModelChange)="zipCode.set($event)"
+            (blur)="lookupCep()"
+            [disabled]="loading() || cepLoading() || !canWrite()"
+          />
+          <button
+            type="button"
+            class="secondary"
+            (click)="lookupCep()"
+            [disabled]="loading() || cepLoading() || !canWrite()"
+          >
+            Buscar
+          </button>
+        </div>
+        <small *ngIf="cepLoading()" class="muted">Consultando CEP...</small>
+        <small *ngIf="cepError()" class="error">{{ cepError() }}</small>
+      </label>
+      <label>
+        Endereço (logradouro) (obrigatório)
+        <input
+          type="text"
+          [ngModel]="street()"
+          (ngModelChange)="street.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Número (obrigatório)
+        <input
+          type="text"
+          [ngModel]="streetNumber()"
+          (ngModelChange)="streetNumber.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Complemento
+        <input
+          type="text"
+          [ngModel]="addressComplement()"
+          (ngModelChange)="addressComplement.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Bairro (obrigatório)
+        <input
+          type="text"
+          [ngModel]="neighborhood()"
+          (ngModelChange)="neighborhood.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Cidade (obrigatório)
+        <input
+          type="text"
+          [ngModel]="city()"
+          (ngModelChange)="city.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Estado/UF (obrigatório)
+        <input
+          type="text"
+          [ngModel]="state()"
+          (ngModelChange)="state.set($event)"
           [disabled]="loading() || !canWrite()"
         />
       </label>
@@ -84,6 +181,98 @@
           [disabled]="loading() || !canWrite()"
         />
       </label>
+      <div class="field-full" *ngIf="isCompany()">
+        <h3>Contatos (Pessoa Jurídica)</h3>
+        <p class="muted">
+          Adicione um ou mais contatos. Marque um contato como primário (o primeiro será usado se
+          nenhum estiver marcado).
+        </p>
+
+        <div class="contacts">
+          <div class="contact-card" *ngFor="let c of contacts(); let i = index">
+            <div class="contact-header">
+              <div class="contact-title">
+                <strong>Contato {{ i + 1 }}</strong>
+                <span class="muted" *ngIf="c.is_primary">Primário</span>
+              </div>
+              <div class="actions compact">
+                <label class="radio">
+                  <input
+                    type="radio"
+                    name="primary_contact"
+                    [checked]="c.is_primary"
+                    (change)="markPrimary(i)"
+                    [disabled]="loading() || !canWrite()"
+                  />
+                  Primário
+                </label>
+                <button
+                  type="button"
+                  class="danger ghost"
+                  (click)="removeContact(i)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Remover
+                </button>
+              </div>
+            </div>
+
+            <div class="form-grid contact-grid">
+              <label>
+                Nome (obrigatório)
+                <input
+                  type="text"
+                  [ngModel]="c.name"
+                  (ngModelChange)="updateContact(i, 'name', $event)"
+                  [disabled]="loading() || !canWrite()"
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  [ngModel]="c.email"
+                  (ngModelChange)="updateContact(i, 'email', $event)"
+                  [disabled]="loading() || !canWrite()"
+                />
+              </label>
+              <label>
+                Telefone
+                <input
+                  type="text"
+                  [ngModel]="c.phone"
+                  (ngModelChange)="updateContact(i, 'phone', $event)"
+                  [disabled]="loading() || !canWrite()"
+                />
+              </label>
+              <label>
+                Cargo
+                <input
+                  type="text"
+                  [ngModel]="c.role"
+                  (ngModelChange)="updateContact(i, 'role', $event)"
+                  [disabled]="loading() || !canWrite()"
+                />
+              </label>
+              <label class="field-full">
+                Notas
+                <textarea
+                  rows="2"
+                  [ngModel]="c.notes"
+                  (ngModelChange)="updateContact(i, 'notes', $event)"
+                  [disabled]="loading() || !canWrite()"
+                ></textarea>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions top-gap">
+          <button type="button" (click)="addContact()" [disabled]="loading() || !canWrite()">
+            Adicionar contato
+          </button>
+        </div>
+      </div>
       <label class="field-full">
         Observações
         <textarea
@@ -170,4 +359,3 @@
     </div>
   </article>
 </section>
-

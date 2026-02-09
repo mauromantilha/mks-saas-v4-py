@@ -117,6 +117,52 @@ class Customer(BaseTenantModel):
         return f"{self.name} <{self.email}>"
 
 
+class CustomerContact(BaseTenantModel):
+    customer = models.ForeignKey(
+        Customer,
+        related_name="contacts",
+        on_delete=models.CASCADE,
+    )
+    name = models.CharField(max_length=255)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    role = models.CharField(max_length=120, blank=True)
+    is_primary = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-is_primary", "name", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "customer"),
+                condition=models.Q(is_primary=True),
+                name="uq_customer_primary_contact_per_customer",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("company", "customer"),
+                name="idx_customer_contact_customer",
+            ),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover - admin/debug helper
+        primary = " (primary)" if self.is_primary else ""
+        return f"{self.name}{primary}"
+
+    def clean(self):
+        super().clean()
+        if self.customer_id and self.customer.company_id != self.company_id:
+            raise ValidationError(
+                "Customer contact and Customer must belong to the same company."
+            )
+
+    def save(self, *args, **kwargs):
+        if self.customer_id:
+            self.company = self.customer.company
+        return super().save(*args, **kwargs)
+
+
 class Lead(BaseTenantModel):
     CHANNEL_WEBHOOK = "WEBHOOK"
     CHANNEL_API = "API"

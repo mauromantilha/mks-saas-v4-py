@@ -4,6 +4,7 @@ from operational.models import (
     Apolice,
     CommercialActivity,
     Customer,
+    CustomerContact,
     Endosso,
     Lead,
     Opportunity,
@@ -17,11 +18,22 @@ class TenantScopedAdmin(admin.ModelAdmin):
         return self.model.all_objects.all()
 
 
+class CustomerContactInline(admin.TabularInline):
+    model = CustomerContact
+    extra = 0
+    fields = ("name", "email", "phone", "role", "is_primary")
+    ordering = ("-is_primary", "name", "id")
+
+    def get_queryset(self, request):
+        return self.model.all_objects.all()
+
+
 @admin.register(Customer)
 class CustomerAdmin(TenantScopedAdmin):
     list_display = ("name", "email", "lifecycle_stage", "cnpj", "company", "created_at")
     search_fields = ("name", "email", "document", "cnpj", "legal_name", "trade_name")
     list_filter = ("company", "lifecycle_stage", "customer_type")
+    inlines = (CustomerContactInline,)
 
 
 @admin.register(Lead)

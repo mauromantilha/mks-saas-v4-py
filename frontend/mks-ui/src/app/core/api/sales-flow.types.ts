@@ -13,6 +13,28 @@ export type OpportunityStage =
   | "WON"
   | "LOST";
 
+export interface CustomerContactRecord {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  is_primary: boolean;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCustomerContactPayload {
+  id?: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  is_primary?: boolean;
+  notes?: string;
+}
+
 export interface CustomerRecord {
   id: number;
   name: string;
@@ -50,6 +72,7 @@ export interface CustomerRecord {
   street: string;
   street_number: string;
   address_complement: string;
+  contacts?: CustomerContactRecord[];
   assigned_to: number | null;
   assigned_to_username: string | null;
   last_contact_at: string | null;
@@ -65,13 +88,32 @@ export interface CreateCustomerPayload {
   email: string;
   customer_type?: CustomerType;
   lifecycle_stage?: CustomerLifecycleStage;
+  document?: string;
   cnpj?: string;
+  cpf?: string;
   phone?: string;
   whatsapp?: string;
+  zip_code?: string;
+  state?: string;
+  city?: string;
+  neighborhood?: string;
+  street?: string;
+  street_number?: string;
+  address_complement?: string;
   contact_name?: string;
   industry?: string;
   lead_source?: string;
   notes?: string;
+  contacts?: CreateCustomerContactPayload[];
+}
+
+export interface CepLookupResponse {
+  zip_code: string;
+  street: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  provider: string;
 }
 
 export interface LeadRecord {

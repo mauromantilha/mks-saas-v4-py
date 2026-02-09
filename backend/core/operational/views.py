@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ledger.services import append_ledger_entry
+from operational.address import lookup_cep
 from operational.ai import (
     apply_cnpj_profile_to_customer,
     apply_cnpj_profile_to_lead,
@@ -205,6 +206,9 @@ class CustomerListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPI
     ordering = ("name",)
     tenant_resource_key = "customers"
 
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related("contacts")
+
     def perform_create(self, serializer):
         customer = super().perform_create(serializer)
         _auto_populate_customer_intelligence(customer)
@@ -214,6 +218,37 @@ class CustomerDetailAPIView(TenantScopedAPIViewMixin, generics.RetrieveUpdateDes
     model = Customer
     serializer_class = CustomerSerializer
     tenant_resource_key = "customers"
+
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related("contacts")
+
+
+class CepLookupAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "customers"
+
+    def get(self, request, cep: str):
+        result = lookup_cep(cep)
+        if not result.get("success"):
+            detail = result.get("error") or "CEP lookup failed."
+            if detail == "Invalid CEP.":
+                status_code = status.HTTP_400_BAD_REQUEST
+            elif detail == "CEP not found.":
+                status_code = status.HTTP_404_NOT_FOUND
+            else:
+                status_code = status.HTTP_424_FAILED_DEPENDENCY
+            return Response({"detail": detail, "cep_lookup": result}, status=status_code)
+
+        return Response(
+            {
+                "zip_code": result.get("zip_code", ""),
+                "street": result.get("street", ""),
+                "neighborhood": result.get("neighborhood", ""),
+                "city": result.get("city", ""),
+                "state": result.get("state", ""),
+                "provider": result.get("provider", "cep_lookup"),
+            }
+        )
 
 
 class LeadListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView):
@@ -1018,7 +1053,22 @@ def _instance_payload(instance) -> dict:
         for field in instance._meta.fields
         if field.name not in {"company", "ai_insights"}
     ]
-    return model_to_dict(instance, fields=fields)
+    payload = model_to_dict(instance, fields=fields)
+    if isinstance(instance, Customer):
+        payload["contacts"] = list(
+            instance.contacts.all()
+            .order_by("-is_primary", "id")
+            .values(
+                "id",
+                "name",
+                "email",
+                "phone",
+                "role",
+                "is_primary",
+                "notes",
+            )
+        )
+    return payload
 
 
 class BaseCommercialAIInsightsAPIView(APIView):

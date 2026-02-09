@@ -362,6 +362,12 @@ VERTEX_AI_TEMPERATURE = env.float("VERTEX_AI_TEMPERATURE", default=0.2)
 CNPJ_LOOKUP_ENDPOINT = env("CNPJ_LOOKUP_ENDPOINT", default="").strip()
 CNPJ_LOOKUP_TIMEOUT_SECONDS = env.float("CNPJ_LOOKUP_TIMEOUT_SECONDS", default=8.0)
 
+CEP_LOOKUP_ENDPOINT = env(
+    "CEP_LOOKUP_ENDPOINT",
+    default="https://viacep.com.br/ws/{cep}/json/",
+).strip()
+CEP_LOOKUP_TIMEOUT_SECONDS = env.float("CEP_LOOKUP_TIMEOUT_SECONDS", default=6.0)
+
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend",
