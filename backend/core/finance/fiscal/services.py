@@ -512,7 +512,24 @@ def process_fiscal_job(job_id: int, *, actor=None, request=None) -> FiscalJob:
         job = job_qs.get(id=job_id)
         doc = job.fiscal_document
 
+        is_doc_final = doc.status in {
+            FiscalDocument.Status.AUTHORIZED,
+            FiscalDocument.Status.REJECTED,
+            FiscalDocument.Status.CANCELLED,
+        }
+        if is_doc_final:
+            if job.status != FiscalJob.Status.SUCCEEDED:
+                job.status = FiscalJob.Status.SUCCEEDED
+                job.last_error = ""
+                job.next_retry_at = None
+                job.save(update_fields=["status", "last_error", "next_retry_at", "updated_at"])
+            return job
+
         if job.status == FiscalJob.Status.SUCCEEDED:
+            return job
+
+        # Another worker is already processing it.
+        if job.status == FiscalJob.Status.RUNNING:
             return job
 
         # Respect scheduling if present.
@@ -529,11 +546,7 @@ def process_fiscal_job(job_id: int, *, actor=None, request=None) -> FiscalJob:
         )
 
         # Keep document in progress unless it is already final.
-        if doc.status not in {
-            FiscalDocument.Status.AUTHORIZED,
-            FiscalDocument.Status.REJECTED,
-            FiscalDocument.Status.CANCELLED,
-        } and doc.status != FiscalDocument.Status.EMITTING:
+        if not is_doc_final and doc.status != FiscalDocument.Status.EMITTING:
             doc.status = FiscalDocument.Status.EMITTING
             doc.save(update_fields=["status", "updated_at"])
 
