@@ -1,0 +1,252 @@
+<section class="tenant-wrap">
+  <header class="page-header">
+    <div>
+      <p class="badge">CRM</p>
+      <h1>Atividades e Follow-up</h1>
+      <p class="subtitle">
+        Tarefas comerciais com SLA, lembretes e histórico por lead/oportunidade.
+      </p>
+    </div>
+    <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+  </header>
+
+  <p *ngIf="loading()" class="muted">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+
+  <article class="card">
+    <h2>Nova Atividade</h2>
+    <p class="muted">
+      Configure prazos e lembretes. O backend calcula SLA automaticamente.
+    </p>
+
+    <div class="form-grid">
+      <label>
+        Tipo
+        <select [ngModel]="kind()" (ngModelChange)="kind.set($event)" [disabled]="loading() || !canWrite()">
+          <option value="FOLLOW_UP">Follow-up</option>
+          <option value="TASK">Tarefa</option>
+          <option value="NOTE">Nota</option>
+        </select>
+      </label>
+      <label>
+        Prioridade
+        <select
+          [ngModel]="priority()"
+          (ngModelChange)="priority.set($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="LOW">LOW</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="HIGH">HIGH</option>
+          <option value="URGENT">URGENT</option>
+        </select>
+      </label>
+      <label class="field-full">
+        Título (obrigatório)
+        <input
+          type="text"
+          [ngModel]="title()"
+          (ngModelChange)="title.set($event)"
+          [disabled]="loading() || !canWrite()"
+          placeholder="Ex.: Ligar para decisor e alinhar dados"
+        />
+      </label>
+      <label class="field-full">
+        Descrição
+        <textarea
+          rows="2"
+          [ngModel]="description()"
+          (ngModelChange)="description.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+      <label>
+        Vencimento
+        <input
+          type="datetime-local"
+          [ngModel]="dueAt()"
+          (ngModelChange)="dueAt.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Lembrete
+        <input
+          type="datetime-local"
+          [ngModel]="reminderAt()"
+          (ngModelChange)="reminderAt.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        SLA (horas)
+        <input
+          type="number"
+          min="1"
+          [ngModel]="slaHours()"
+          (ngModelChange)="slaHours.set($event)"
+          [disabled]="loading() || !canWrite()"
+          placeholder="Ex.: 8"
+        />
+      </label>
+      <label>
+        Vincular a
+        <select
+          [ngModel]="targetType()"
+          (ngModelChange)="onTargetTypeChange($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="LEAD">Lead</option>
+          <option value="OPPORTUNITY">Oportunidade</option>
+        </select>
+      </label>
+      <label class="field-full">
+        Referência
+        <select
+          [ngModel]="targetId()"
+          (ngModelChange)="targetId.set($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="">Selecione...</option>
+          <ng-container *ngIf="targetType() === 'LEAD'">
+            <option *ngFor="let l of leads()" [value]="l.id">
+              Lead #{{ l.id }} - {{ l.company_name || l.full_name || l.source }}
+            </option>
+          </ng-container>
+          <ng-container *ngIf="targetType() === 'OPPORTUNITY'">
+            <option *ngFor="let o of opportunities()" [value]="o.id">
+              Opp #{{ o.id }} - {{ o.title }}
+            </option>
+          </ng-container>
+        </select>
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button type="button" (click)="createActivity()" [disabled]="loading() || !canWrite()">
+        Criar atividade
+      </button>
+    </div>
+  </article>
+
+  <section class="grid">
+    <article class="card">
+      <h2>Atividades em Aberto</h2>
+      <table class="table" *ngIf="activities().length > 0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tipo</th>
+            <th>Título</th>
+            <th>Status</th>
+            <th>Prioridade</th>
+            <th>Vencimento</th>
+            <th>SLA</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of activities()">
+            <td>{{ a.id }}</td>
+            <td>{{ a.kind }}</td>
+            <td>
+              {{ a.title }}
+              <span *ngIf="a.is_overdue" class="flag overdue">atrasada</span>
+              <span *ngIf="a.is_sla_breached" class="flag sla">sla</span>
+            </td>
+            <td>{{ a.status }}</td>
+            <td>{{ a.priority }}</td>
+            <td>{{ a.due_at || "-" }}</td>
+            <td>{{ a.sla_due_at || "-" }}</td>
+            <td>
+              <div class="actions compact">
+                <button type="button" (click)="completeActivity(a)" [disabled]="loading() || !canWrite()">
+                  Concluir
+                </button>
+                <button type="button" (click)="reopenActivity(a)" [disabled]="loading() || !canWrite()">
+                  Reabrir
+                </button>
+                <button
+                  type="button"
+                  (click)="markReminderSent(a)"
+                  [disabled]="loading() || !canWrite() || a.reminder_sent"
+                >
+                  Lembrete
+                </button>
+                <button type="button" (click)="generateInsights(a)" [disabled]="loading()">
+                  IA
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="activities().length === 0" class="muted">Nenhuma atividade encontrada.</p>
+    </article>
+
+    <article class="card">
+      <h2>Lembretes Pendentes</h2>
+      <p class="muted">
+        Atividades com lembrete vencido e ainda não marcado como enviado.
+      </p>
+      <table class="table" *ngIf="reminderActivities().length > 0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Lembrete</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of reminderActivities()">
+            <td>{{ a.id }}</td>
+            <td>{{ a.title }}</td>
+            <td>{{ a.reminder_at || "-" }}</td>
+            <td>
+              <div class="actions compact">
+                <button
+                  type="button"
+                  (click)="markReminderSent(a)"
+                  [disabled]="loading() || !canWrite() || a.reminder_sent"
+                >
+                  Marcar enviado
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="reminderActivities().length === 0" class="muted">Nenhum lembrete pendente.</p>
+    </article>
+  </section>
+
+  <article class="card ai-card" *ngIf="aiResponse() as ai">
+    <header class="ai-header">
+      <h2>Insights IA</h2>
+      <span class="muted">{{ aiEntityLabel() }} | Provider: {{ ai.insights.provider }}</span>
+    </header>
+    <p><strong>Resumo:</strong> {{ ai.insights.summary }}</p>
+    <div class="ai-grid">
+      <div>
+        <h3>Riscos</h3>
+        <ul>
+          <li *ngFor="let item of ai.insights.risks">{{ item }}</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Oportunidades</h3>
+        <ul>
+          <li *ngFor="let item of ai.insights.opportunities">{{ item }}</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Próximas ações</h3>
+        <ul>
+          <li *ngFor="let item of ai.insights.next_actions">{{ item }}</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+</section>

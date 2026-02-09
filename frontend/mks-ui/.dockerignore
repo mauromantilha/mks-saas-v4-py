@@ -1,6 +1,8 @@
-.angular
 dist
 node_modules
-npm-debug.log
+.angular
 .git
-.gitignore
+.DS_Store
+npm-debug.log
+**/*.log
+

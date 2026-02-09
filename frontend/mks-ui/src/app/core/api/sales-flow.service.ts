@@ -13,6 +13,7 @@ import {
   CreateCustomerPayload,
   CreateCommercialActivityPayload,
   CreateLeadPayload,
+  CreateOpportunityPayload,
   CustomerRecord,
   LeadConvertPayload,
   LeadConvertResponse,
@@ -23,6 +24,7 @@ import {
   OpportunityHistoryRecord,
   OpportunityStage,
   UpdatePolicyRequestPayload,
+  UpdateLeadPayload,
   ProposalOptionRecord,
   SalesMetricsFilters,
   SalesMetricsRecord,
@@ -52,8 +54,16 @@ export class SalesFlowService {
     return this.http.post<LeadRecord>(`${this.apiBase}/leads/`, payload);
   }
 
+  updateLead(id: number, payload: UpdateLeadPayload): Observable<LeadRecord> {
+    return this.http.patch<LeadRecord>(`${this.apiBase}/leads/${id}/`, payload);
+  }
+
   listOpportunities(): Observable<OpportunityRecord[]> {
     return this.http.get<OpportunityRecord[]>(`${this.apiBase}/opportunities/`);
+  }
+
+  createOpportunity(payload: CreateOpportunityPayload): Observable<OpportunityRecord> {
+    return this.http.post<OpportunityRecord>(`${this.apiBase}/opportunities/`, payload);
   }
 
   listPolicyRequests(): Observable<PolicyRequestRecord[]> {

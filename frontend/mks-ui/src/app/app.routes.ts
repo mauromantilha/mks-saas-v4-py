@@ -5,6 +5,11 @@ import { LoginPageComponent } from "./features/auth/login-page.component";
 import { PlatformTenantsPageComponent } from "./features/platform/platform-tenants-page.component";
 import { SalesFlowPageComponent } from "./features/sales/sales-flow-page.component";
 import { SectionPlaceholderPageComponent } from "./features/shared/section-placeholder-page.component";
+import { TenantActivitiesPageComponent } from "./features/tenant/tenant-activities-page.component";
+import { TenantCustomersPageComponent } from "./features/tenant/tenant-customers-page.component";
+import { TenantDashboardPageComponent } from "./features/tenant/tenant-dashboard-page.component";
+import { TenantLeadsPageComponent } from "./features/tenant/tenant-leads-page.component";
+import { TenantOpportunitiesPageComponent } from "./features/tenant/tenant-opportunities-page.component";
 import { TenantMembersPageComponent } from "./features/tenant-settings/tenant-members-page.component";
 import { TenantRbacPageComponent } from "./features/tenant-settings/tenant-rbac-page.component";
 
@@ -14,7 +19,7 @@ export const routes: Routes = [
   { path: "sales/flow", component: SalesFlowPageComponent, canActivate: [authGuard] },
   {
     path: "tenant/dashboard",
-    component: SectionPlaceholderPageComponent,
+    component: TenantDashboardPageComponent,
     canActivate: [authGuard],
     data: {
       title: "Painel do Tenant",
@@ -24,7 +29,7 @@ export const routes: Routes = [
   },
   {
     path: "tenant/customers",
-    component: SectionPlaceholderPageComponent,
+    component: TenantCustomersPageComponent,
     canActivate: [authGuard],
     data: {
       title: "Clientes",
@@ -34,7 +39,7 @@ export const routes: Routes = [
   },
   {
     path: "tenant/leads",
-    component: SectionPlaceholderPageComponent,
+    component: TenantLeadsPageComponent,
     canActivate: [authGuard],
     data: {
       title: "Leads",
@@ -44,7 +49,7 @@ export const routes: Routes = [
   },
   {
     path: "tenant/opportunities",
-    component: SectionPlaceholderPageComponent,
+    component: TenantOpportunitiesPageComponent,
     canActivate: [authGuard],
     data: {
       title: "Oportunidades",
@@ -54,7 +59,7 @@ export const routes: Routes = [
   },
   {
     path: "tenant/activities",
-    component: SectionPlaceholderPageComponent,
+    component: TenantActivitiesPageComponent,
     canActivate: [authGuard],
     data: {
       title: "Atividades e Follow-up",

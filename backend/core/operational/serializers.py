@@ -9,6 +9,7 @@ from operational.models import (
     Opportunity,
     PolicyRequest,
     ProposalOption,
+    SalesGoal,
 )
 
 
@@ -311,6 +312,23 @@ class EndossoSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "ai_insights", "created_at", "updated_at")
+
+
+class SalesGoalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SalesGoal
+        fields = (
+            "id",
+            "year",
+            "month",
+            "premium_goal",
+            "commission_goal",
+            "new_customers_goal",
+            "notes",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
 
 
 class LeadConvertSerializer(serializers.Serializer):

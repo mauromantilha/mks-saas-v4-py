@@ -48,6 +48,8 @@ from operational.views import (
     CustomerAIInsightsAPIView,
     CustomerCNPJEnrichmentAPIView,
     CustomerListCreateAPIView,
+    SalesGoalDetailAPIView,
+    SalesGoalListCreateAPIView,
     EndossoDetailAPIView,
     EndossoAIInsightsAPIView,
     EndossoListCreateAPIView,
@@ -71,6 +73,7 @@ from operational.views import (
     ProposalOptionDetailAPIView,
     ProposalOptionListCreateAPIView,
     SalesMetricsAPIView,
+    TenantDashboardSummaryAPIView,
 )
 
 
@@ -188,6 +191,17 @@ urlpatterns = [
         "api/opportunities/<int:pk>/stage/",
         OpportunityStageUpdateAPIView.as_view(),
         name="opportunities-stage",
+    ),
+    path(
+        "api/dashboard/summary/",
+        TenantDashboardSummaryAPIView.as_view(),
+        name="tenant-dashboard-summary",
+    ),
+    path("api/sales-goals/", SalesGoalListCreateAPIView.as_view(), name="sales-goals-list"),
+    path(
+        "api/sales-goals/<int:pk>/",
+        SalesGoalDetailAPIView.as_view(),
+        name="sales-goals-detail",
     ),
     path(
         "api/proposal-options/",

@@ -1054,3 +1054,67 @@ class TenantIsolationTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("assigned_to", response.json()["detail"])
+
+    def test_dashboard_summary_is_isolated_and_includes_financial_kpis(self):
+        today = timezone.localdate()
+
+        Endosso.all_objects.create(
+            company=self.company_a,
+            apolice=self.apolice_a,
+            numero_endosso="99",
+            tipo="EMISSAO",
+            premio_total="1000.00",
+            valor_comissao="120.00",
+            data_emissao=today,
+        )
+        Endosso.all_objects.create(
+            company=self.company_b,
+            apolice=self.apolice_b,
+            numero_endosso="99",
+            tipo="EMISSAO",
+            premio_total="777.00",
+            valor_comissao="77.00",
+            data_emissao=today,
+        )
+
+        self.client.force_login(self.user_member)
+        response = self.client.get(
+            "/api/dashboard/summary/",
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["tenant_code"], self.company_a.tenant_code)
+        self.assertAlmostEqual(payload["kpis"]["production_premium_mtd"], 1000.0, places=2)
+        self.assertAlmostEqual(payload["kpis"]["commission_mtd"], 120.0, places=2)
+
+    def test_sales_goals_permissions(self):
+        today = timezone.localdate()
+
+        self.client.force_login(self.user_member)
+        member_response = self.client.post(
+            "/api/sales-goals/",
+            data={
+                "year": today.year,
+                "month": today.month,
+                "premium_goal": "5000.00",
+                "commission_goal": "800.00",
+                "new_customers_goal": 10,
+            },
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(member_response.status_code, 403)
+
+        self.client.force_login(self.user_manager)
+        manager_response = self.client.post(
+            "/api/sales-goals/",
+            data={
+                "year": today.year,
+                "month": today.month,
+                "premium_goal": "5000.00",
+                "commission_goal": "800.00",
+                "new_customers_goal": 10,
+            },
+            HTTP_X_TENANT_ID=self.company_a.tenant_code,
+        )
+        self.assertEqual(manager_response.status_code, 201)

@@ -1,18 +1,17 @@
 FROM node:20-alpine AS build
-
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+# Angular build defaults to production in angular.json.
 RUN npm run build
 
 FROM nginx:1.27-alpine
-
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/mks-ui/browser /usr/share/nginx/html
 
 EXPOSE 8080
-
 CMD ["nginx", "-g", "daemon off;"]
+

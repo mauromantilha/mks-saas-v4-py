@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -27,6 +27,7 @@ from operational.models import (
     Opportunity,
     PolicyRequest,
     ProposalOption,
+    SalesGoal,
 )
 from operational.serializers import (
     AIInsightRequestSerializer,
@@ -43,6 +44,7 @@ from operational.serializers import (
     OpportunityStageUpdateSerializer,
     OpportunitySerializer,
     ProposalOptionSerializer,
+    SalesGoalSerializer,
     SalesMetricsSerializer,
 )
 from tenancy.permissions import IsTenantRoleAllowed
@@ -60,6 +62,84 @@ class TenantScopedAPIViewMixin:
         return queryset
 
 
+def _score_label_from_qualification_score(score: int | None) -> str:
+    if score is None:
+        return ""
+    if score < 40:
+        return Lead.SCORE_COLD
+    if score < 70:
+        return Lead.SCORE_WARM
+    return Lead.SCORE_HOT
+
+
+def _append_ai_insights(instance, insights: dict, *, extra_update_fields: list[str] | None = None):
+    current_ai = instance.ai_insights if isinstance(instance.ai_insights, dict) else {}
+    history = list(current_ai.get("history", []))
+    history.append(insights)
+    history = history[-5:]
+    instance.ai_insights = {**current_ai, "latest": insights, "history": history}
+
+    update_fields = ["ai_insights", "updated_at"]
+    if extra_update_fields:
+        update_fields.extend(extra_update_fields)
+    instance.save(update_fields=tuple(sorted(set(update_fields))))
+
+
+def _auto_populate_lead_intelligence(lead: Lead):
+    """Auto-enrich CNPJ and compute AI scoring for a newly created lead.
+
+    This keeps lead ingestion low-effort, while remaining safe: if the external CNPJ
+    endpoint is not configured, enrichment is skipped.
+    """
+
+    cnpj_profile = None
+    cnpj = sanitize_cnpj(getattr(lead, "cnpj", ""))
+    if cnpj:
+        profile = lookup_cnpj_profile(cnpj)
+        if profile.get("success"):
+            cnpj_profile = profile
+            apply_cnpj_profile_to_lead(lead, profile)
+            lead.refresh_from_db()
+
+    insights = generate_commercial_insights(
+        entity_type="LEAD",
+        payload=_instance_payload(lead),
+        focus="auto",
+        cnpj_profile=cnpj_profile,
+    )
+
+    extra_fields = []
+    qualification_score = insights.get("qualification_score")
+    if qualification_score is not None:
+        lead.qualification_score = int(qualification_score)
+        extra_fields.append("qualification_score")
+        lead.lead_score_label = _score_label_from_qualification_score(lead.qualification_score)
+        extra_fields.append("lead_score_label")
+
+    _append_ai_insights(lead, insights, extra_update_fields=extra_fields)
+
+
+def _auto_populate_customer_intelligence(customer: Customer):
+    cnpj_profile = None
+    cnpj = sanitize_cnpj(getattr(customer, "cnpj", "")) or sanitize_cnpj(
+        getattr(customer, "document", "")
+    )
+    if cnpj:
+        profile = lookup_cnpj_profile(cnpj)
+        if profile.get("success"):
+            cnpj_profile = profile
+            apply_cnpj_profile_to_customer(customer, profile)
+            customer.refresh_from_db()
+
+    insights = generate_commercial_insights(
+        entity_type="CUSTOMER",
+        payload=_instance_payload(customer),
+        focus="auto",
+        cnpj_profile=cnpj_profile,
+    )
+    _append_ai_insights(customer, insights)
+
+
 class CustomerListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView):
     """
     Isolamento por tenant via manager padrão.
@@ -70,6 +150,10 @@ class CustomerListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPI
     serializer_class = CustomerSerializer
     ordering = ("name",)
     tenant_resource_key = "customers"
+
+    def perform_create(self, serializer):
+        customer = serializer.save(company=self.request.company)
+        _auto_populate_customer_intelligence(customer)
 
 
 class CustomerDetailAPIView(TenantScopedAPIViewMixin, generics.RetrieveUpdateDestroyAPIView):
@@ -83,6 +167,10 @@ class LeadListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView
     serializer_class = LeadSerializer
     ordering = ("-created_at",)
     tenant_resource_key = "leads"
+
+    def perform_create(self, serializer):
+        lead = serializer.save(company=self.request.company)
+        _auto_populate_lead_intelligence(lead)
 
 
 class LeadDetailAPIView(TenantScopedAPIViewMixin, generics.RetrieveUpdateDestroyAPIView):
@@ -160,6 +248,19 @@ class EndossoDetailAPIView(TenantScopedAPIViewMixin, generics.RetrieveUpdateDest
     model = Endosso
     serializer_class = EndossoSerializer
     tenant_resource_key = "endossos"
+
+
+class SalesGoalListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView):
+    model = SalesGoal
+    serializer_class = SalesGoalSerializer
+    ordering = ("-year", "-month", "-created_at")
+    tenant_resource_key = "sales_goals"
+
+
+class SalesGoalDetailAPIView(TenantScopedAPIViewMixin, generics.RetrieveUpdateDestroyAPIView):
+    model = SalesGoal
+    serializer_class = SalesGoalSerializer
+    tenant_resource_key = "sales_goals"
 
 
 class LeadQualifyAPIView(APIView):
@@ -367,7 +468,10 @@ class OpportunityStageUpdateAPIView(APIView):
     tenant_resource_key = "opportunities"
 
     def post(self, request, pk):
-        opportunity = get_object_or_404(Opportunity.objects.all(), pk=pk)
+        opportunity = get_object_or_404(
+            Opportunity.objects.select_related("customer"),
+            pk=pk,
+        )
         serializer = OpportunityStageUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -377,7 +481,185 @@ class OpportunityStageUpdateAPIView(APIView):
         except ValidationError as exc:
             return Response({"detail": exc.messages}, status=status.HTTP_400_BAD_REQUEST)
 
+        if target_stage == "WON":
+            with transaction.atomic():
+                # Ensure the customer is promoted to "CUSTOMER" on a won deal.
+                customer = opportunity.customer
+                if customer.lifecycle_stage != Customer.STAGE_CUSTOMER:
+                    customer.lifecycle_stage = Customer.STAGE_CUSTOMER
+                    customer.save(update_fields=("lifecycle_stage", "updated_at"))
+
+                # Auto-create the handover object if it doesn't exist yet.
+                if not hasattr(opportunity, "policy_request"):
+                    PolicyRequest.objects.create(
+                        company=request.company,
+                        opportunity=opportunity,
+                        customer=customer,
+                        source_lead=opportunity.source_lead,
+                        product_line=opportunity.product_line,
+                        issue_deadline_at=timezone.now() + timedelta(days=2),
+                    )
+
         return Response(OpportunitySerializer(opportunity).data)
+
+
+class TenantDashboardSummaryAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "dashboard"
+
+    def get(self, request):
+        today = timezone.localdate()
+        start_of_year = date(today.year, 1, 1)
+        start_of_month = date(today.year, today.month, 1)
+
+        endossos_ytd = Endosso.objects.filter(data_emissao__gte=start_of_year)
+        endossos_mtd = Endosso.objects.filter(data_emissao__gte=start_of_month)
+
+        ytd_totals = endossos_ytd.aggregate(
+            premium_total=Sum("premio_total"),
+            commission_total=Sum("valor_comissao"),
+        )
+        mtd_totals = endossos_mtd.aggregate(
+            premium_total=Sum("premio_total"),
+            commission_total=Sum("valor_comissao"),
+        )
+
+        renewals_due_next_30d = Apolice.objects.filter(
+            status="ATIVA",
+            fim_vigencia__gte=today,
+            fim_vigencia__lte=today + timedelta(days=30),
+        ).count()
+        renewals_mtd = endossos_mtd.filter(tipo="RENOVACAO").count()
+
+        customers_total = Customer.objects.filter(
+            lifecycle_stage=Customer.STAGE_CUSTOMER
+        ).count()
+
+        # Goals: month and year-to-date.
+        month_goal = SalesGoal.objects.filter(year=today.year, month=today.month).first()
+        sales_goal_id_mtd = int(month_goal.id) if month_goal is not None else None
+        premium_goal_mtd = float(getattr(month_goal, "premium_goal", 0) or 0)
+        commission_goal_mtd = float(getattr(month_goal, "commission_goal", 0) or 0)
+        new_customers_goal_mtd = int(getattr(month_goal, "new_customers_goal", 0) or 0)
+
+        ytd_goals = SalesGoal.objects.filter(
+            year=today.year,
+            month__lte=today.month,
+        ).aggregate(
+            premium_goal=Sum("premium_goal"),
+            commission_goal=Sum("commission_goal"),
+            new_customers_goal=Sum("new_customers_goal"),
+        )
+        premium_goal_ytd = float(ytd_goals.get("premium_goal") or 0)
+        commission_goal_ytd = float(ytd_goals.get("commission_goal") or 0)
+        new_customers_goal_ytd = int(ytd_goals.get("new_customers_goal") or 0)
+
+        premium_ytd = float(ytd_totals.get("premium_total") or 0)
+        commission_ytd = float(ytd_totals.get("commission_total") or 0)
+        premium_mtd = float(mtd_totals.get("premium_total") or 0)
+        commission_mtd = float(mtd_totals.get("commission_total") or 0)
+
+        def pct(realized: float, goal: float) -> float:
+            if goal <= 0:
+                return 0.0
+            return round((realized / goal) * 100.0, 2)
+
+        # Series for charts.
+        daily_rows = (
+            endossos_mtd.values("data_emissao")
+            .annotate(
+                premium_total=Sum("premio_total"),
+                commission_total=Sum("valor_comissao"),
+            )
+            .order_by("data_emissao")
+        )
+        daily_map = {
+            row["data_emissao"]: {
+                "premium_total": float(row["premium_total"] or 0),
+                "commission_total": float(row["commission_total"] or 0),
+            }
+            for row in daily_rows
+        }
+        daily_series = []
+        cursor = start_of_month
+        while cursor <= today:
+            day_values = daily_map.get(cursor, {"premium_total": 0.0, "commission_total": 0.0})
+            daily_series.append(
+                {
+                    "date": cursor.isoformat(),
+                    "premium_total": day_values["premium_total"],
+                    "commission_total": day_values["commission_total"],
+                }
+            )
+            cursor += timedelta(days=1)
+
+        monthly_rows = (
+            endossos_ytd.values("data_emissao__month")
+            .annotate(
+                premium_total=Sum("premio_total"),
+                commission_total=Sum("valor_comissao"),
+            )
+            .order_by("data_emissao__month")
+        )
+        monthly_map = {
+            int(row["data_emissao__month"]): {
+                "premium_total": float(row["premium_total"] or 0),
+                "commission_total": float(row["commission_total"] or 0),
+            }
+            for row in monthly_rows
+            if row.get("data_emissao__month") is not None
+        }
+        monthly_series = []
+        for month in range(1, today.month + 1):
+            values = monthly_map.get(month, {"premium_total": 0.0, "commission_total": 0.0})
+            monthly_series.append(
+                {
+                    "month": month,
+                    "premium_total": values["premium_total"],
+                    "commission_total": values["commission_total"],
+                }
+            )
+
+        payload = {
+            "tenant_code": request.company.tenant_code,
+            "generated_at": timezone.now().isoformat(),
+            "period": {
+                "as_of": today.isoformat(),
+                "year": today.year,
+                "month": today.month,
+            },
+            "kpis": {
+                "production_premium_ytd": premium_ytd,
+                "commission_ytd": commission_ytd,
+                "production_premium_mtd": premium_mtd,
+                "commission_mtd": commission_mtd,
+                "renewals_due_next_30d": renewals_due_next_30d,
+                "renewals_mtd": renewals_mtd,
+                "customers_total": customers_total,
+                # Placeholder until receivables/installments are modeled.
+                "delinquency_open_total": 0.0,
+            },
+            "goals": {
+                "sales_goal_id_mtd": sales_goal_id_mtd,
+                "premium_goal_mtd": premium_goal_mtd,
+                "commission_goal_mtd": commission_goal_mtd,
+                "new_customers_goal_mtd": new_customers_goal_mtd,
+                "premium_goal_ytd": premium_goal_ytd,
+                "commission_goal_ytd": commission_goal_ytd,
+                "new_customers_goal_ytd": new_customers_goal_ytd,
+            },
+            "progress": {
+                "premium_mtd_pct": pct(premium_mtd, premium_goal_mtd),
+                "commission_mtd_pct": pct(commission_mtd, commission_goal_mtd),
+                "premium_ytd_pct": pct(premium_ytd, premium_goal_ytd),
+                "commission_ytd_pct": pct(commission_ytd, commission_goal_ytd),
+            },
+            "series": {
+                "daily_mtd": daily_series,
+                "monthly_ytd": monthly_series,
+            },
+        }
+        return Response(payload)
 
 
 class CommercialActivityListCreateAPIView(

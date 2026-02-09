@@ -43,7 +43,14 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
     "proposal_options": build_role_matrix(),
     "policy_requests": build_role_matrix(),
     "activities": build_role_matrix(),
+    "sales_goals": build_role_matrix(),
     "metrics": build_role_matrix(
+        post_roles=NO_ROLES,
+        put_roles=NO_ROLES,
+        patch_roles=NO_ROLES,
+        delete_roles=NO_ROLES,
+    ),
+    "dashboard": build_role_matrix(
         post_roles=NO_ROLES,
         put_roles=NO_ROLES,
         patch_roles=NO_ROLES,

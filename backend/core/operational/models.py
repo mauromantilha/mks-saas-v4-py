@@ -829,3 +829,29 @@ class Endosso(BaseTenantModel):
         if self.apolice_id:
             self.company = self.apolice.company
         return super().save(*args, **kwargs)
+
+
+class SalesGoal(BaseTenantModel):
+    """Metas comerciais mensais por tenant (usadas no dashboard)."""
+
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(12)],
+    )
+    premium_goal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    commission_goal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    new_customers_goal = models.PositiveIntegerField(default=0)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Meta Comercial"
+        verbose_name_plural = "Metas Comerciais"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "year", "month"),
+                name="uq_sales_goal_month_per_company",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.company.tenant_code} {self.year}-{self.month:02d}"

@@ -1,0 +1,267 @@
+<section class="tenant-wrap">
+  <header class="page-header">
+    <div>
+      <p class="badge">CRM</p>
+      <h1>Leads</h1>
+      <p class="subtitle">
+        Entrada por webhook/API/importação e gestão do primeiro contato com SLA e IA.
+      </p>
+    </div>
+    <div class="header-actions">
+      <div class="tabs">
+        <button
+          type="button"
+          (click)="setMode('KANBAN')"
+          [class.active]="mode() === 'KANBAN'"
+        >
+          Kanban
+        </button>
+        <button
+          type="button"
+          (click)="setMode('LIST')"
+          [class.active]="mode() === 'LIST'"
+        >
+          Lista
+        </button>
+      </div>
+      <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+    </div>
+  </header>
+
+  <p *ngIf="loading()" class="muted">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+
+  <article class="card">
+    <h2>Novo Lead</h2>
+    <p class="muted">
+      Ao salvar, o backend aplica IA automaticamente (score + próximos passos). Se houver
+      CNPJ, tenta enriquecimento via endpoint configurado.
+    </p>
+
+    <div class="form-grid">
+      <label>
+        Origem (obrigatório)
+        <input
+          type="text"
+          [ngModel]="leadSource()"
+          (ngModelChange)="leadSource.set($event)"
+          [disabled]="loading() || !canWrite()"
+          placeholder="Facebook, LinkedIn, Site, Indicação..."
+        />
+      </label>
+      <label>
+        Contato
+        <input
+          type="text"
+          [ngModel]="leadFullName()"
+          (ngModelChange)="leadFullName.set($event)"
+          [disabled]="loading() || !canWrite()"
+          placeholder="Nome do decisor"
+        />
+      </label>
+      <label>
+        Empresa
+        <input
+          type="text"
+          [ngModel]="leadCompanyName()"
+          (ngModelChange)="leadCompanyName.set($event)"
+          [disabled]="loading() || !canWrite()"
+          placeholder="Razão social / fantasia"
+        />
+      </label>
+      <label>
+        E-mail
+        <input
+          type="email"
+          [ngModel]="leadEmail()"
+          (ngModelChange)="leadEmail.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Telefone
+        <input
+          type="text"
+          [ngModel]="leadPhone()"
+          (ngModelChange)="leadPhone.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        CNPJ
+        <input
+          type="text"
+          [ngModel]="leadCnpj()"
+          (ngModelChange)="leadCnpj.set($event)"
+          [disabled]="loading() || !canWrite()"
+          placeholder="00.000.000/0001-00"
+        />
+      </label>
+      <label>
+        Produtos de interesse
+        <input
+          type="text"
+          [ngModel]="leadProductsOfInterest()"
+          (ngModelChange)="leadProductsOfInterest.set($event)"
+          [disabled]="loading() || !canWrite()"
+          placeholder="Auto, Vida, Frotas..."
+        />
+      </label>
+      <label>
+        Orçamento estimado
+        <input
+          type="number"
+          [ngModel]="leadEstimatedBudget()"
+          (ngModelChange)="leadEstimatedBudget.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="field-full">
+        Observações
+        <textarea
+          rows="2"
+          [ngModel]="leadNotes()"
+          (ngModelChange)="leadNotes.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button type="button" (click)="createLead()" [disabled]="loading() || !canWrite()">
+        Criar lead
+      </button>
+    </div>
+  </article>
+
+  <ng-container *ngIf="mode() === 'KANBAN'">
+    <section class="kanban">
+      <article
+        *ngFor="let col of columns"
+        class="column"
+        (dragover)="onDragOver($event)"
+        (drop)="onDrop($event, col.status)"
+      >
+        <header class="column-header">
+          <h3>{{ col.label }}</h3>
+          <span class="count">{{ leadsForStatus(col.status).length }}</span>
+        </header>
+        <p class="help">{{ col.help }}</p>
+
+        <div class="cards">
+          <div
+            class="lead-card"
+            *ngFor="let lead of leadsForStatus(col.status)"
+            draggable="true"
+            (dragstart)="onDragStart($event, lead)"
+          >
+            <div class="lead-title">
+              <strong>#{{ lead.id }}</strong>
+              <span class="score" *ngIf="lead.qualification_score !== null">
+                Score {{ lead.qualification_score }}
+              </span>
+            </div>
+            <p class="lead-sub">
+              {{ lead.company_name || lead.full_name || lead.source }}
+            </p>
+            <p class="lead-meta">
+              <span>{{ lead.email || "-" }}</span>
+              <span>{{ lead.cnpj || "-" }}</span>
+            </p>
+
+            <div class="actions compact">
+              <button
+                type="button"
+                (click)="generateInsights(lead)"
+                [disabled]="loading()"
+              >
+                IA
+              </button>
+              <button
+                type="button"
+                (click)="enrichCnpj(lead)"
+                [disabled]="loading() || !canWrite()"
+              >
+                Enriquecer
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+
+  <ng-container *ngIf="mode() === 'LIST'">
+    <article class="card">
+      <h2>Lista de Leads</h2>
+      <table class="table" *ngIf="leads().length > 0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Origem</th>
+            <th>Empresa</th>
+            <th>Status</th>
+            <th>Score</th>
+            <th>CNPJ</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let lead of leads()">
+            <td>{{ lead.id }}</td>
+            <td>{{ lead.source }}</td>
+            <td>{{ lead.company_name || "-" }}</td>
+            <td>{{ lead.status }}</td>
+            <td>{{ lead.qualification_score ?? "-" }}</td>
+            <td>{{ lead.cnpj || "-" }}</td>
+            <td>
+              <div class="actions compact">
+                <button type="button" (click)="generateInsights(lead)" [disabled]="loading()">
+                  IA
+                </button>
+                <button
+                  type="button"
+                  (click)="enrichCnpj(lead)"
+                  [disabled]="loading() || !canWrite()"
+                >
+                  Enriquecer
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="leads().length === 0" class="muted">Nenhum lead encontrado.</p>
+    </article>
+  </ng-container>
+
+  <article class="card ai-card" *ngIf="aiResponse() as ai">
+    <header class="ai-header">
+      <h2>Insights IA</h2>
+      <span class="muted">{{ aiEntityLabel() }} | Provider: {{ ai.insights.provider }}</span>
+    </header>
+    <p><strong>Resumo:</strong> {{ ai.insights.summary }}</p>
+    <div class="ai-grid">
+      <div>
+        <h3>Riscos</h3>
+        <ul>
+          <li *ngFor="let item of ai.insights.risks">{{ item }}</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Oportunidades</h3>
+        <ul>
+          <li *ngFor="let item of ai.insights.opportunities">{{ item }}</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Próximas ações</h3>
+        <ul>
+          <li *ngFor="let item of ai.insights.next_actions">{{ item }}</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+</section>
+

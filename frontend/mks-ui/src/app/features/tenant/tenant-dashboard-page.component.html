@@ -1,0 +1,266 @@
+<section class="dashboard-wrap">
+  <header class="hero">
+    <div>
+      <p class="badge">Portal Tenant</p>
+      <h1>Painel do Tenant</h1>
+      <p class="subtitle">
+        Produção, comissão, metas, funil e alertas operacionais consolidados.
+      </p>
+    </div>
+    <div class="hero-actions">
+      <a class="ghost" routerLink="/sales/flow">Abrir Fluxo Comercial</a>
+      <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+    </div>
+  </header>
+
+  <div *ngIf="session() as s" class="meta">
+    <span><strong>Tenant:</strong> {{ s.tenantCode }}</span>
+    <span><strong>Usuário:</strong> {{ s.username }}</span>
+    <span><strong>Role:</strong> {{ s.role || "-" }}</span>
+  </div>
+
+  <p *ngIf="loading()" class="muted">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+
+  <ng-container *ngIf="summary() as summary">
+    <section class="kpi-grid">
+      <article class="kpi kpi-strong">
+        <span class="label">Produção (Ano)</span>
+        <strong class="value">{{ formatCurrency(summary.kpis.production_premium_ytd) }}</strong>
+        <span class="hint">
+          Meta: {{ formatCurrency(summary.goals.premium_goal_ytd) }} ({{
+            summary.progress.premium_ytd_pct
+          }}%)
+        </span>
+      </article>
+
+      <article class="kpi kpi-strong">
+        <span class="label">Comissão (Ano)</span>
+        <strong class="value">{{ formatCurrency(summary.kpis.commission_ytd) }}</strong>
+        <span class="hint">
+          Meta: {{ formatCurrency(summary.goals.commission_goal_ytd) }} ({{
+            summary.progress.commission_ytd_pct
+          }}%)
+        </span>
+      </article>
+
+      <article class="kpi">
+        <span class="label">Produção (Mês)</span>
+        <strong class="value">{{ formatCurrency(summary.kpis.production_premium_mtd) }}</strong>
+        <span class="hint">
+          Meta: {{ formatCurrency(summary.goals.premium_goal_mtd) }} ({{
+            summary.progress.premium_mtd_pct
+          }}%)
+        </span>
+      </article>
+
+      <article class="kpi">
+        <span class="label">Comissão (Mês)</span>
+        <strong class="value">{{ formatCurrency(summary.kpis.commission_mtd) }}</strong>
+        <span class="hint">
+          Meta: {{ formatCurrency(summary.goals.commission_goal_mtd) }} ({{
+            summary.progress.commission_mtd_pct
+          }}%)
+        </span>
+      </article>
+
+      <article class="kpi">
+        <span class="label">Renovações (30 dias)</span>
+        <strong class="value">{{ summary.kpis.renewals_due_next_30d }}</strong>
+        <span class="hint">Apólices com vencimento próximo</span>
+      </article>
+
+      <article class="kpi">
+        <span class="label">Renovações (Mês)</span>
+        <strong class="value">{{ summary.kpis.renewals_mtd }}</strong>
+        <span class="hint">Endossos do tipo renovação</span>
+      </article>
+
+      <article class="kpi">
+        <span class="label">Clientes</span>
+        <strong class="value">{{ summary.kpis.customers_total }}</strong>
+        <span class="hint">Lifecycle stage = CUSTOMER</span>
+      </article>
+
+      <article class="kpi">
+        <span class="label">Inadimplência</span>
+        <strong class="value">{{ formatCurrency(summary.kpis.delinquency_open_total) }}</strong>
+        <span class="hint">Preparado para integrar parcelas/recebíveis</span>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Realizado vs Meta</h2>
+
+        <div class="progress-block">
+          <div class="progress-row">
+            <span class="progress-label">Produção (Mês)</span>
+            <span class="progress-value">{{ summary.progress.premium_mtd_pct }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="fill" [style.width.%]="clampPct(summary.progress.premium_mtd_pct)"></div>
+          </div>
+        </div>
+
+        <div class="progress-block">
+          <div class="progress-row">
+            <span class="progress-label">Comissão (Mês)</span>
+            <span class="progress-value">{{ summary.progress.commission_mtd_pct }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div
+              class="fill"
+              [style.width.%]="clampPct(summary.progress.commission_mtd_pct)"
+            ></div>
+          </div>
+        </div>
+
+        <div class="progress-block">
+          <div class="progress-row">
+            <span class="progress-label">Produção (Ano)</span>
+            <span class="progress-value">{{ summary.progress.premium_ytd_pct }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="fill" [style.width.%]="clampPct(summary.progress.premium_ytd_pct)"></div>
+          </div>
+        </div>
+
+        <div class="progress-block">
+          <div class="progress-row">
+            <span class="progress-label">Comissão (Ano)</span>
+            <span class="progress-value">{{ summary.progress.commission_ytd_pct }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div
+              class="fill"
+              [style.width.%]="clampPct(summary.progress.commission_ytd_pct)"
+            ></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card" *ngIf="metrics() as metrics">
+        <h2>Funil e SLA</h2>
+        <div class="mini-grid">
+          <div class="mini-item">
+            <span class="mini-label">Leads novos</span>
+            <strong class="mini-value">{{ metrics.lead_funnel.NEW }}</strong>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">Leads qualificados</span>
+            <strong class="mini-value">{{ metrics.lead_funnel.QUALIFIED }}</strong>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">Leads convertidos</span>
+            <strong class="mini-value">{{ metrics.lead_funnel.CONVERTED }}</strong>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">Oportunidades ganhas</span>
+            <strong class="mini-value">{{ metrics.opportunity_funnel.WON }}</strong>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">Atividades em aberto</span>
+            <strong class="mini-value">{{ metrics.activities.open_total }}</strong>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">Atrasadas</span>
+            <strong class="mini-value">{{ metrics.activities.overdue_total }}</strong>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">SLA estourado</span>
+            <strong class="mini-value">{{ metrics.activities.sla_breached_total }}</strong>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">Pipeline aberto</span>
+            <strong class="mini-value">
+              {{ formatCurrency(metrics.pipeline_value.open_total_amount) }}
+            </strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="card" *ngIf="canWrite()">
+        <h2>Metas do mês</h2>
+        <p class="muted">
+          Ajuste as metas de produção/comissão. O painel recalcula o progresso automaticamente.
+        </p>
+
+        <div class="form-grid">
+          <label>
+            Meta produção (prêmio)
+            <input
+              type="number"
+              [ngModel]="goalPremium()"
+              (ngModelChange)="goalPremium.set(($event ?? '') + '')"
+              [disabled]="loading()"
+            />
+          </label>
+          <label>
+            Meta comissão
+            <input
+              type="number"
+              [ngModel]="goalCommission()"
+              (ngModelChange)="goalCommission.set(($event ?? '') + '')"
+              [disabled]="loading()"
+            />
+          </label>
+          <label>
+            Meta novos clientes
+            <input
+              type="number"
+              min="0"
+              [ngModel]="goalNewCustomers()"
+              (ngModelChange)="goalNewCustomers.set(($event ?? '') + '')"
+              [disabled]="loading()"
+            />
+          </label>
+          <label class="field-full">
+            Observações
+            <textarea
+              rows="2"
+              [ngModel]="goalNotes()"
+              (ngModelChange)="goalNotes.set(($event ?? '') + '')"
+              [disabled]="loading()"
+            ></textarea>
+          </label>
+        </div>
+
+        <div class="hero-actions">
+          <button type="button" (click)="saveGoals()" [disabled]="loading()">
+            Salvar metas
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid wide">
+      <article class="card">
+        <h2>Produção diária (Mês)</h2>
+        <div class="bars">
+          <div
+            *ngFor="let p of dailySeries()"
+            class="bar"
+            [style.height.%]="barHeight(p.premium_total, dailyMaxPremium())"
+            [title]="p.date + ' | ' + formatCurrency(p.premium_total)"
+          ></div>
+        </div>
+        <p class="muted">Barras representam o prêmio total por dia (endossos).</p>
+      </article>
+
+      <article class="card">
+        <h2>Produção mensal (Ano)</h2>
+        <div class="bars month-bars">
+          <div
+            *ngFor="let p of monthlySeries()"
+            class="bar"
+            [style.height.%]="barHeight(p.premium_total, monthlyMaxPremium())"
+            [title]="'Mês ' + p.month + ' | ' + formatCurrency(p.premium_total)"
+          ></div>
+        </div>
+        <p class="muted">Barras representam o prêmio total por mês (YTD).</p>
+      </article>
+    </section>
+  </ng-container>
+</section>

@@ -6,6 +6,8 @@ export type OpportunityStage =
   | "QUALIFICATION"
   | "NEEDS_ASSESSMENT"
   | "QUOTATION"
+  | "DISCOVERY"
+  | "PROPOSAL"
   | "PROPOSAL_PRESENTATION"
   | "NEGOTIATION"
   | "WON"
@@ -75,6 +77,9 @@ export interface CreateCustomerPayload {
 export interface LeadRecord {
   id: number;
   source: string;
+  capture_channel?: string;
+  external_id?: string;
+  external_campaign?: string;
   full_name: string;
   job_title: string;
   company_name: string;
@@ -85,6 +90,16 @@ export interface LeadRecord {
   website: string;
   linkedin_url: string;
   instagram_url: string;
+  lead_score_label?: string;
+  product_line?: string;
+  cnae_code?: string;
+  company_size_estimate?: string;
+  raw_payload?: Record<string, unknown>;
+  needs_summary?: string;
+  needs_payload?: Record<string, unknown>;
+  first_response_sla_minutes?: number;
+  first_response_due_at?: string | null;
+  first_response_at?: string | null;
   customer: number | null;
   status: LeadStatus;
   products_of_interest: string;
@@ -102,6 +117,9 @@ export interface LeadRecord {
 
 export interface CreateLeadPayload {
   source: string;
+  capture_channel?: string;
+  external_id?: string;
+  external_campaign?: string;
   full_name?: string;
   job_title?: string;
   company_name?: string;
@@ -111,8 +129,28 @@ export interface CreateLeadPayload {
   cnpj?: string;
   website?: string;
   linkedin_url?: string;
+  instagram_url?: string;
   products_of_interest?: string;
   estimated_budget?: string | number;
+  notes?: string;
+}
+
+export interface UpdateLeadPayload {
+  status?: LeadStatus;
+  disqualification_reason?: string;
+  notes?: string;
+  next_follow_up_at?: string | null;
+  last_contact_at?: string | null;
+}
+
+export interface CreateOpportunityPayload {
+  customer: number;
+  title: string;
+  stage?: OpportunityStage;
+  product_line?: string;
+  amount?: string | number;
+  expected_close_date?: string | null;
+  closing_probability?: number;
   notes?: string;
 }
 
