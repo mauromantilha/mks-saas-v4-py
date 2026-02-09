@@ -13,7 +13,7 @@ from ledger.models import LedgerEntry
 from ledger.services import append_ledger_entry
 from tenancy.context import get_current_company
 
-from finance.fiscal.adapters import get_fiscal_adapter
+from finance.fiscal.adapters import FiscalAdapterError, get_fiscal_adapter
 from finance.fiscal.invoice_gateway import resolve_invoice_for_fiscal
 from finance.fiscal.models import FiscalCustomerSnapshot, FiscalDocument, TenantFiscalConfig
 
@@ -144,13 +144,22 @@ def issue_nf_from_invoice(invoice_id: int, *, actor=None, request=None) -> Fisca
     adapter_payload = _build_adapter_payload(invoice=invoice, customer_snapshot=customer_snapshot)
 
     # Adapter selection is tenant-based (active TenantFiscalConfig).
-    config = (
-        TenantFiscalConfig.all_objects.select_related("provider")
-        .only("company_id", "provider__provider_type")
-        .get(company_id=company.id, active=True)
-    )
+    try:
+        config = (
+            TenantFiscalConfig.all_objects.select_related("provider")
+            .only("company_id", "provider__provider_type")
+            .get(company_id=company.id, active=True)
+        )
+    except TenantFiscalConfig.DoesNotExist as exc:
+        raise FiscalIssueError("Tenant has no active fiscal configuration.") from exc
+    except TenantFiscalConfig.MultipleObjectsReturned as exc:
+        raise FiscalIssueError("Tenant has multiple active fiscal configurations.") from exc
+
     provider_type = (config.provider.provider_type or "").strip()
-    adapter = get_fiscal_adapter(company.id)
+    try:
+        adapter = get_fiscal_adapter(company.id)
+    except FiscalAdapterError as exc:
+        raise FiscalIssueError(str(exc)) from exc
 
     adapter_result = adapter.issue_invoice(adapter_payload)
     status = str(adapter_result.get("status") or FiscalDocument.Status.DRAFT).strip().upper()
@@ -262,14 +271,23 @@ def cancel_nf(document_id: str, *, actor=None, request=None) -> FiscalDocument:
             )
 
         # Load provider_type for auditing only (no secrets, no payload).
-        config = (
-            TenantFiscalConfig.all_objects.select_related("provider")
-            .only("company_id", "provider__provider_type")
-            .get(company_id=company.id, active=True)
-        )
+        try:
+            config = (
+                TenantFiscalConfig.all_objects.select_related("provider")
+                .only("company_id", "provider__provider_type")
+                .get(company_id=company.id, active=True)
+            )
+        except TenantFiscalConfig.DoesNotExist as exc:
+            raise FiscalCancelError("Tenant has no active fiscal configuration.") from exc
+        except TenantFiscalConfig.MultipleObjectsReturned as exc:
+            raise FiscalCancelError("Tenant has multiple active fiscal configurations.") from exc
+
         provider_type = (config.provider.provider_type or "").strip()
 
-        adapter = get_fiscal_adapter(company.id)
+        try:
+            adapter = get_fiscal_adapter(company.id)
+        except FiscalAdapterError as exc:
+            raise FiscalCancelError(str(exc)) from exc
         adapter.cancel_invoice(provider_doc_id)
 
         previous_status = locked.status
