@@ -22,12 +22,16 @@ interface NavItem {
 export class AppComponent {
   readonly session = computed(() => this.sessionService.session());
   readonly isAuthenticated = computed(() => this.sessionService.isAuthenticated());
-  readonly portalType = computed(() => {
-    const session = this.session();
-    // Prefer the portal type chosen during login; fall back to hostname detection.
-    return session?.portalType ?? this.portalContextService.portalType();
-  });
   readonly hostname = this.portalContextService.hostname();
+  readonly portalType = computed(() => {
+    const hostPortal = this.portalContextService.portalType();
+    // On real domains we must trust the host to avoid mixing Control Plane vs Tenant UI.
+    // On plain localhost the host is ambiguous, so we allow the session choice.
+    if (this.hostname === "localhost" || this.hostname === "127.0.0.1") {
+      return this.session()?.portalType ?? hostPortal;
+    }
+    return hostPortal;
+  });
 
   private readonly controlPlaneMenu: NavItem[] = [
     { label: "Tenants", path: "/platform/tenants", accent: "#f97316" },
@@ -55,8 +59,8 @@ export class AppComponent {
     if (!session) {
       return [];
     }
-    if (this.portalType() === "CONTROL_PLANE" && session.platformAdmin) {
-      return this.controlPlaneMenu;
+    if (this.portalType() === "CONTROL_PLANE") {
+      return session.platformAdmin ? this.controlPlaneMenu : [];
     }
     return this.tenantMenu;
   });

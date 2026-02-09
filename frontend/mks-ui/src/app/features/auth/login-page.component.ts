@@ -48,11 +48,22 @@ export class LoginPageComponent {
     }
 
     if (this.sessionService.isAuthenticated()) {
-      void this.router.navigate(
-        this.sessionService.session()?.portalType === "CONTROL_PLANE"
-          ? ["/platform/tenants"]
-          : ["/tenant/dashboard"]
-      );
+      const hostPortal = this.portalContextService.portalType();
+      const session = this.sessionService.session();
+
+      if (hostPortal === "CONTROL_PLANE") {
+        if (session?.platformAdmin) {
+          void this.router.navigate(["/platform/tenants"]);
+        } else {
+          this.sessionService.clearSession();
+        }
+      } else {
+        if (session?.tenantCode) {
+          void this.router.navigate(["/tenant/dashboard"]);
+        } else {
+          this.sessionService.clearSession();
+        }
+      }
     }
   }
 
