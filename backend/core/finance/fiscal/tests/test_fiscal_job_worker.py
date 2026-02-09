@@ -5,6 +5,7 @@ from django.db import connection
 from django.test import TestCase, override_settings
 
 from customers.models import Company
+from finance.fiscal.adapters import FiscalAdapterBase, FiscalAdapterFiscalRejectionError, FiscalAdapterTimeoutError
 from finance.fiscal.models import FiscalDocument, FiscalJob, FiscalProvider, TenantFiscalConfig
 from finance.fiscal.services import enqueue_fiscal_job, process_fiscal_job
 from tenancy.context import reset_current_company, set_current_company
@@ -106,3 +107,61 @@ class FiscalJobWorkerTests(TestCase):
         delta_seconds = (processed.next_retry_at - processed.updated_at).total_seconds()
         self.assertGreaterEqual(delta_seconds, 55)
         self.assertLessEqual(delta_seconds, 90)
+
+    def test_process_job_marks_rejected_when_adapter_raises_rejection(self):
+        class RejectingAdapter(FiscalAdapterBase):
+            def issue_invoice(self, data):
+                raise FiscalAdapterFiscalRejectionError("Rejeitado: CFOP invalido", code="CFOP_INVALID")
+
+            def cancel_invoice(self, document_id):
+                raise NotImplementedError
+
+            def check_status(self, document_id):
+                raise NotImplementedError
+
+        from unittest.mock import patch
+
+        doc = FiscalDocument.all_objects.create(
+            company=self.company,
+            invoice_id=888,
+            amount=Decimal("0.00"),
+            status=FiscalDocument.Status.DRAFT,
+        )
+        job = enqueue_fiscal_job(doc.id, actor=self.actor, request=None)
+
+        with patch("finance.fiscal.services.get_fiscal_adapter", return_value=RejectingAdapter()):
+            processed = process_fiscal_job(job.id, actor=self.actor, request=None)
+
+        self.assertEqual(processed.status, FiscalJob.Status.SUCCEEDED)
+        self.assertIsNone(processed.next_retry_at)
+        self.assertTrue(processed.last_error)
+
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, FiscalDocument.Status.REJECTED)
+
+    def test_process_job_marks_failed_when_adapter_times_out(self):
+        class TimeoutAdapter(FiscalAdapterBase):
+            def issue_invoice(self, data):
+                raise FiscalAdapterTimeoutError("timeout")
+
+            def cancel_invoice(self, document_id):
+                raise NotImplementedError
+
+            def check_status(self, document_id):
+                raise NotImplementedError
+
+        from unittest.mock import patch
+
+        doc = FiscalDocument.all_objects.create(
+            company=self.company,
+            invoice_id=889,
+            amount=Decimal("0.00"),
+            status=FiscalDocument.Status.DRAFT,
+        )
+        job = enqueue_fiscal_job(doc.id, actor=self.actor, request=None)
+
+        with patch("finance.fiscal.services.get_fiscal_adapter", return_value=TimeoutAdapter()):
+            processed = process_fiscal_job(job.id, actor=self.actor, request=None)
+
+        self.assertEqual(processed.status, FiscalJob.Status.FAILED)
+        self.assertIsNotNone(processed.next_retry_at)

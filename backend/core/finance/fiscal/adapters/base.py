@@ -7,6 +7,31 @@ from typing import Any, Mapping
 class FiscalAdapterError(RuntimeError):
     """Base exception for fiscal adapter failures."""
 
+    retryable: bool = True
+
+
+class FiscalAdapterTechnicalError(FiscalAdapterError):
+    """Technical failure talking to the provider (network, auth, outages, etc.)."""
+
+    retryable = True
+
+
+class FiscalAdapterTimeoutError(FiscalAdapterTechnicalError):
+    """Provider request timed out."""
+
+    retryable = True
+
+
+class FiscalAdapterFiscalRejectionError(FiscalAdapterError):
+    """Business/fiscal rejection returned by the provider (not retryable)."""
+
+    retryable = False
+
+    def __init__(self, message: str, *, code: str | None = None, details: Mapping[str, Any] | None = None):
+        super().__init__(message)
+        self.code = code
+        self.details = dict(details) if details else {}
+
 
 class FiscalAdapterBase(ABC):
     """Adapter interface for issuing/cancelling/checking fiscal documents.
@@ -16,6 +41,10 @@ class FiscalAdapterBase(ABC):
     - Adapters should be side-effectful only towards the provider API.
       Persistence, retries, and tenant-aware orchestration belong to services.
     """
+
+    def __init__(self, *, timeout_seconds: float | None = None) -> None:
+        # Adapter implementors should pass this through to their HTTP client timeout config.
+        self.timeout_seconds = timeout_seconds
 
     @abstractmethod
     def issue_invoice(self, data: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -42,4 +71,3 @@ class FiscalAdapterBase(ABC):
     @abstractmethod
     def check_status(self, document_id: str) -> Mapping[str, Any]:
         """Fetch current provider status for a fiscal document."""
-

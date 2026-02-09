@@ -21,7 +21,8 @@ class MockFiscalAdapter(FiscalAdapterBase):
     _sequence = itertools.count(100000)
     _documents: dict[str, dict[str, Any]] = {}
 
-    def __init__(self, *, series: str = "1") -> None:
+    def __init__(self, *, series: str = "1", timeout_seconds: float | None = None) -> None:
+        super().__init__(timeout_seconds=timeout_seconds)
         self.series = series
 
     def issue_invoice(self, data: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -62,4 +63,3 @@ class MockFiscalAdapter(FiscalAdapterBase):
         if not doc:
             raise FiscalAdapterError(f"Mock document not found: {document_id}")
         return {"document_id": document_id, "status": doc["status"]}
-

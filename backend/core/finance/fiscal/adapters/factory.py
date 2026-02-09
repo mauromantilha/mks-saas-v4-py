@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
 from finance.fiscal.models import TenantFiscalConfig
@@ -54,9 +55,9 @@ def get_fiscal_adapter(tenant_id: int) -> FiscalAdapterBase:
 
     # Local-only adapter (for dev/tests).
     if provider_type in {"mock", "dummy", "local"}:
-        return MockFiscalAdapter()
+        timeout_seconds = getattr(settings, "FISCAL_ADAPTER_TIMEOUT_SECONDS", None)
+        return MockFiscalAdapter(timeout_seconds=timeout_seconds)
 
     raise FiscalAdapterNotSupported(
         f"Unsupported provider_type={config.provider.provider_type!r} for tenant={tenant_id}."
     )
-

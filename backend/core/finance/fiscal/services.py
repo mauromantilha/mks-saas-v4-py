@@ -17,7 +17,11 @@ from tenancy.context import get_current_company
 from tenancy.context import reset_current_company, set_current_company
 from tenancy.logging import mask_cpf_cnpj
 
-from finance.fiscal.adapters import FiscalAdapterError, get_fiscal_adapter
+from finance.fiscal.adapters import (
+    FiscalAdapterError,
+    FiscalAdapterFiscalRejectionError,
+    get_fiscal_adapter,
+)
 from finance.fiscal.invoice_gateway import resolve_invoice_for_fiscal
 from finance.fiscal.models import (
     FiscalCustomerSnapshot,
@@ -568,16 +572,69 @@ def process_fiscal_job(job_id: int, *, actor=None, request=None) -> FiscalJob:
         issued_amount: Decimal | None = None
         issued_issue_date: date | None = None
 
-        # Decide the operation based on document state.
-        if not (doc.provider_document_id or "").strip():
-            invoice = resolve_invoice_for_fiscal(invoice_id=doc.invoice_id, company_id=doc.company_id)
-            issued_amount = _safe_decimal(invoice.get("amount"))
-            issued_issue_date = _safe_issue_date(invoice.get("issue_date"))
-            customer_snapshot = _build_customer_snapshot(invoice)
-            payload = _build_adapter_payload(invoice=invoice, customer_snapshot=customer_snapshot)
-            adapter_result = adapter.issue_invoice(payload)
-        else:
-            adapter_result = adapter.check_status(doc.provider_document_id)
+        try:
+            # Decide the operation based on document state.
+            if not (doc.provider_document_id or "").strip():
+                invoice = resolve_invoice_for_fiscal(
+                    invoice_id=doc.invoice_id, company_id=doc.company_id
+                )
+                issued_amount = _safe_decimal(invoice.get("amount"))
+                issued_issue_date = _safe_issue_date(invoice.get("issue_date"))
+                customer_snapshot = _build_customer_snapshot(invoice)
+                payload = _build_adapter_payload(invoice=invoice, customer_snapshot=customer_snapshot)
+                adapter_result = adapter.issue_invoice(payload)
+            else:
+                adapter_result = adapter.check_status(doc.provider_document_id)
+        except FiscalAdapterFiscalRejectionError as exc:
+            error_msg = mask_cpf_cnpj(str(exc))[:4000]
+            with transaction.atomic():
+                lock_doc_qs = FiscalDocument.all_objects
+                lock_job_qs = FiscalJob.all_objects
+                if connection.features.has_select_for_update:
+                    lock_doc_qs = lock_doc_qs.select_for_update()
+                    lock_job_qs = lock_job_qs.select_for_update()
+
+                job = lock_job_qs.select_related("fiscal_document").get(id=job_id)
+                doc = lock_doc_qs.get(id=job.fiscal_document_id)
+
+                doc.status = FiscalDocument.Status.REJECTED
+                doc.save(update_fields=["status", "updated_at"])
+
+                job.status = FiscalJob.Status.SUCCEEDED
+                job.last_error = error_msg
+                job.next_retry_at = None
+                job.save(update_fields=["status", "last_error", "next_retry_at", "updated_at"])
+
+                append_ledger_entry(
+                    scope=LedgerEntry.SCOPE_TENANT,
+                    company=doc.company,
+                    actor=actor,
+                    action=LedgerEntry.ACTION_UPDATE,
+                    resource_label="finance.fiscal.FiscalJob",
+                    resource_pk=str(job.id),
+                    request=request,
+                    event_type="finance.fiscal.job.rejected",
+                    data_after={
+                        "id": job.id,
+                        "fiscal_document_id": doc.id,
+                        "job_status": job.status,
+                        "doc_status": doc.status,
+                        "attempts": job.attempts,
+                    },
+                    metadata={
+                        "rejection": error_msg,
+                        "code": getattr(exc, "code", None),
+                    },
+                )
+
+            logger.info(
+                "fiscal.job.process.rejected company_id=%s fiscal_job_id=%s fiscal_document_id=%s attempts=%s",
+                doc.company_id,
+                job.id,
+                doc.id,
+                job.attempts,
+            )
+            return job
 
         new_status = _normalize_fiscal_status(adapter_result.get("status"))
         provider_document_id = (

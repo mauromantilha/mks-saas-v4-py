@@ -11,6 +11,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1", "testserver"]),
     CORS_ALLOWED_ORIGINS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
+    FISCAL_ADAPTER_TIMEOUT_SECONDS=(int, 30),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
@@ -51,6 +52,7 @@ if not SECRET_KEY:
 
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+FISCAL_ADAPTER_TIMEOUT_SECONDS = env("FISCAL_ADAPTER_TIMEOUT_SECONDS")
 
 USE_X_FORWARDED_HOST = env.bool("USE_X_FORWARDED_HOST", default=True)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
