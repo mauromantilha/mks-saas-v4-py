@@ -91,7 +91,8 @@ class TenantFiscalConfig(BaseTenantModel):
         indexes = [
             models.Index(
                 fields=("company", "active", "environment"),
-                name="idx_tenant_fiscal_config_active_env",
+                # Keep <= 30 chars to satisfy SQLite CI checks.
+                name="idx_fiscfg_act_env",
             ),
         ]
 
