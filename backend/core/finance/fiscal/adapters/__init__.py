@@ -6,6 +6,17 @@ minimal payload required to issue/cancel/check documents.
 """
 
 from .base import FiscalAdapterBase
+from .factory import (
+    FiscalAdapterNotConfigured,
+    FiscalAdapterNotSupported,
+    get_fiscal_adapter,
+)
 from .mock import MockFiscalAdapter
 
-__all__ = ["FiscalAdapterBase", "MockFiscalAdapter"]
+__all__ = [
+    "FiscalAdapterBase",
+    "FiscalAdapterNotConfigured",
+    "FiscalAdapterNotSupported",
+    "MockFiscalAdapter",
+    "get_fiscal_adapter",
+]
