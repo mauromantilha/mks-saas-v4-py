@@ -10,12 +10,14 @@ from finance.fiscal.api.serializers.fiscal_document import (
     IssueFiscalSerializer,
 )
 from finance.fiscal.models import FiscalDocument
+from finance.fiscal.models import FiscalJob
 from finance.fiscal.services import (
     FiscalCancelAlreadyCancelled,
     FiscalCancelError,
     FiscalIssueError,
     issue_nf_from_invoice,
     cancel_nf,
+    enqueue_fiscal_job,
 )
 from tenancy.permissions import IsTenantRoleAllowed
 
@@ -101,3 +103,38 @@ class FiscalDocumentViewSet(
 
         return Response(self.get_serializer(cancelled).data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=["post"], url_path="retry")
+    def retry(self, request, pk=None):
+        doc = self.get_object()
+        try:
+            job = doc.job
+        except FiscalJob.DoesNotExist:
+            return Response(
+                {"detail": "Fiscal document has no job to retry."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        if job.status != FiscalJob.Status.FAILED:
+            return Response(
+                {"detail": "Only failed fiscal documents can be retried."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        try:
+            requeued = enqueue_fiscal_job(doc.id, actor=request.user, request=request)
+        except FiscalIssueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:  # pragma: no cover
+            return Response(
+                {"detail": "Failed to retry fiscal document."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        payload = {
+            "document_id": doc.id,
+            "job_id": requeued.id,
+            "job_status": requeued.status,
+            "attempts": requeued.attempts,
+            "next_retry_at": requeued.next_retry_at.isoformat() if requeued.next_retry_at else None,
+        }
+        return Response(payload, status=status.HTTP_202_ACCEPTED)
