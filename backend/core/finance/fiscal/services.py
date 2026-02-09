@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping
+from uuid import uuid4
 
 from django.db import transaction
 from django.db import connection
@@ -31,6 +32,14 @@ from finance.fiscal.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _get_correlation_id(request) -> str:
+    if request is None:
+        return str(uuid4())
+    headers = getattr(request, "headers", {}) or {}
+    value = (headers.get("X-Correlation-ID") or headers.get("X-Request-ID") or "").strip()
+    return value or str(uuid4())
 
 
 def _normalize_fiscal_status(value: Any) -> str:
@@ -448,10 +457,12 @@ def enqueue_fiscal_job(document_id: int, *, actor=None, request=None) -> FiscalJ
             "Tenant context is required. Call within a tenant-scoped request."
         )
 
+    correlation_id = _get_correlation_id(request)
     logger.info(
-        "fiscal.job.enqueue.started company_id=%s fiscal_document_id=%s",
+        "fiscal.job.enqueue.started tenant_id=%s document_id=%s correlation_id=%s",
         company.id,
         document_id,
+        correlation_id,
     )
 
     now = timezone.now()
@@ -496,10 +507,11 @@ def enqueue_fiscal_job(document_id: int, *, actor=None, request=None) -> FiscalJ
         )
 
     logger.info(
-        "fiscal.job.enqueue.completed company_id=%s fiscal_document_id=%s fiscal_job_id=%s created=%s status=%s",
+        "fiscal.job.enqueue.completed tenant_id=%s document_id=%s job_id=%s correlation_id=%s created=%s status=%s",
         company.id,
         doc.id,
         job.id,
+        correlation_id,
         created,
         job.status,
     )
@@ -516,6 +528,9 @@ def process_fiscal_job(job_id: int, *, actor=None, request=None) -> FiscalJob:
     """
 
     now = timezone.now()
+    correlation_id = _get_correlation_id(request)
+    tenant_id: int | None = None
+    document_id: int | None = None
 
     # Lock job + doc and mark RUNNING (external calls must happen outside the transaction).
     with transaction.atomic():
@@ -525,6 +540,8 @@ def process_fiscal_job(job_id: int, *, actor=None, request=None) -> FiscalJob:
 
         job = job_qs.get(id=job_id)
         doc = job.fiscal_document
+        tenant_id = doc.company_id
+        document_id = doc.id
 
         is_doc_final = doc.status in {
             FiscalDocument.Status.AUTHORIZED,
@@ -718,10 +735,11 @@ def process_fiscal_job(job_id: int, *, actor=None, request=None) -> FiscalJob:
             )
 
         logger.info(
-            "fiscal.job.process.completed company_id=%s fiscal_job_id=%s fiscal_document_id=%s job_status=%s doc_status=%s attempts=%s",
+            "fiscal.job.process.completed tenant_id=%s document_id=%s job_id=%s correlation_id=%s job_status=%s doc_status=%s attempts=%s",
             doc.company_id,
-            job.id,
             doc.id,
+            job.id,
+            correlation_id,
             job.status,
             doc.status,
             job.attempts,
@@ -766,8 +784,11 @@ def process_fiscal_job(job_id: int, *, actor=None, request=None) -> FiscalJob:
             logger.exception("fiscal.job.process.failed.persist_error job_id=%s", job_id)
 
         logger.warning(
-            "fiscal.job.process.failed job_id=%s error=%s next_retry_at=%s",
+            "fiscal.job.process.failed tenant_id=%s document_id=%s job_id=%s correlation_id=%s error=%s next_retry_at=%s",
+            tenant_id or "",
+            document_id or "",
             job_id,
+            correlation_id,
             error_msg,
             job.next_retry_at.isoformat() if getattr(job, "next_retry_at", None) else "",
         )
