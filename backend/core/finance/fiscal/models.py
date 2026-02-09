@@ -107,6 +107,11 @@ class FiscalDocument(BaseTenantModel):
         CANCELLED = "CANCELLED", "Cancelled"
 
     invoice_id = models.PositiveBigIntegerField(db_index=True)
+    provider_document_id = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="External provider document id used for status/cancellation calls.",
+    )
     number = models.CharField(max_length=40, blank=True)
     series = models.CharField(max_length=20, blank=True)
     issue_date = models.DateField(null=True, blank=True)
@@ -145,6 +150,11 @@ class FiscalDocument(BaseTenantModel):
                 condition=~models.Q(number=""),
                 name="uq_fiscal_doc_number_per_tenant",
             ),
+            models.UniqueConstraint(
+                fields=("company", "provider_document_id"),
+                condition=~models.Q(provider_document_id=""),
+                name="uq_fiscal_doc_provider_document_id_per_tenant",
+            ),
         ]
 
     def __str__(self) -> str:  # pragma: no cover
@@ -180,4 +190,3 @@ class FiscalCustomerSnapshot(BaseTenantModel):
         if self.fiscal_document_id:
             self.company = self.fiscal_document.company
         return super().save(*args, **kwargs)
-
