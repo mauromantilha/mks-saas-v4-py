@@ -56,7 +56,7 @@ def sync_membership_guardian_groups(sender, instance: CompanyMembership, **_kwar
 
 
 @receiver(post_save, sender=Company)
-def ensure_company_domains(sender, instance: Company, _created: bool, **_kwargs):
+def ensure_company_domains(sender, instance: Company, created: bool, **_kwargs):
     """Ensure a tenant has at least one Domain mapping.
 
     We always create a `*.localhost` domain for local development.
