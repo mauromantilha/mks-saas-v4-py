@@ -53,10 +53,20 @@ def _normalize_fiscal_status(value: Any) -> str:
 
 
 def _compute_next_retry(attempts: int) -> datetime:
-    # Exponential backoff capped at 1 hour.
+    # Exponential-ish backoff (business-friendly steps) capped at 2 hours:
+    # 1st retry: 1 min
+    # 2nd retry: 5 min
+    # 3rd retry: 30 min
+    # 4th+ retry: 2 hours
     attempts = max(int(attempts), 1)
-    delay_seconds = min(60 * (2 ** (attempts - 1)), 60 * 60)
-    return timezone.now() + timedelta(seconds=delay_seconds)
+    schedule = (
+        timedelta(minutes=1),
+        timedelta(minutes=5),
+        timedelta(minutes=30),
+        timedelta(hours=2),
+    )
+    delay = schedule[min(attempts - 1, len(schedule) - 1)]
+    return timezone.now() + delay
 
 
 class FiscalIssueError(RuntimeError):

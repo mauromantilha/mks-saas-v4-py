@@ -102,3 +102,7 @@ class FiscalJobWorkerTests(TestCase):
         self.assertTrue(processed.last_error)
         self.assertIsNotNone(processed.next_retry_at)
 
+        # Retry schedule: first retry is ~1 minute.
+        delta_seconds = (processed.next_retry_at - processed.updated_at).total_seconds()
+        self.assertGreaterEqual(delta_seconds, 55)
+        self.assertLessEqual(delta_seconds, 90)
