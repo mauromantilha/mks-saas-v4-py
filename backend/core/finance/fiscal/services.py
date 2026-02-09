@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping
 
@@ -14,6 +14,8 @@ from django.utils.dateparse import parse_date
 from ledger.models import LedgerEntry
 from ledger.services import append_ledger_entry
 from tenancy.context import get_current_company
+from tenancy.context import reset_current_company, set_current_company
+from tenancy.logging import mask_cpf_cnpj
 
 from finance.fiscal.adapters import FiscalAdapterError, get_fiscal_adapter
 from finance.fiscal.invoice_gateway import resolve_invoice_for_fiscal
@@ -25,6 +27,36 @@ from finance.fiscal.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_fiscal_status(value: Any) -> str:
+    status = str(value or "").strip().upper()
+    if status in FiscalDocument.Status.values:
+        return status
+
+    aliases = {
+        "AUTHORISED": FiscalDocument.Status.AUTHORIZED,
+        "AUTHORIZED": FiscalDocument.Status.AUTHORIZED,
+        "AUTORIZADO": FiscalDocument.Status.AUTHORIZED,
+        "CANCELED": FiscalDocument.Status.CANCELLED,
+        "CANCELLED": FiscalDocument.Status.CANCELLED,
+        "CANCELADO": FiscalDocument.Status.CANCELLED,
+        "REJECTED": FiscalDocument.Status.REJECTED,
+        "REJEITADO": FiscalDocument.Status.REJECTED,
+        "DENIED": FiscalDocument.Status.REJECTED,
+        "ERROR": FiscalDocument.Status.REJECTED,
+        "PENDING": FiscalDocument.Status.EMITTING,
+        "PROCESSING": FiscalDocument.Status.EMITTING,
+        "EMITTING": FiscalDocument.Status.EMITTING,
+    }
+    return aliases.get(status, FiscalDocument.Status.EMITTING)
+
+
+def _compute_next_retry(attempts: int) -> datetime:
+    # Exponential backoff capped at 1 hour.
+    attempts = max(int(attempts), 1)
+    delay_seconds = min(60 * (2 ** (attempts - 1)), 60 * 60)
+    return timezone.now() + timedelta(seconds=delay_seconds)
 
 
 class FiscalIssueError(RuntimeError):
@@ -458,3 +490,207 @@ def enqueue_fiscal_job(document_id: int, *, actor=None, request=None) -> FiscalJ
         job.status,
     )
     return job
+
+
+def process_fiscal_job(job_id: int, *, actor=None, request=None) -> FiscalJob:
+    """Process a single fiscal job.
+
+    This worker is provider-agnostic and can be called from:
+    - a management command (cron)
+    - Celery/Cloud Tasks worker
+    - Pub/Sub triggered Cloud Run service
+    """
+
+    now = timezone.now()
+
+    # Lock job + doc and mark RUNNING (external calls must happen outside the transaction).
+    with transaction.atomic():
+        job_qs = FiscalJob.all_objects.select_related("fiscal_document")
+        if connection.features.has_select_for_update:
+            job_qs = job_qs.select_for_update()
+
+        job = job_qs.get(id=job_id)
+        doc = job.fiscal_document
+
+        if job.status == FiscalJob.Status.SUCCEEDED:
+            return job
+
+        # Respect scheduling if present.
+        if job.next_retry_at and job.next_retry_at > now and job.status != FiscalJob.Status.RUNNING:
+            return job
+
+        # Mark RUNNING and bump attempts.
+        job.status = FiscalJob.Status.RUNNING
+        job.attempts = int(job.attempts or 0) + 1
+        job.last_error = ""
+        job.next_retry_at = None
+        job.save(
+            update_fields=["status", "attempts", "last_error", "next_retry_at", "updated_at"]
+        )
+
+        # Keep document in progress unless it is already final.
+        if doc.status not in {
+            FiscalDocument.Status.AUTHORIZED,
+            FiscalDocument.Status.REJECTED,
+            FiscalDocument.Status.CANCELLED,
+        } and doc.status != FiscalDocument.Status.EMITTING:
+            doc.status = FiscalDocument.Status.EMITTING
+            doc.save(update_fields=["status", "updated_at"])
+
+    # Set tenant context for extra safety (TenantManager filtering + write enforcement).
+    tenant_token = set_current_company(doc.company)
+    try:
+        adapter = get_fiscal_adapter(doc.company_id)
+
+        issued_amount: Decimal | None = None
+        issued_issue_date: date | None = None
+
+        # Decide the operation based on document state.
+        if not (doc.provider_document_id or "").strip():
+            invoice = resolve_invoice_for_fiscal(invoice_id=doc.invoice_id, company_id=doc.company_id)
+            issued_amount = _safe_decimal(invoice.get("amount"))
+            issued_issue_date = _safe_issue_date(invoice.get("issue_date"))
+            customer_snapshot = _build_customer_snapshot(invoice)
+            payload = _build_adapter_payload(invoice=invoice, customer_snapshot=customer_snapshot)
+            adapter_result = adapter.issue_invoice(payload)
+        else:
+            adapter_result = adapter.check_status(doc.provider_document_id)
+
+        new_status = _normalize_fiscal_status(adapter_result.get("status"))
+        provider_document_id = (
+            str(adapter_result.get("provider_document_id") or adapter_result.get("document_id") or "")
+            .strip()
+        )
+        series = str(adapter_result.get("series") or "").strip()
+        number = str(adapter_result.get("number") or "").strip()
+        xml_document_id = str(adapter_result.get("xml_document_id") or "").strip()
+        xml_content = str(adapter_result.get("xml_content") or "").strip()
+
+        # Persist state changes.
+        with transaction.atomic():
+            lock_doc_qs = FiscalDocument.all_objects
+            lock_job_qs = FiscalJob.all_objects
+            if connection.features.has_select_for_update:
+                lock_doc_qs = lock_doc_qs.select_for_update()
+                lock_job_qs = lock_job_qs.select_for_update()
+
+            job = lock_job_qs.select_related("fiscal_document").get(id=job_id)
+            doc = lock_doc_qs.get(id=job.fiscal_document_id)
+
+            changed_fields: list[str] = ["updated_at"]
+            if issued_amount is not None and issued_amount != doc.amount:
+                doc.amount = issued_amount
+                changed_fields.append("amount")
+            if issued_issue_date is not None and issued_issue_date != doc.issue_date:
+                doc.issue_date = issued_issue_date
+                changed_fields.append("issue_date")
+            if provider_document_id and not (doc.provider_document_id or "").strip():
+                doc.provider_document_id = provider_document_id
+                changed_fields.append("provider_document_id")
+            if series and series != (doc.series or ""):
+                doc.series = series
+                changed_fields.append("series")
+            if number and number != (doc.number or ""):
+                doc.number = number
+                changed_fields.append("number")
+            if xml_document_id and xml_document_id != (doc.xml_document_id or ""):
+                doc.xml_document_id = xml_document_id
+                changed_fields.append("xml_document_id")
+            if xml_content and xml_content != (doc.xml_content or ""):
+                doc.xml_content = xml_content
+                changed_fields.append("xml_content")
+
+            if new_status and new_status != doc.status:
+                doc.status = new_status
+                changed_fields.append("status")
+
+            doc.save(update_fields=sorted(set(changed_fields)))
+
+            is_final = doc.status in {
+                FiscalDocument.Status.AUTHORIZED,
+                FiscalDocument.Status.REJECTED,
+                FiscalDocument.Status.CANCELLED,
+            }
+            job.status = FiscalJob.Status.SUCCEEDED if is_final else FiscalJob.Status.QUEUED
+            job.last_error = ""
+            job.next_retry_at = None if is_final else _compute_next_retry(job.attempts)
+            job.save(update_fields=["status", "last_error", "next_retry_at", "updated_at"])
+
+            append_ledger_entry(
+                scope=LedgerEntry.SCOPE_TENANT,
+                company=doc.company,
+                actor=actor,
+                action=LedgerEntry.ACTION_UPDATE,
+                resource_label="finance.fiscal.FiscalJob",
+                resource_pk=str(job.id),
+                request=request,
+                event_type="finance.fiscal.job.process",
+                data_after={
+                    "id": job.id,
+                    "fiscal_document_id": doc.id,
+                    "job_status": job.status,
+                    "doc_status": doc.status,
+                    "attempts": job.attempts,
+                },
+                metadata={
+                    "final": bool(is_final),
+                },
+            )
+
+        logger.info(
+            "fiscal.job.process.completed company_id=%s fiscal_job_id=%s fiscal_document_id=%s job_status=%s doc_status=%s attempts=%s",
+            doc.company_id,
+            job.id,
+            doc.id,
+            job.status,
+            doc.status,
+            job.attempts,
+        )
+        return job
+    except Exception as exc:
+        error_msg = mask_cpf_cnpj(str(exc))[:4000]
+        try:
+            with transaction.atomic():
+                lock_job_qs = FiscalJob.all_objects
+                if connection.features.has_select_for_update:
+                    lock_job_qs = lock_job_qs.select_for_update()
+
+                job = lock_job_qs.select_related("fiscal_document").get(id=job_id)
+                job.status = FiscalJob.Status.FAILED
+                job.last_error = error_msg
+                job.next_retry_at = _compute_next_retry(job.attempts or 1)
+                job.save(update_fields=["status", "last_error", "next_retry_at", "updated_at"])
+
+                append_ledger_entry(
+                    scope=LedgerEntry.SCOPE_TENANT,
+                    company=job.company,
+                    actor=actor,
+                    action=LedgerEntry.ACTION_UPDATE,
+                    resource_label="finance.fiscal.FiscalJob",
+                    resource_pk=str(job.id),
+                    request=request,
+                    event_type="finance.fiscal.job.failed",
+                    data_after={
+                        "id": job.id,
+                        "fiscal_document_id": job.fiscal_document_id,
+                        "status": job.status,
+                        "attempts": job.attempts,
+                        "next_retry_at": job.next_retry_at.isoformat() if job.next_retry_at else None,
+                    },
+                    metadata={
+                        "error": error_msg,
+                    },
+                )
+        except Exception:  # pragma: no cover
+            # Best-effort: never fail the worker because we couldn't persist failure status.
+            logger.exception("fiscal.job.process.failed.persist_error job_id=%s", job_id)
+
+        logger.warning(
+            "fiscal.job.process.failed job_id=%s error=%s next_retry_at=%s",
+            job_id,
+            error_msg,
+            job.next_retry_at.isoformat() if getattr(job, "next_retry_at", None) else "",
+        )
+        return job
+    finally:
+        reset_current_company(tenant_token)
