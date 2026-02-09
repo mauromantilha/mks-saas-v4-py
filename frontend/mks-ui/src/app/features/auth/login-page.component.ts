@@ -1,7 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Router } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { map, of, switchMap, throwError } from "rxjs";
 
 import { AuthService } from "../../core/api/auth.service";
@@ -12,13 +12,14 @@ import { PortalContextService } from "../../core/portal/portal-context.service";
 @Component({
   selector: "app-login-page",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: "./login-page.component.html",
   styleUrl: "./login-page.component.scss",
 })
 export class LoginPageComponent {
   username = signal("");
   password = signal("");
+  showPassword = signal(false);
   tenantCode = signal("");
   loading = signal(false);
   error = signal("");

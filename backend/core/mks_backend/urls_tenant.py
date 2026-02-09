@@ -5,6 +5,8 @@ from rest_framework.authtoken.views import obtain_auth_token
 from customers.views import (
     ActiveTenantUserAPIView,
     AuthenticatedUserAPIView,
+    PasswordResetConfirmAPIView,
+    PasswordResetRequestAPIView,
     TenantCapabilitiesAPIView,
     TenantMemberDetailAPIView,
     TenantMembersAPIView,
@@ -64,6 +66,16 @@ urlpatterns = [
     # Auth endpoints (shared tables in public schema).
     path("api/auth/token/", obtain_auth_token, name="api-token-auth"),
     path("api/auth/me/", AuthenticatedUserAPIView.as_view(), name="auth-me"),
+    path(
+        "api/auth/password-reset/request/",
+        PasswordResetRequestAPIView.as_view(),
+        name="auth-password-reset-request",
+    ),
+    path(
+        "api/auth/password-reset/confirm/",
+        PasswordResetConfirmAPIView.as_view(),
+        name="auth-password-reset-confirm",
+    ),
     # Tenant context/auth helpers.
     path(
         "api/auth/tenant-me/",

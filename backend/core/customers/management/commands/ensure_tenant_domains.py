@@ -12,15 +12,26 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         base_domain = getattr(settings, "TENANT_BASE_DOMAIN", "").strip().lower()
         created = 0
+        updated_local_primary = 0
         updated_primary = 0
 
         for company in Company.objects.all().only("id", "subdomain"):
             local_domain = f"{company.subdomain}.localhost"
-            _obj, was_created = Domain.objects.get_or_create(
+            local_obj, was_created = Domain.objects.get_or_create(
                 domain=local_domain,
                 defaults={"tenant": company, "is_primary": not bool(base_domain)},
             )
             created += int(was_created)
+
+            desired_local_primary = not bool(base_domain)
+            if (
+                not was_created
+                and local_obj.tenant_id == company.id
+                and local_obj.is_primary != desired_local_primary
+            ):
+                local_obj.is_primary = desired_local_primary
+                local_obj.save(update_fields=["is_primary"])
+                updated_local_primary += 1
 
             if not base_domain:
                 continue
@@ -39,7 +50,9 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"ensure_tenant_domains: created={created}, updated_primary={updated_primary}"
+                "ensure_tenant_domains: "
+                f"created={created}, "
+                f"updated_local_primary={updated_local_primary}, "
+                f"updated_primary={updated_primary}"
             )
         )
-

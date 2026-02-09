@@ -9,7 +9,11 @@ from control_plane.views import (
     ControlPlaneTenantProvisionExecuteAPIView,
     ControlPlaneTenantProvisionAPIView,
 )
-from customers.views import AuthenticatedUserAPIView
+from customers.views import (
+    AuthenticatedUserAPIView,
+    PasswordResetConfirmAPIView,
+    PasswordResetRequestAPIView,
+)
 
 
 def healthz(_request):
@@ -43,5 +47,14 @@ urlpatterns = [
     # Auth endpoints (shared auth/public schema).
     path("api/auth/token/", obtain_auth_token, name="api-token-auth"),
     path("api/auth/me/", AuthenticatedUserAPIView.as_view(), name="auth-me"),
+    path(
+        "api/auth/password-reset/request/",
+        PasswordResetRequestAPIView.as_view(),
+        name="auth-password-reset-request",
+    ),
+    path(
+        "api/auth/password-reset/confirm/",
+        PasswordResetConfirmAPIView.as_view(),
+        name="auth-password-reset-confirm",
+    ),
 ]
-

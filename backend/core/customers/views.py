@@ -1,10 +1,17 @@
 from copy import deepcopy
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -13,6 +20,8 @@ from customers.serializers import (
     CompanyMembershipReadSerializer,
     CompanyMembershipUpdateSerializer,
     CompanyMembershipUpsertSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
 )
 from tenancy.permissions import IsAuthenticatedTenantMember, IsTenantOwner
 from tenancy.rbac import (
@@ -22,6 +31,104 @@ from tenancy.rbac import (
     serialize_role_matrices,
     validate_rbac_overrides_schema,
 )
+
+
+def _build_portal_reset_url(request, uid: str, token: str) -> str:
+    # Prefer upstream proxies (Cloud Run / LB) when present.
+    forwarded_proto = (request.headers.get("X-Forwarded-Proto") or "").strip()
+    scheme = forwarded_proto or ("https" if not settings.DEBUG else request.scheme)
+    host = (request.get_host() or "").split(":", 1)[0].strip()
+    return f"{scheme}://{host}/reset-password?uid={uid}&token={token}"
+
+
+class PasswordResetRequestAPIView(APIView):
+    """Request a password reset token.
+
+    Security:
+    - Always returns 200 to avoid leaking whether a user exists.
+    - Sends reset instructions to the user's email when available.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data.get("email")
+        username = serializer.validated_data.get("username")
+
+        User = get_user_model()
+        queryset = User.objects.all()
+        if username:
+            queryset = queryset.filter(username__iexact=username)
+        if email:
+            queryset = queryset.filter(email__iexact=email)
+
+        user = queryset.only("id", "email").first()
+        reset_url = None
+        if user and getattr(user, "email", ""):
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = _build_portal_reset_url(request, uid, token)
+
+            subject = "Redefinição de senha"
+            message = (
+                "Você solicitou a redefinição de senha.\n\n"
+                f"Acesse o link para definir uma nova senha:\n{reset_url}\n\n"
+                "Se você não solicitou isso, ignore este email."
+            )
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+
+        payload = {"detail": "If the account exists, you will receive reset instructions shortly."}
+        if settings.DEBUG and reset_url:
+            payload["reset_url"] = reset_url
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        uidb64 = serializer.validated_data["uid"]
+        token = serializer.validated_data["token"]
+        new_password = serializer.validated_data["new_password"]
+
+        User = get_user_model()
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except Exception:
+            return Response(
+                {"detail": "Invalid reset credentials."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not default_token_generator.check_token(user, token):
+            return Response(
+                {"detail": "Invalid or expired reset token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as exc:
+            return Response(
+                {"detail": {"new_password": exc.messages}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+        return Response({"detail": "Password updated."}, status=status.HTTP_200_OK)
 
 
 class AuthenticatedUserAPIView(APIView):

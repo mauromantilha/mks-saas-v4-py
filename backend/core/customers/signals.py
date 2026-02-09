@@ -56,28 +56,34 @@ def sync_membership_guardian_groups(sender, instance: CompanyMembership, **_kwar
 
 
 @receiver(post_save, sender=Company)
-def ensure_company_domains(sender, instance: Company, created: bool, **_kwargs):
+def ensure_company_domains(sender, instance: Company, _created: bool, **_kwargs):
     """Ensure a tenant has at least one Domain mapping.
 
     We always create a `*.localhost` domain for local development.
     If `TENANT_BASE_DOMAIN` is configured, we also create `<subdomain>.<base_domain>`.
     """
 
-    if not created:
-        return
-
     base_domain = getattr(settings, "TENANT_BASE_DOMAIN", "").strip().lower()
     local_domain = f"{instance.subdomain}.localhost"
-    Domain.objects.get_or_create(
+    local_primary = not bool(base_domain)
+    local_obj, local_created = Domain.objects.get_or_create(
         domain=local_domain,
-        defaults={"tenant": instance, "is_primary": not bool(base_domain)},
+        defaults={"tenant": instance, "is_primary": local_primary},
     )
+    if not local_created and local_obj.tenant_id == instance.id:
+        if local_obj.is_primary != local_primary:
+            local_obj.is_primary = local_primary
+            local_obj.save(update_fields=["is_primary"])
 
     if not base_domain:
         return
 
     public_domain = f"{instance.subdomain}.{base_domain}"
-    Domain.objects.get_or_create(
+    public_obj, public_created = Domain.objects.get_or_create(
         domain=public_domain,
         defaults={"tenant": instance, "is_primary": True},
     )
+    if not public_created and public_obj.tenant_id == instance.id:
+        if not public_obj.is_primary:
+            public_obj.is_primary = True
+            public_obj.save(update_fields=["is_primary"])

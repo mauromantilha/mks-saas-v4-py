@@ -52,6 +52,9 @@ if not SECRET_KEY:
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
+USE_X_FORWARDED_HOST = env.bool("USE_X_FORWARDED_HOST", default=True)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 DATABASE_ENGINE = env("DATABASE_ENGINE", default="django_tenants.postgresql_backend").strip()
 DJANGO_TENANTS_ENABLED = DATABASE_ENGINE == "django_tenants.postgresql_backend"
 
@@ -358,3 +361,12 @@ VERTEX_AI_TEMPERATURE = env.float("VERTEX_AI_TEMPERATURE", default=0.2)
 
 CNPJ_LOOKUP_ENDPOINT = env("CNPJ_LOOKUP_ENDPOINT", default="").strip()
 CNPJ_LOOKUP_TIMEOUT_SECONDS = env.float("CNPJ_LOOKUP_TIMEOUT_SECONDS", default=8.0)
+
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = env(
+    "DEFAULT_FROM_EMAIL",
+    default=f"no-reply@{TENANT_BASE_DOMAIN or 'localhost'}",
+)

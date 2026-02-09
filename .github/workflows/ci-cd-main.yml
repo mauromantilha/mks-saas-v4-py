@@ -160,7 +160,7 @@ jobs:
           # When migrating an existing shared-schema database into django-tenants,
           # tenant rows may exist before their schemas exist. We create missing schemas
           # before running tenant migrations to avoid `no schema has been selected` errors.
-          MIGRATE_CMD="python manage.py migrate_schemas --shared --noinput && python manage.py create_missing_schemas && python manage.py migrate_schemas --noinput"
+          MIGRATE_CMD="python manage.py migrate_schemas --shared --noinput && python manage.py create_missing_schemas && python manage.py migrate_schemas --noinput && python manage.py ensure_tenant_domains"
 
           if gcloud run jobs describe "${CLOUD_RUN_MIGRATION_JOB}" --region "${REGION}" >/dev/null 2>&1; then
             gcloud run jobs update "${CLOUD_RUN_MIGRATION_JOB}" \

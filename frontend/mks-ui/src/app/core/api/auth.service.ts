@@ -5,6 +5,8 @@ import { Observable } from "rxjs";
 import { environment } from "../../../environments/environment";
 import {
   AuthenticatedUserResponse,
+  PasswordResetConfirmResponse,
+  PasswordResetRequestResponse,
   TenantCapabilitiesResponse,
   TenantMeResponse,
   TokenResponse,
@@ -24,6 +26,12 @@ export class AuthService {
   private readonly meUrl = environment.apiBaseUrl
     ? `${environment.apiBaseUrl}/api/auth/me/`
     : "/api/auth/me/";
+  private readonly passwordResetRequestUrl = environment.apiBaseUrl
+    ? `${environment.apiBaseUrl}/api/auth/password-reset/request/`
+    : "/api/auth/password-reset/request/";
+  private readonly passwordResetConfirmUrl = environment.apiBaseUrl
+    ? `${environment.apiBaseUrl}/api/auth/password-reset/confirm/`
+    : "/api/auth/password-reset/confirm/";
 
   constructor(private readonly http: HttpClient) {}
 
@@ -50,6 +58,28 @@ export class AuthService {
         Authorization: `Token ${token}`,
       }),
     });
+  }
+
+  requestPasswordReset(payload: {
+    email?: string;
+    username?: string;
+  }): Observable<PasswordResetRequestResponse> {
+    return this.http.post<PasswordResetRequestResponse>(
+      this.passwordResetRequestUrl,
+      payload
+    );
+  }
+
+  confirmPasswordReset(payload: {
+    uid: string;
+    token: string;
+    new_password: string;
+    new_password_confirm: string;
+  }): Observable<PasswordResetConfirmResponse> {
+    return this.http.post<PasswordResetConfirmResponse>(
+      this.passwordResetConfirmUrl,
+      payload
+    );
   }
 
   private buildHeaders(tenantCode: string, token: string): HttpHeaders {

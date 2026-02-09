@@ -2,7 +2,9 @@ import { Routes } from "@angular/router";
 
 import { authGuard } from "./core/auth/auth.guard";
 import { portalGuard } from "./core/portal/portal.guard";
+import { ForgotPasswordPageComponent } from "./features/auth/forgot-password-page.component";
 import { LoginPageComponent } from "./features/auth/login-page.component";
+import { ResetPasswordPageComponent } from "./features/auth/reset-password-page.component";
 import { PlatformTenantsPageComponent } from "./features/platform/platform-tenants-page.component";
 import { SalesFlowPageComponent } from "./features/sales/sales-flow-page.component";
 import { SectionPlaceholderPageComponent } from "./features/shared/section-placeholder-page.component";
@@ -18,6 +20,8 @@ import { TenantRbacPageComponent } from "./features/tenant-settings/tenant-rbac-
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "login" },
   { path: "login", component: LoginPageComponent },
+  { path: "forgot-password", component: ForgotPasswordPageComponent },
+  { path: "reset-password", component: ResetPasswordPageComponent },
   {
     path: "sales/flow",
     component: SalesFlowPageComponent,

@@ -28,6 +28,8 @@ from control_plane.views import (
 from customers.views import (
     ActiveTenantUserAPIView,
     AuthenticatedUserAPIView,
+    PasswordResetConfirmAPIView,
+    PasswordResetRequestAPIView,
     TenantCapabilitiesAPIView,
     TenantMemberDetailAPIView,
     TenantMembersAPIView,
@@ -112,6 +114,16 @@ urlpatterns = [
     ),
     path("api/auth/token/", obtain_auth_token, name="api-token-auth"),
     path("api/auth/me/", AuthenticatedUserAPIView.as_view(), name="auth-me"),
+    path(
+        "api/auth/password-reset/request/",
+        PasswordResetRequestAPIView.as_view(),
+        name="auth-password-reset-request",
+    ),
+    path(
+        "api/auth/password-reset/confirm/",
+        PasswordResetConfirmAPIView.as_view(),
+        name="auth-password-reset-confirm",
+    ),
     path(
         "api/auth/tenant-me/",
         ActiveTenantUserAPIView.as_view(),

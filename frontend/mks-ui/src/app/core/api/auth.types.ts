@@ -43,3 +43,12 @@ export interface AuthenticatedUserResponse {
   platform_admin: boolean;
   memberships: AuthenticatedMembership[];
 }
+
+export interface PasswordResetRequestResponse {
+  detail: string;
+  reset_url?: string;
+}
+
+export interface PasswordResetConfirmResponse {
+  detail: string;
+}
