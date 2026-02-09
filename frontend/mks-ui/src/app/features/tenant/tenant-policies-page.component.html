@@ -1,0 +1,765 @@
+<section class="tenant-wrap">
+  <header class="page-header">
+    <div>
+      <p class="badge">Operacional</p>
+      <h1>Apólices</h1>
+      <p class="subtitle">
+        Núcleo operacional: vigência, status, itens segurados, coberturas, documentos e endossos.
+      </p>
+    </div>
+    <button type="button" (click)="loadPolicies()" [disabled]="loading()">
+      Atualizar
+    </button>
+  </header>
+
+  <p *ngIf="loading()" class="muted">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+
+  <article class="card">
+    <h2>Filtros</h2>
+    <div class="form-grid">
+      <label>
+        Busca (número / segurado)
+        <input
+          type="text"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          [disabled]="loading()"
+        />
+      </label>
+      <label>
+        Status
+        <select
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event)"
+          [disabled]="loading()"
+        >
+          <option value="">Todos</option>
+          <option value="DRAFT">Draft</option>
+          <option value="UNDERWRITING">Underwriting</option>
+          <option value="ISSUED">Issued</option>
+          <option value="ACTIVE">Active</option>
+          <option value="EXPIRED">Expired</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </label>
+      <div class="actions filter-actions">
+        <button type="button" (click)="loadPolicies()" [disabled]="loading()">
+          Aplicar
+        </button>
+      </div>
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>Nova Apólice</h2>
+    <p class="muted">
+      Restrito a <strong>MANAGER</strong> e <strong>OWNER</strong>. O segurado vem do módulo
+      Clientes.
+    </p>
+
+    <div class="form-grid">
+      <label>
+        Cliente/Segurado
+        <select
+          [ngModel]="insuredPartyId()"
+          (ngModelChange)="insuredPartyId.set(toNumber($event))"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let c of customers()" [value]="c.id">
+            {{ c.name }} ({{ c.cnpj || c.cpf || c.document || "sem doc" }})
+          </option>
+        </select>
+      </label>
+      <label>
+        Seguradora
+        <select
+          [ngModel]="insurerId()"
+          (ngModelChange)="onInsurerChange(toNumber($event))"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let insurer of insurers()" [value]="insurer.id">
+            {{ insurer.name }}
+          </option>
+        </select>
+      </label>
+      <label>
+        Produto/Plano
+        <select
+          [ngModel]="productId()"
+          (ngModelChange)="onProductChange(toNumber($event))"
+          [disabled]="loading() || !canWrite() || !insurerId()"
+        >
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let product of products()" [value]="product.id">
+            {{ product.name }} ({{ product.line_of_business }})
+          </option>
+        </select>
+      </label>
+
+      <label>
+        Número da apólice (opcional)
+        <input
+          type="text"
+          [ngModel]="policyNumber()"
+          (ngModelChange)="policyNumber.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Referência corretor
+        <input
+          type="text"
+          [ngModel]="brokerReference()"
+          (ngModelChange)="brokerReference.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Início vigência
+        <input
+          type="date"
+          [ngModel]="startDate()"
+          (ngModelChange)="startDate.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Fim vigência
+        <input
+          type="date"
+          [ngModel]="endDate()"
+          (ngModelChange)="endDate.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Data de emissão (opcional)
+        <input
+          type="date"
+          [ngModel]="issueDate()"
+          (ngModelChange)="issueDate.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Moeda
+        <input
+          type="text"
+          [ngModel]="currency()"
+          (ngModelChange)="currency.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prêmio total
+        <input
+          type="text"
+          [ngModel]="premiumTotal()"
+          (ngModelChange)="premiumTotal.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Impostos / IOF
+        <input
+          type="text"
+          [ngModel]="taxTotal()"
+          (ngModelChange)="taxTotal.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Comissão (opcional)
+        <input
+          type="text"
+          [ngModel]="commissionTotal()"
+          (ngModelChange)="commissionTotal.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="span-2">
+        Notas
+        <textarea
+          rows="3"
+          [ngModel]="notes()"
+          (ngModelChange)="notes.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button type="button" (click)="createPolicy()" [disabled]="loading() || !canWrite()">
+        Criar apólice (DRAFT)
+      </button>
+    </div>
+
+    <div class="customer-preview" *ngIf="selectedCustomer() as customer">
+      <h3>Segurado selecionado</h3>
+      <div class="preview-grid">
+        <p><strong>Nome:</strong> {{ customer.name }}</p>
+        <p><strong>Tipo:</strong> {{ customer.customer_type }}</p>
+        <p>
+          <strong>Documento:</strong>
+          {{ customer.cnpj || customer.cpf || customer.document || "-" }}
+        </p>
+        <p><strong>Email:</strong> {{ customer.email || "-" }}</p>
+        <p><strong>Telefone:</strong> {{ customer.phone || customer.whatsapp || "-" }}</p>
+        <p>
+          <strong>Cidade/UF:</strong>
+          {{ customer.city || "-" }}/{{ customer.state || "-" }}
+        </p>
+      </div>
+    </div>
+  </article>
+
+  <article class="card" *ngIf="editing() as policy">
+    <h2>Editando: {{ policy.policy_number || ("#" + policy.id) }}</h2>
+    <p class="muted">
+      Segurado: <strong>{{ policy.insured_party_label }}</strong> |
+      Seguradora: <strong>{{ policy.insurer.name }}</strong> |
+      Produto: <strong>{{ policy.product.name }}</strong>
+    </p>
+
+    <div class="form-grid">
+      <label>
+        Número da apólice
+        <input
+          type="text"
+          [ngModel]="editPolicyNumber()"
+          (ngModelChange)="editPolicyNumber.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Referência corretor
+        <input
+          type="text"
+          [ngModel]="editBrokerReference()"
+          (ngModelChange)="editBrokerReference.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Início vigência
+        <input
+          type="date"
+          [ngModel]="editStartDate()"
+          (ngModelChange)="editStartDate.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Fim vigência
+        <input
+          type="date"
+          [ngModel]="editEndDate()"
+          (ngModelChange)="editEndDate.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Data de emissão
+        <input
+          type="date"
+          [ngModel]="editIssueDate()"
+          (ngModelChange)="editIssueDate.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Moeda
+        <input
+          type="text"
+          [ngModel]="editCurrency()"
+          (ngModelChange)="editCurrency.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prêmio total
+        <input
+          type="text"
+          [ngModel]="editPremiumTotal()"
+          (ngModelChange)="editPremiumTotal.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Impostos / IOF
+        <input
+          type="text"
+          [ngModel]="editTaxTotal()"
+          (ngModelChange)="editTaxTotal.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Comissão (opcional)
+        <input
+          type="text"
+          [ngModel]="editCommissionTotal()"
+          (ngModelChange)="editCommissionTotal.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="span-2">
+        Notas
+        <textarea
+          rows="3"
+          [ngModel]="editNotes()"
+          (ngModelChange)="editNotes.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
+        Salvar alterações
+      </button>
+      <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
+        Fechar
+      </button>
+    </div>
+
+    <div class="inline-card">
+      <h3>Status</h3>
+      <div class="form-grid">
+        <label>
+          Novo status
+          <select
+            [ngModel]="transitionStatus()"
+            (ngModelChange)="transitionStatus.set($event)"
+            [disabled]="loading() || !canWrite()"
+          >
+            <option value="UNDERWRITING">UNDERWRITING</option>
+            <option value="ISSUED">ISSUED</option>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="EXPIRED">EXPIRED</option>
+            <option value="CANCELLED">CANCELLED</option>
+          </select>
+        </label>
+        <label>
+          Motivo (opcional)
+          <input
+            type="text"
+            [ngModel]="transitionReason()"
+            (ngModelChange)="transitionReason.set($event)"
+            [disabled]="loading() || !canWrite()"
+          />
+        </label>
+        <div class="actions filter-actions">
+          <button type="button" (click)="transition()" [disabled]="loading() || !canWrite()">
+            Aplicar
+          </button>
+        </div>
+      </div>
+      <p class="muted">
+        Transições mínimas: DRAFT → UNDERWRITING → ISSUED → ACTIVE → EXPIRED. CANCELLED permitido
+        em DRAFT/UNDERWRITING/ISSUED/ACTIVE.
+      </p>
+    </div>
+  </article>
+
+  <article class="card" *ngIf="editing() as policy">
+    <h2>Itens Segurados</h2>
+
+    <div class="form-grid">
+      <label>
+        Tipo
+        <select
+          [ngModel]="itemType()"
+          (ngModelChange)="itemType.set($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="AUTO">AUTO</option>
+          <option value="PROPERTY">PROPERTY</option>
+          <option value="LIFE">LIFE</option>
+          <option value="OTHER">OTHER</option>
+        </select>
+      </label>
+      <label>
+        Descrição
+        <input
+          type="text"
+          [ngModel]="itemDescription()"
+          (ngModelChange)="itemDescription.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Soma segurada
+        <input
+          type="text"
+          [ngModel]="itemSumInsured()"
+          (ngModelChange)="itemSumInsured.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="span-2">
+        Atributos (JSON)
+        <textarea
+          rows="3"
+          [ngModel]="itemAttributesJson()"
+          (ngModelChange)="itemAttributesJson.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button type="button" (click)="addItem()" [disabled]="loading() || !canWrite()">
+        Adicionar item
+      </button>
+    </div>
+
+    <table class="table" *ngIf="items().length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Tipo</th>
+          <th>Descrição</th>
+          <th>Soma segurada</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items()">
+          <td>{{ item.id }}</td>
+          <td>{{ item.item_type }}</td>
+          <td>{{ item.description || "-" }}</td>
+          <td>{{ item.sum_insured }}</td>
+          <td class="actions compact">
+            <button type="button" class="danger" (click)="deleteItem(item)" [disabled]="loading() || !canWrite()">
+              Remover
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p *ngIf="items().length === 0" class="muted">Nenhum item cadastrado.</p>
+  </article>
+
+  <article class="card" *ngIf="editing() as policy">
+    <h2>Coberturas Contratadas</h2>
+
+    <div class="form-grid">
+      <label>
+        Cobertura do produto
+        <select
+          [ngModel]="coverageId()"
+          (ngModelChange)="coverageId.set(toNumber($event))"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let cov of productCoverages()" [value]="cov.id">
+            {{ cov.code }} - {{ cov.name }}
+          </option>
+        </select>
+      </label>
+      <label>
+        Limite
+        <input
+          type="text"
+          [ngModel]="coverageLimit()"
+          (ngModelChange)="coverageLimit.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Franquia
+        <input
+          type="text"
+          [ngModel]="coverageDeductible()"
+          (ngModelChange)="coverageDeductible.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prêmio
+        <input
+          type="text"
+          [ngModel]="coveragePremium()"
+          (ngModelChange)="coveragePremium.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="checkbox">
+        <input
+          type="checkbox"
+          [ngModel]="coverageEnabled()"
+          (ngModelChange)="coverageEnabled.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+        Ativa
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button type="button" (click)="addCoverage()" [disabled]="loading() || !canWrite()">
+        Adicionar cobertura
+      </button>
+    </div>
+
+    <table class="table" *ngIf="coverages().length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Cobertura</th>
+          <th>Limite</th>
+          <th>Franquia</th>
+          <th>Prêmio</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let cov of coverages()">
+          <td>{{ cov.id }}</td>
+          <td>{{ cov.product_coverage.code }} - {{ cov.product_coverage.name }}</td>
+          <td>{{ cov.limit_amount }}</td>
+          <td>{{ cov.deductible_amount }}</td>
+          <td>{{ cov.premium_amount }}</td>
+          <td class="actions compact">
+            <button type="button" class="danger" (click)="deleteCoverage(cov)" [disabled]="loading() || !canWrite()">
+              Remover
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p *ngIf="coverages().length === 0" class="muted">Nenhuma cobertura cadastrada.</p>
+  </article>
+
+  <article class="card" *ngIf="editing() as policy">
+    <h2>Checklist de Documentos</h2>
+
+    <div class="form-grid">
+      <label>
+        Código (ex: RG, CNH)
+        <input
+          type="text"
+          [ngModel]="docCode()"
+          (ngModelChange)="docCode.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Status
+        <select
+          [ngModel]="docStatus()"
+          (ngModelChange)="docStatus.set($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="PENDING">PENDING</option>
+          <option value="RECEIVED">RECEIVED</option>
+          <option value="VALIDATED">VALIDATED</option>
+          <option value="REJECTED">REJECTED</option>
+        </select>
+      </label>
+      <label class="checkbox">
+        <input
+          type="checkbox"
+          [ngModel]="docRequired()"
+          (ngModelChange)="docRequired.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+        Obrigatório
+      </label>
+      <label>
+        Document ID (módulo documentos)
+        <input
+          type="text"
+          [ngModel]="docDocumentId()"
+          (ngModelChange)="docDocumentId.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button type="button" (click)="addDocRequirement()" [disabled]="loading() || !canWrite()">
+        Adicionar documento
+      </button>
+    </div>
+
+    <table class="table" *ngIf="docRequirements().length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Código</th>
+          <th>Status</th>
+          <th>Obrigatório</th>
+          <th>Document ID</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let doc of docRequirements()">
+          <td>{{ doc.id }}</td>
+          <td>{{ doc.requirement_code }}</td>
+          <td>{{ doc.status }}</td>
+          <td>{{ doc.required ? "Sim" : "Não" }}</td>
+          <td>{{ doc.document_id || "-" }}</td>
+          <td class="actions compact">
+            <button type="button" class="danger" (click)="deleteDocRequirement(doc)" [disabled]="loading() || !canWrite()">
+              Remover
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p *ngIf="docRequirements().length === 0" class="muted">Nenhum documento cadastrado.</p>
+  </article>
+
+  <article class="card" *ngIf="editing() as policy">
+    <h2>Endossos</h2>
+
+    <div class="form-grid">
+      <label>
+        Número (opcional)
+        <input
+          type="text"
+          [ngModel]="endorsementNumber()"
+          (ngModelChange)="endorsementNumber.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Tipo
+        <select
+          [ngModel]="endorsementType()"
+          (ngModelChange)="endorsementType.set($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="COVERAGE_CHANGE">COVERAGE_CHANGE</option>
+          <option value="INSURED_OBJECT_CHANGE">INSURED_OBJECT_CHANGE</option>
+          <option value="FINANCIAL_CHANGE">FINANCIAL_CHANGE</option>
+          <option value="CANCELLATION_LIKE">CANCELLATION_LIKE</option>
+        </select>
+      </label>
+      <label>
+        Status
+        <select
+          [ngModel]="endorsementStatus()"
+          (ngModelChange)="endorsementStatus.set($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="DRAFT">DRAFT</option>
+          <option value="ISSUED">ISSUED</option>
+          <option value="APPLIED">APPLIED</option>
+          <option value="CANCELLED">CANCELLED</option>
+        </select>
+      </label>
+      <label>
+        Vigência
+        <input
+          type="date"
+          [ngModel]="endorsementEffectiveDate()"
+          (ngModelChange)="endorsementEffectiveDate.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="span-2">
+        Payload (JSON)
+        <textarea
+          rows="3"
+          [ngModel]="endorsementPayloadJson()"
+          (ngModelChange)="endorsementPayloadJson.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button type="button" (click)="addEndorsement()" [disabled]="loading() || !canWrite()">
+        Criar endosso
+      </button>
+    </div>
+
+    <table class="table" *ngIf="endorsements().length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Número</th>
+          <th>Tipo</th>
+          <th>Status</th>
+          <th>Vigência</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let e of endorsements()">
+          <td>{{ e.id }}</td>
+          <td>{{ e.endorsement_number || "-" }}</td>
+          <td>{{ e.type }}</td>
+          <td>{{ e.status }}</td>
+          <td>{{ e.effective_date }}</td>
+          <td class="actions compact">
+            <button type="button" class="danger" (click)="deleteEndorsement(e)" [disabled]="loading() || !canWrite()">
+              Remover
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p *ngIf="endorsements().length === 0" class="muted">Nenhum endosso cadastrado.</p>
+  </article>
+
+  <article class="card">
+    <h2>Lista de Apólices</h2>
+
+    <p *ngIf="policies().length === 0" class="muted">Nenhuma apólice cadastrada ainda.</p>
+
+    <table class="table" *ngIf="policies().length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Número</th>
+          <th>Segurado</th>
+          <th>Seguradora</th>
+          <th>Status</th>
+          <th>Vigência</th>
+          <th>Prêmio</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of policies()">
+          <td>{{ p.id }}</td>
+          <td>{{ p.policy_number || "-" }}</td>
+          <td>{{ p.insured_party_label || ("#" + p.insured_party_id) }}</td>
+          <td>{{ p.insurer.name }}</td>
+          <td>
+            <span class="pill" [class.cancelled]="p.status === 'CANCELLED'" [class.expired]="p.status === 'EXPIRED'">
+              {{ p.status }}
+            </span>
+          </td>
+          <td>{{ p.start_date }} → {{ p.end_date }}</td>
+          <td>{{ p.premium_total }}</td>
+          <td class="actions compact">
+            <button type="button" (click)="startEdit(p)" [disabled]="loading()">
+              Abrir
+            </button>
+            <button
+              type="button"
+              class="danger"
+              (click)="deletePolicy(p)"
+              [disabled]="loading() || !canWrite()"
+            >
+              Excluir
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+</section>

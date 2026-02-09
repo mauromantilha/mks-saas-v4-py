@@ -78,6 +78,11 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
     "insurers": build_role_matrix(),
     "insurance_products": build_role_matrix(),
     "product_coverages": build_role_matrix(),
+    "policies": build_role_matrix(),
+    "policy_items": build_role_matrix(),
+    "policy_coverages": build_role_matrix(),
+    "policy_document_requirements": build_role_matrix(),
+    "endorsements": build_role_matrix(),
 }
 
 DEFAULT_TENANT_ROLE_MATRIX = build_role_matrix()

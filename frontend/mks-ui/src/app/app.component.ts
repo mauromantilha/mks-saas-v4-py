@@ -47,6 +47,7 @@ export class AppComponent {
     { label: "Oportunidades", path: "/tenant/opportunities", accent: "#10b981" },
     { label: "Atividades", path: "/tenant/activities", accent: "#a855f7" },
     { label: "Seguradoras", path: "/tenant/insurers", accent: "#6366f1" },
+    { label: "Apólices", path: "/tenant/policies", accent: "#0f172a" },
     { label: "Pedidos de Emissão", path: "/tenant/policy-requests", accent: "#22c55e" },
     { label: "Propostas", path: "/tenant/proposal-options", accent: "#06b6d4" },
     { label: "Membros", path: "/tenant/members", accent: "#64748b" },

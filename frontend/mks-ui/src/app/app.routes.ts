@@ -14,6 +14,7 @@ import { TenantDashboardPageComponent } from "./features/tenant/tenant-dashboard
 import { TenantInsurersPageComponent } from "./features/tenant/tenant-insurers-page.component";
 import { TenantLeadsPageComponent } from "./features/tenant/tenant-leads-page.component";
 import { TenantOpportunitiesPageComponent } from "./features/tenant/tenant-opportunities-page.component";
+import { TenantPoliciesPageComponent } from "./features/tenant/tenant-policies-page.component";
 import { TenantMembersPageComponent } from "./features/tenant-settings/tenant-members-page.component";
 import { TenantLedgerPageComponent } from "./features/tenant-settings/tenant-ledger-page.component";
 import { TenantRbacPageComponent } from "./features/tenant-settings/tenant-rbac-page.component";
@@ -93,6 +94,17 @@ export const routes: Routes = [
       title: "Seguradoras",
       description:
         "Cadastro e gestão de seguradoras (insurers) com regras de integração por tenant.",
+    },
+  },
+  {
+    path: "tenant/policies",
+    component: TenantPoliciesPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Apólices",
+      description:
+        "Gestão operacional de apólices, itens segurados, coberturas, documentos e endossos.",
     },
   },
   {
