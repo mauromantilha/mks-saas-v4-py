@@ -1,11 +1,29 @@
+import re
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db import connection
+
+from django_tenants.models import DomainMixin, TenantMixin
 
 from tenancy.rbac import validate_rbac_overrides_schema
 
 
-class Company(models.Model):
+def _normalize_schema_name(value: str) -> str:
+    """Normalize tenant code into a safe, deterministic postgres schema name."""
+
+    normalized = (value or "").strip().lower()
+    normalized = re.sub(r"[^a-z0-9_-]+", "-", normalized).strip("-")
+    return normalized[:63] if normalized else normalized
+
+
+class Company(TenantMixin):
+    # Keep tenant schema creation enabled by default. For production, you may want
+    # to provision asynchronously by setting `auto_create_schema = False` and
+    # calling `company.create_schema()` from a job.
+    auto_create_schema = True
+
     name = models.CharField(max_length=150)
     tenant_code = models.SlugField(
         max_length=63,
@@ -40,6 +58,12 @@ class Company(models.Model):
 
     def clean(self):
         super().clean()
+
+        if not self.schema_name:
+            self.schema_name = _normalize_schema_name(self.tenant_code)
+        if self.schema_name == "public":
+            raise ValidationError({"tenant_code": "tenant_code cannot map to the public schema."})
+
         try:
             validate_rbac_overrides_schema(self.rbac_overrides)
         except ValidationError as exc:
@@ -48,6 +72,31 @@ class Company(models.Model):
             except (AttributeError, TypeError):
                 detail = exc.messages
             raise ValidationError(detail) from exc
+
+    def save(self, *args, **kwargs):
+        # Ensure schema_name is always set (TenantMixin requires it).
+        if not getattr(self, "schema_name", ""):
+            self.schema_name = _normalize_schema_name(self.tenant_code)
+
+        # When django-tenants is disabled (sqlite/legacy), we must bypass TenantMixin.save,
+        # because it queries postgres catalogs to create/check schemas.
+        if not getattr(settings, "DJANGO_TENANTS_ENABLED", False) or connection.vendor != "postgresql":
+            return models.Model.save(self, *args, **kwargs)
+
+        return super().save(*args, **kwargs)
+
+
+class Domain(DomainMixin):
+    """Tenant domain mapping for django-tenants.
+
+    Examples:
+    - acme.mksbrasil.com
+    - acme.localhost (dev)
+    """
+
+    class Meta:
+        verbose_name = "Tenant Domain"
+        verbose_name_plural = "Tenant Domains"
 
 
 class CompanyMembership(models.Model):

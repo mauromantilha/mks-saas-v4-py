@@ -33,7 +33,8 @@ def default_contract_values() -> dict:
 def default_provisioning_values(company: Company) -> dict:
     tenant_slug = company.tenant_code.replace("-", "_")
     return {
-        "isolation_model": TenantProvisioning.ISOLATION_DATABASE_PER_TENANT,
+        # Current architecture: shared DB, isolated schemas via django-tenants.
+        "isolation_model": TenantProvisioning.ISOLATION_SCHEMA_PER_TENANT,
         "status": TenantProvisioning.STATUS_PENDING,
         "database_alias": company.tenant_code,
         "database_name": f"crm_{tenant_slug}",

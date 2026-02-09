@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from customers.models import Company, CompanyMembership
+from customers.models import Company, CompanyMembership, Domain
 
 
 @admin.register(Company)
@@ -51,3 +51,10 @@ class CompanyMembershipAdmin(admin.ModelAdmin):
     list_display = ("company", "user", "role", "is_active", "created_at")
     list_filter = ("role", "is_active", "company")
     search_fields = ("company__name", "user__username", "user__email")
+
+
+@admin.register(Domain)
+class DomainAdmin(admin.ModelAdmin):
+    list_display = ("domain", "tenant", "is_primary")
+    list_filter = ("is_primary",)
+    search_fields = ("domain", "tenant__tenant_code", "tenant__subdomain")

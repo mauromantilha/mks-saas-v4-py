@@ -52,46 +52,113 @@ if not SECRET_KEY:
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
-INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    "corsheaders",
-    "rest_framework",
-    "rest_framework.authtoken",
-    "tenancy",
-    "control_plane",
-    "customers",
-    "operational",
-    "ledger",
-]
+DATABASE_ENGINE = env("DATABASE_ENGINE", default="django_tenants.postgresql_backend").strip()
+DJANGO_TENANTS_ENABLED = DATABASE_ENGINE == "django_tenants.postgresql_backend"
 
-if importlib.util.find_spec("guardian") is not None:
-    INSTALLED_APPS.append("guardian")
-    AUTHENTICATION_BACKENDS = (
-        "django.contrib.auth.backends.ModelBackend",
-        "guardian.backends.ObjectPermissionBackend",
-    )
-    ANONYMOUS_USER_ID = -1
+# django-tenants: tenant metadata is stored in the public schema.
+TENANT_MODEL = "customers.Company"
+TENANT_DOMAIN_MODEL = "customers.Domain"
+SHOW_PUBLIC_IF_NO_TENANT_FOUND = env.bool("SHOW_PUBLIC_IF_NO_TENANT_FOUND", default=True)
+
+guardian_available = importlib.util.find_spec("guardian") is not None
+if DJANGO_TENANTS_ENABLED:
+    SHARED_APPS = [
+        "django_tenants",
+        "django.contrib.admin",
+        "django.contrib.auth",
+        "django.contrib.contenttypes",
+        "django.contrib.sessions",
+        "django.contrib.messages",
+        "django.contrib.staticfiles",
+        "corsheaders",
+        "rest_framework",
+        "rest_framework.authtoken",
+        "tenancy.apps.TenancyConfig",
+        "customers.apps.CustomersConfig",
+        "control_plane.apps.ControlPlaneConfig",
+    ]
+
+    TENANT_APPS = [
+        # NOTE: We keep `auth` and `contenttypes` in the public schema to share users/tokens
+        # across all tenants and the control plane. Tenant schemas will access those tables
+        # via `search_path` (tenant schema + public).
+        "tenancy.apps.TenancyConfig",
+        "operational.apps.OperationalConfig",
+        "ledger.apps.LedgerConfig",
+    ]
+
+    if guardian_available:
+        # Guardian tables must exist in tenant schemas. We also keep them in public
+        # to avoid backend permission checks crashing on the control plane.
+        SHARED_APPS.append("guardian")
+        TENANT_APPS.append("guardian")
+        AUTHENTICATION_BACKENDS = (
+            "django.contrib.auth.backends.ModelBackend",
+            "guardian.backends.ObjectPermissionBackend",
+        )
+        ANONYMOUS_USER_ID = -1
+    else:
+        AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
+
+    INSTALLED_APPS = SHARED_APPS + [app for app in TENANT_APPS if app not in SHARED_APPS]
+
+    DATABASE_ROUTERS = ("django_tenants.routers.TenantSyncRouter",)
+    ROOT_URLCONF = "mks_backend.urls_tenant"
+    PUBLIC_SCHEMA_URLCONF = "mks_backend.urls_public"
+
+    MIDDLEWARE = [
+        # Must be at the top: selects schema based on host / header fallback.
+        "tenancy.middleware.MksTenantMainMiddleware",
+        "django.middleware.security.SecurityMiddleware",
+        "corsheaders.middleware.CorsMiddleware",
+        "django.contrib.sessions.middleware.SessionMiddleware",
+        "django.middleware.common.CommonMiddleware",
+        "tenancy.middleware.TenantContextMiddleware",
+        "django.middleware.csrf.CsrfViewMiddleware",
+        "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "django.contrib.messages.middleware.MessageMiddleware",
+        "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    ]
 else:
-    AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
+    # Legacy mode (sqlite, etc.) - no schema-per-tenant.
+    INSTALLED_APPS = [
+        "django.contrib.admin",
+        "django.contrib.auth",
+        "django.contrib.contenttypes",
+        "django.contrib.sessions",
+        "django.contrib.messages",
+        "django.contrib.staticfiles",
+        "corsheaders",
+        "rest_framework",
+        "rest_framework.authtoken",
+        "tenancy.apps.TenancyConfig",
+        "control_plane.apps.ControlPlaneConfig",
+        "customers.apps.CustomersConfig",
+        "operational.apps.OperationalConfig",
+        "ledger.apps.LedgerConfig",
+    ]
+    if guardian_available:
+        INSTALLED_APPS.append("guardian")
+        AUTHENTICATION_BACKENDS = (
+            "django.contrib.auth.backends.ModelBackend",
+            "guardian.backends.ObjectPermissionBackend",
+        )
+        ANONYMOUS_USER_ID = -1
+    else:
+        AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
 
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "tenancy.middleware.TenantContextMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-]
-
-ROOT_URLCONF = "mks_backend.urls"
+    MIDDLEWARE = [
+        "django.middleware.security.SecurityMiddleware",
+        "corsheaders.middleware.CorsMiddleware",
+        "django.contrib.sessions.middleware.SessionMiddleware",
+        "django.middleware.common.CommonMiddleware",
+        "tenancy.middleware.TenantContextMiddleware",
+        "django.middleware.csrf.CsrfViewMiddleware",
+        "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "django.contrib.messages.middleware.MessageMiddleware",
+        "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    ]
+    ROOT_URLCONF = "mks_backend.urls"
 
 TEMPLATES = [
     {
@@ -127,7 +194,7 @@ database_host = (
 )
 database_port = "" if cloud_sql_instance else env("DATABASE_PORT", default="5432")
 
-database_engine = env("DATABASE_ENGINE", default="django.db.backends.postgresql")
+database_engine = DATABASE_ENGINE
 if database_engine == "django.db.backends.sqlite3":
     DATABASES = {
         "default": {

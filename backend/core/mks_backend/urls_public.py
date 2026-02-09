@@ -1,7 +1,47 @@
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path
+from rest_framework.authtoken.views import obtain_auth_token
+
+from control_plane.views import (
+    ControlPlaneTenantDetailAPIView,
+    ControlPlaneTenantListCreateAPIView,
+    ControlPlaneTenantProvisionExecuteAPIView,
+    ControlPlaneTenantProvisionAPIView,
+)
+from customers.views import AuthenticatedUserAPIView
+
+
+def healthz(_request):
+    return JsonResponse({"status": "ok"})
+
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # Aqui entrarão as rotas da Landing Page e Login Global
+    path("admin/", admin.site.urls),
+    path("healthz/", healthz, name="healthz"),
+    # Control plane APIs (public schema only).
+    path(
+        "platform/api/tenants/",
+        ControlPlaneTenantListCreateAPIView.as_view(),
+        name="platform-tenants-list",
+    ),
+    path(
+        "platform/api/tenants/<int:company_id>/",
+        ControlPlaneTenantDetailAPIView.as_view(),
+        name="platform-tenants-detail",
+    ),
+    path(
+        "platform/api/tenants/<int:company_id>/provision/",
+        ControlPlaneTenantProvisionAPIView.as_view(),
+        name="platform-tenants-provision",
+    ),
+    path(
+        "platform/api/tenants/<int:company_id>/provision/execute/",
+        ControlPlaneTenantProvisionExecuteAPIView.as_view(),
+        name="platform-tenants-provision-execute",
+    ),
+    # Auth endpoints (shared auth/public schema).
+    path("api/auth/token/", obtain_auth_token, name="api-token-auth"),
+    path("api/auth/me/", AuthenticatedUserAPIView.as_view(), name="auth-me"),
 ]
+

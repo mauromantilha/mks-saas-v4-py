@@ -49,11 +49,16 @@ class TenantContract(models.Model):
 
 
 class TenantProvisioning(models.Model):
+    # Current target architecture (django-tenants): single Postgres database, one schema per tenant.
+    ISOLATION_SCHEMA_PER_TENANT = "SCHEMA_PER_TENANT"
+
+    # Legacy value kept for backward compatibility with earlier iterations.
     ISOLATION_SHARED_SCHEMA = "SHARED_SCHEMA"
     ISOLATION_DATABASE_PER_TENANT = "DATABASE_PER_TENANT"
     ISOLATION_CHOICES = [
-        (ISOLATION_SHARED_SCHEMA, "Shared DB / Shared Schema"),
+        (ISOLATION_SCHEMA_PER_TENANT, "Shared DB / Schema per Tenant"),
         (ISOLATION_DATABASE_PER_TENANT, "Database per Tenant"),
+        (ISOLATION_SHARED_SCHEMA, "Shared DB / Shared Schema (legacy)"),
     ]
 
     STATUS_PENDING = "PENDING"
@@ -75,7 +80,7 @@ class TenantProvisioning(models.Model):
     isolation_model = models.CharField(
         max_length=30,
         choices=ISOLATION_CHOICES,
-        default=ISOLATION_DATABASE_PER_TENANT,
+        default=ISOLATION_SCHEMA_PER_TENANT,
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     database_alias = models.SlugField(max_length=63, unique=True)

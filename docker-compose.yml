@@ -19,13 +19,12 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: backend/core/Dockerfile
+      context: ./backend/core
+      dockerfile: Dockerfile
     container_name: mks_backend
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend/core:/app
-      - ./requirements:/app/requirements
     ports:
       - "8000:8000"
     depends_on:

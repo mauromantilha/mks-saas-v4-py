@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import importlib.util
 
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from customers.models import CompanyMembership
+from customers.models import Company, CompanyMembership, Domain
 
 
 def _guardian_enabled() -> bool:
@@ -53,3 +54,30 @@ def sync_membership_guardian_groups(sender, instance: CompanyMembership, **_kwar
         if target_group is not None:
             user.groups.add(target_group)
 
+
+@receiver(post_save, sender=Company)
+def ensure_company_domains(sender, instance: Company, created: bool, **_kwargs):
+    """Ensure a tenant has at least one Domain mapping.
+
+    We always create a `*.localhost` domain for local development.
+    If `TENANT_BASE_DOMAIN` is configured, we also create `<subdomain>.<base_domain>`.
+    """
+
+    if not created:
+        return
+
+    base_domain = getattr(settings, "TENANT_BASE_DOMAIN", "").strip().lower()
+    local_domain = f"{instance.subdomain}.localhost"
+    Domain.objects.get_or_create(
+        domain=local_domain,
+        defaults={"tenant": instance, "is_primary": not bool(base_domain)},
+    )
+
+    if not base_domain:
+        return
+
+    public_domain = f"{instance.subdomain}.{base_domain}"
+    Domain.objects.get_or_create(
+        domain=public_domain,
+        defaults={"tenant": instance, "is_primary": True},
+    )

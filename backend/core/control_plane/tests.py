@@ -100,7 +100,7 @@ class ControlPlaneTenantTests(TestCase):
         self.assertEqual(payload["contract"]["plan"], TenantContract.PLAN_ENTERPRISE)
         self.assertEqual(
             payload["provisioning"]["isolation_model"],
-            TenantProvisioning.ISOLATION_DATABASE_PER_TENANT,
+            TenantProvisioning.ISOLATION_SCHEMA_PER_TENANT,
         )
         self.assertTrue(
             TenantProvisioning.objects.filter(
