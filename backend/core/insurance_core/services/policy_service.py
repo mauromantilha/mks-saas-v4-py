@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from django.core.exceptions import ValidationError
 from django.db import transaction
+from rest_framework.exceptions import ValidationError
 
 from insurance_core.events import publish_tenant_event
 from insurance_core.models import (
@@ -561,4 +561,3 @@ def delete_endorsement(*, company, actor, endorsement: Endorsement, request=None
             data_before=before,
             data_after=None,
         )
-
