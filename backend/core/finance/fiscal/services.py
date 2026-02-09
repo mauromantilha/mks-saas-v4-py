@@ -8,6 +8,7 @@ from typing import Any, Mapping
 
 from django.db import transaction
 from django.db import connection
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from ledger.models import LedgerEntry
@@ -16,7 +17,12 @@ from tenancy.context import get_current_company
 
 from finance.fiscal.adapters import FiscalAdapterError, get_fiscal_adapter
 from finance.fiscal.invoice_gateway import resolve_invoice_for_fiscal
-from finance.fiscal.models import FiscalCustomerSnapshot, FiscalDocument, TenantFiscalConfig
+from finance.fiscal.models import (
+    FiscalCustomerSnapshot,
+    FiscalDocument,
+    FiscalJob,
+    TenantFiscalConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -385,3 +391,70 @@ def cancel_nf(document_id: str, *, actor=None, request=None) -> FiscalDocument:
         locked.status,
     )
     return locked
+
+
+def enqueue_fiscal_job(document_id: int, *, actor=None, request=None) -> FiscalJob:
+    """Create (or re-queue) an async FiscalJob for a FiscalDocument."""
+
+    company = get_current_company()
+    if company is None:
+        raise FiscalIssueTenantMissing(
+            "Tenant context is required. Call within a tenant-scoped request."
+        )
+
+    logger.info(
+        "fiscal.job.enqueue.started company_id=%s fiscal_document_id=%s",
+        company.id,
+        document_id,
+    )
+
+    now = timezone.now()
+    with transaction.atomic():
+        doc = FiscalDocument.objects.get(id=document_id)
+        job, created = FiscalJob.all_objects.get_or_create(
+            fiscal_document=doc,
+            defaults={
+                "company": doc.company,
+                "status": FiscalJob.Status.QUEUED,
+                "attempts": 0,
+                "last_error": "",
+                "next_retry_at": now,
+            },
+        )
+
+        if not created and job.status in {FiscalJob.Status.FAILED}:
+            job.status = FiscalJob.Status.QUEUED
+            job.last_error = ""
+            job.next_retry_at = now
+            job.save(update_fields=["status", "last_error", "next_retry_at", "updated_at"])
+
+        append_ledger_entry(
+            scope=LedgerEntry.SCOPE_TENANT,
+            company=company,
+            actor=actor,
+            action=LedgerEntry.ACTION_CREATE if created else LedgerEntry.ACTION_UPDATE,
+            resource_label="finance.fiscal.FiscalJob",
+            resource_pk=str(job.id),
+            request=request,
+            event_type="finance.fiscal.job.enqueue",
+            data_after={
+                "id": job.id,
+                "fiscal_document_id": doc.id,
+                "status": job.status,
+                "attempts": job.attempts,
+                "next_retry_at": job.next_retry_at.isoformat() if job.next_retry_at else None,
+            },
+            metadata={
+                "created": bool(created),
+            },
+        )
+
+    logger.info(
+        "fiscal.job.enqueue.completed company_id=%s fiscal_document_id=%s fiscal_job_id=%s created=%s status=%s",
+        company.id,
+        doc.id,
+        job.id,
+        created,
+        job.status,
+    )
+    return job

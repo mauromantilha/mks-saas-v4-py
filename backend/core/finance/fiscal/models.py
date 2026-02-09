@@ -206,3 +206,51 @@ class FiscalCustomerSnapshot(BaseTenantModel):
         if self.fiscal_document_id:
             self.company = self.fiscal_document.company
         return super().save(*args, **kwargs)
+
+
+class FiscalJob(BaseTenantModel):
+    """Async processing job for fiscal documents.
+
+    This model is intentionally small and provider-agnostic. It can be consumed by:
+    - a future Celery/Cloud Tasks worker
+    - a management command / cron job
+    - Pub/Sub-triggered Cloud Run jobs
+    """
+
+    class Status(models.TextChoices):
+        QUEUED = "QUEUED", "Queued"
+        RUNNING = "RUNNING", "Running"
+        SUCCEEDED = "SUCCEEDED", "Succeeded"
+        FAILED = "FAILED", "Failed"
+
+    fiscal_document = models.OneToOneField(
+        FiscalDocument,
+        related_name="job",
+        on_delete=models.CASCADE,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.QUEUED,
+        db_index=True,
+    )
+    attempts = models.PositiveIntegerField(default=0)
+    last_error = models.TextField(blank=True)
+    next_retry_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        verbose_name = "Fiscal Job"
+        verbose_name_plural = "Fiscal Jobs"
+        indexes = [
+            models.Index(
+                fields=("company", "status", "next_retry_at"),
+                name="idx_fjob_status_retry",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.fiscal_document_id:
+            # Always derive tenant scope from the linked document.
+            self.company = self.fiscal_document.company
+        return super().save(*args, **kwargs)
