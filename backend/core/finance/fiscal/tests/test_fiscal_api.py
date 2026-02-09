@@ -9,7 +9,10 @@ from finance.fiscal.crypto import decrypt_token
 from finance.fiscal.models import FiscalCustomerSnapshot, FiscalDocument, TenantFiscalConfig
 
 
-@override_settings(ALLOWED_HOSTS=["testserver", ".example.com"])
+@override_settings(
+    ALLOWED_HOSTS=["testserver", ".example.com"],
+    FISCAL_INVOICE_RESOLVER="finance.fiscal.tests.resolvers.mock_invoice_resolver",
+)
 class FiscalTenantIsolationAPITests(TestCase):
     def setUp(self):
         User = get_user_model()
@@ -169,13 +172,103 @@ class FiscalTenantIsolationAPITests(TestCase):
         )
         self.client.post(
             "/api/finance/fiscal/config/",
-            data={"provider": "mock2", "token": "t2", "environment": "PRODUCTION"},
+            data={"provider": "dummy", "token": "t2", "environment": "PRODUCTION"},
             HTTP_X_TENANT_ID="acme",
         )
 
         active = TenantFiscalConfig.all_objects.filter(company=self.company_a, active=True)
         self.assertEqual(active.count(), 1)
-        self.assertEqual(active.first().provider.provider_type, "mock2")
+        self.assertEqual(active.first().provider.provider_type, "dummy")
+
+    def test_issue_nf_mock_and_cancel(self):
+        # Owner configures provider, manager issues.
+        self.client.force_login(self.owner_a)
+        self.client.post(
+            "/api/finance/fiscal/config/",
+            data={"provider": "mock", "token": "t1", "environment": "SANDBOX"},
+            HTTP_X_TENANT_ID="acme",
+        )
+
+        self.client.force_login(self.manager_a)
+        issue = self.client.post(
+            "/api/finance/fiscal/issue/",
+            data={"invoice_id": 123},
+            HTTP_X_TENANT_ID="acme",
+        )
+        self.assertEqual(issue.status_code, 201)
+        payload = issue.json()
+        self.assertEqual(payload["invoice_id"], 123)
+        self.assertEqual(payload["status"], "AUTHORIZED")
+        self.assertTrue(payload["provider_document_id"].startswith("mock:"))
+        self.assertTrue(payload["has_xml"])
+        self.assertEqual(payload["customer_snapshot"]["cpf_cnpj"], "123.456.789-09")
+
+        doc_id = payload["id"]
+
+        # Cancel as manager (POST permission).
+        cancel_1 = self.client.post(
+            f"/api/finance/fiscal/{doc_id}/cancel/",
+            HTTP_X_TENANT_ID="acme",
+        )
+        self.assertEqual(cancel_1.status_code, 200)
+        self.assertEqual(cancel_1.json()["status"], "CANCELLED")
+
+        cancel_2 = self.client.post(
+            f"/api/finance/fiscal/{doc_id}/cancel/",
+            HTTP_X_TENANT_ID="acme",
+        )
+        self.assertEqual(cancel_2.status_code, 409)
+
+    def test_member_cannot_issue(self):
+        self.client.force_login(self.member_a)
+        response = self.client.post(
+            "/api/finance/fiscal/issue/",
+            data={"invoice_id": 123},
+            HTTP_X_TENANT_ID="acme",
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_issue_is_denied_for_user_from_other_tenant(self):
+        self.client.force_login(self.owner_b)
+        response = self.client.post(
+            "/api/finance/fiscal/issue/",
+            data={"invoice_id": 123},
+            HTTP_X_TENANT_ID="acme",
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_provider_switch_allows_new_issues(self):
+        self.client.force_login(self.owner_a)
+        self.client.post(
+            "/api/finance/fiscal/config/",
+            data={"provider": "mock", "token": "t1", "environment": "SANDBOX"},
+            HTTP_X_TENANT_ID="acme",
+        )
+
+        self.client.force_login(self.manager_a)
+        issue_1 = self.client.post(
+            "/api/finance/fiscal/issue/",
+            data={"invoice_id": 101},
+            HTTP_X_TENANT_ID="acme",
+        )
+        self.assertEqual(issue_1.status_code, 201)
+
+        self.client.force_login(self.owner_a)
+        self.client.post(
+            "/api/finance/fiscal/config/",
+            data={"provider": "dummy", "token": "t2", "environment": "PRODUCTION"},
+            HTTP_X_TENANT_ID="acme",
+        )
+        active = TenantFiscalConfig.all_objects.get(company=self.company_a, active=True)
+        self.assertEqual(active.provider.provider_type, "dummy")
+
+        self.client.force_login(self.manager_a)
+        issue_2 = self.client.post(
+            "/api/finance/fiscal/issue/",
+            data={"invoice_id": 102},
+            HTTP_X_TENANT_ID="acme",
+        )
+        self.assertEqual(issue_2.status_code, 201)
 
     def test_cancel_endpoint_and_prevent_double_cancel(self):
         self.client.force_login(self.owner_a)
@@ -205,4 +298,3 @@ class FiscalTenantIsolationAPITests(TestCase):
             HTTP_X_TENANT_ID="acme",
         )
         self.assertEqual(response.status_code, 403)
-
