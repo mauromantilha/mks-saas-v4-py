@@ -6,6 +6,6 @@ minimal payload required to issue/cancel/check documents.
 """
 
 from .base import FiscalAdapterBase
+from .mock import MockFiscalAdapter
 
-__all__ = ["FiscalAdapterBase"]
-
+__all__ = ["FiscalAdapterBase", "MockFiscalAdapter"]
