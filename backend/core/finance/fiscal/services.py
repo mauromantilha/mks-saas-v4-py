@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping
 
 from django.db import transaction
+from django.db import connection
 from django.utils.dateparse import parse_date
 
 from ledger.models import LedgerEntry
@@ -253,11 +254,11 @@ def cancel_nf(document_id: str, *, actor=None, request=None) -> FiscalDocument:
 
     # Serialize cancellation per document to avoid double-cancel races.
     with transaction.atomic():
-        locked = (
-            FiscalDocument.all_objects.select_for_update()
-            .filter(company=company, id=doc.id)
-            .first()
-        )
+        lock_qs = FiscalDocument.all_objects
+        if connection.features.has_select_for_update:
+            lock_qs = lock_qs.select_for_update()
+
+        locked = lock_qs.filter(company=company, id=doc.id).first()
         if locked is None:
             raise FiscalCancelError("Fiscal document not found.")
 

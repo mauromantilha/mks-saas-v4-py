@@ -378,3 +378,33 @@ DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL",
     default=f"no-reply@{TENANT_BASE_DOMAIN or 'localhost'}",
 )
+
+# ------------------------------------------------------------------------------
+# Logging (mask CPF/CNPJ in logs)
+# ------------------------------------------------------------------------------
+
+LOG_LEVEL = env("LOG_LEVEL", default="INFO").strip().upper()
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "mask_cpf_cnpj": {"()": "tenancy.logging.MaskCPFCNPJFilter"},
+    },
+    "formatters": {
+        "simple": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "filters": ["mask_cpf_cnpj"],
+            "formatter": "simple",
+        }
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+}
