@@ -38,7 +38,7 @@ class FiscalDocumentViewSet(
 
         qs = (
             FiscalDocument.all_objects.filter(company=company)
-            .select_related("customer_snapshot")
+            .select_related("customer_snapshot", "job")
             .order_by("-issue_date", "-id")
         )
 

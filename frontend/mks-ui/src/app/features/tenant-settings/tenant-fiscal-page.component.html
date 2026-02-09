@@ -1,0 +1,262 @@
+<section class="tenant-wrap">
+  <header class="page-header">
+    <div>
+      <p class="badge">Financeiro</p>
+      <h1>Fiscal (NF)</h1>
+      <p class="subtitle">
+        Configuração do emissor por tenant e gestão de documentos fiscais emitidos.
+      </p>
+    </div>
+    <div class="actions">
+      <button type="button" class="secondary" (click)="loadConfig()" [disabled]="configLoading()">
+        Recarregar Config
+      </button>
+      <button type="button" (click)="loadDocuments()" [disabled]="docsLoading()">
+        Atualizar Lista
+      </button>
+    </div>
+  </header>
+
+  <p *ngIf="configError()" class="error">{{ configError() }}</p>
+  <p *ngIf="configNotice()" class="notice">{{ configNotice() }}</p>
+
+  <article class="card">
+    <h2>Configuração do Emissor</h2>
+    <p class="muted">
+      Cada tenant mantém sua configuração independente. O token é criptografado no backend.
+    </p>
+
+    <div class="pill-row" *ngIf="config() as cfg">
+      <span class="pill ok">Ativo</span>
+      <span class="muted">
+        Provider: <strong>{{ cfg.provider_type }}</strong> | Env:
+        <strong>{{ cfg.environment }}</strong> | Auto emissão:
+        <strong>{{ cfg.auto_issue ? "Sim" : "Não" }}</strong> | Token:
+        <strong>{{ cfg.has_token ? "OK" : "Não informado" }}</strong>
+      </span>
+    </div>
+    <div class="pill-row" *ngIf="!config()">
+      <span class="pill warn">Sem config ativa</span>
+      <span class="muted">Cadastre abaixo para habilitar emissão/cancelamento.</span>
+    </div>
+
+    <div class="form-grid">
+      <label>
+        Provider (type ou ID)
+        <input
+          type="text"
+          [ngModel]="provider()"
+          (ngModelChange)="provider.set($event)"
+          placeholder="mock"
+          [disabled]="configLoading() || !canWrite()"
+        />
+        <small class="muted">Ex.: <code>mock</code>, <code>focusnfe</code>, <code>nfeio</code>.</small>
+      </label>
+
+      <label>
+        Ambiente
+        <select
+          [ngModel]="environment()"
+          (ngModelChange)="environment.set($event)"
+          [disabled]="configLoading() || !canWrite()"
+        >
+          <option *ngFor="let env of environments" [value]="env.value">
+            {{ env.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="checkbox">
+        <span>Auto emitir NF quando invoice = PAID</span>
+        <input
+          type="checkbox"
+          [ngModel]="autoIssue()"
+          (ngModelChange)="autoIssue.set($event)"
+          [disabled]="configLoading() || !canWrite()"
+        />
+      </label>
+
+      <label class="field-full">
+        Token (opcional)
+        <div class="inline-field">
+          <input
+            [type]="tokenVisible() ? 'text' : 'password'"
+            [ngModel]="token()"
+            (ngModelChange)="token.set($event)"
+            placeholder="********"
+            [disabled]="configLoading() || !canWrite()"
+          />
+          <button
+            type="button"
+            class="secondary"
+            (click)="tokenVisible.set(!tokenVisible())"
+            [disabled]="configLoading()"
+          >
+            {{ tokenVisible() ? "Ocultar" : "Ver" }}
+          </button>
+        </div>
+        <small class="muted"
+          >Não exibimos o token salvo. Informe novamente apenas se precisar trocar.</small
+        >
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button type="button" (click)="saveConfig()" [disabled]="configLoading() || !canWrite()">
+        Salvar Config
+      </button>
+      <span class="muted" *ngIf="!canWrite()"
+        >Apenas <strong>OWNER</strong>/<strong>MANAGER</strong> pode editar.</span
+      >
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>Emitir NF (manual)</h2>
+    <p class="muted">
+      Informe o <code>invoice_id</code> (módulo Financeiro). O backend resolve a invoice e monta o
+      snapshot do cliente.
+    </p>
+
+    <div class="form-grid">
+      <label>
+        invoice_id
+        <input
+          type="number"
+          min="1"
+          [ngModel]="issueInvoiceId()"
+          (ngModelChange)="issueInvoiceId.set($event)"
+          [disabled]="docsLoading() || !canWrite()"
+        />
+      </label>
+      <div class="actions filter-actions">
+        <button type="button" (click)="issue()" [disabled]="docsLoading() || !canWrite()">
+          Emitir
+        </button>
+      </div>
+    </div>
+
+    <p *ngIf="issueError()" class="error">{{ issueError() }}</p>
+  </article>
+
+  <article class="card">
+    <h2>Documentos Fiscais</h2>
+    <div class="form-grid">
+      <label>
+        Status
+        <select
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event)"
+          [disabled]="docsLoading()"
+        >
+          <option value="">Todos</option>
+          <option value="DRAFT">Draft</option>
+          <option value="EMITTING">Emissão</option>
+          <option value="AUTHORIZED">Autorizada</option>
+          <option value="REJECTED">Rejeitada</option>
+          <option value="CANCELLED">Cancelada</option>
+        </select>
+      </label>
+      <label>
+        invoice_id
+        <input
+          type="number"
+          [ngModel]="invoiceFilter()"
+          (ngModelChange)="invoiceFilter.set($event)"
+          [disabled]="docsLoading()"
+        />
+      </label>
+      <label>
+        Busca (número/série/document_id)
+        <input
+          type="text"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          [disabled]="docsLoading()"
+        />
+      </label>
+      <div class="actions filter-actions">
+        <button type="button" class="secondary" (click)="loadDocuments()" [disabled]="docsLoading()">
+          Aplicar
+        </button>
+      </div>
+    </div>
+
+    <p *ngIf="docsLoading()" class="muted">Carregando...</p>
+    <p *ngIf="docsError()" class="error">{{ docsError() }}</p>
+    <p *ngIf="docsNotice()" class="notice">{{ docsNotice() }}</p>
+
+    <div class="table-wrap" *ngIf="documents().length">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Quando</th>
+            <th>NF</th>
+            <th>Invoice</th>
+            <th>Cliente</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th>XML</th>
+            <th>Job</th>
+            <th class="right">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let doc of documents()">
+            <td>{{ doc.issue_date ? (doc.issue_date | date : "shortDate") : "-" }}</td>
+            <td class="mono">
+              {{ doc.series || "-" }}-{{ doc.number || "-" }}
+              <div class="muted tiny" *ngIf="doc.provider_document_id">
+                {{ doc.provider_document_id }}
+              </div>
+            </td>
+            <td class="mono">#{{ doc.invoice_id }}</td>
+            <td>
+              {{ doc.customer_snapshot?.name || "-" }}
+              <div class="muted tiny" *ngIf="doc.customer_snapshot?.cpf_cnpj">
+                {{ doc.customer_snapshot?.cpf_cnpj }}
+              </div>
+            </td>
+            <td class="mono">{{ formatCurrency(doc.amount) }}</td>
+            <td>
+              <span class="pill" [class.ok]="doc.status === 'AUTHORIZED'" [class.warn]="doc.status === 'EMITTING'"
+                [class.danger]="doc.status === 'REJECTED'" [class.neutral]="doc.status === 'DRAFT'"
+                [class.inactive]="doc.status === 'CANCELLED'">
+                {{ doc.status }}
+              </span>
+            </td>
+            <td class="mono">
+              <span *ngIf="doc.has_xml" class="pill ok">OK</span>
+              <span *ngIf="!doc.has_xml" class="pill neutral">-</span>
+            </td>
+            <td class="mono">{{ jobStatusLabel(doc) }}</td>
+            <td class="right">
+              <div class="actions compact">
+                <button
+                  type="button"
+                  class="danger ghost"
+                  (click)="cancel(doc)"
+                  [disabled]="docsLoading() || !canWrite() || doc.status === 'CANCELLED'"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  class="secondary"
+                  (click)="retry(doc)"
+                  [disabled]="docsLoading() || !canWrite() || !canRetry(doc)"
+                  title="Retry só habilita quando job = FAILED"
+                >
+                  Retry
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p *ngIf="!documents().length && !docsLoading()" class="muted">Nenhum documento encontrado.</p>
+  </article>
+</section>
+

@@ -16,6 +16,7 @@ import { TenantLeadsPageComponent } from "./features/tenant/tenant-leads-page.co
 import { TenantOpportunitiesPageComponent } from "./features/tenant/tenant-opportunities-page.component";
 import { TenantPoliciesPageComponent } from "./features/tenant/tenant-policies-page.component";
 import { TenantMembersPageComponent } from "./features/tenant-settings/tenant-members-page.component";
+import { TenantFiscalPageComponent } from "./features/tenant-settings/tenant-fiscal-page.component";
 import { TenantLedgerPageComponent } from "./features/tenant-settings/tenant-ledger-page.component";
 import { TenantRbacPageComponent } from "./features/tenant-settings/tenant-rbac-page.component";
 
@@ -168,6 +169,16 @@ export const routes: Routes = [
     component: TenantLedgerPageComponent,
     canActivate: [authGuard, portalGuard],
     data: { portal: "TENANT" },
+  },
+  {
+    path: "tenant/fiscal",
+    component: TenantFiscalPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Fiscal (NF)",
+      description: "Emissão, cancelamento e auditoria de documentos fiscais do tenant.",
+    },
   },
   {
     path: "tenant/rbac",

@@ -51,6 +51,7 @@ export class AppComponent {
     { label: "Pedidos de Emissão", path: "/tenant/policy-requests", accent: "#22c55e" },
     { label: "Propostas", path: "/tenant/proposal-options", accent: "#06b6d4" },
     { label: "Membros", path: "/tenant/members", accent: "#64748b" },
+    { label: "Fiscal (NF)", path: "/tenant/fiscal", accent: "#16a34a" },
     { label: "Auditoria", path: "/tenant/ledger", accent: "#94a3b8" },
     { label: "RBAC", path: "/tenant/rbac", accent: "#475569" },
   ];

@@ -25,6 +25,30 @@ class TenantFiscalConfigUpsertAPIView(APIView):
     permission_classes = [IsTenantRoleAllowed]
     tenant_resource_key = "fiscal_config"
 
+    def get(self, request):
+        company = getattr(request, "company", None)
+        if company is None:
+            return Response(
+                {"detail": "Tenant context is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        config = (
+            TenantFiscalConfig.all_objects.filter(company=company, active=True)
+            .select_related("provider")
+            .first()
+        )
+        if config is None:
+            return Response(
+                {"detail": "Fiscal configuration not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            TenantFiscalConfigReadSerializer(config).data,
+            status=status.HTTP_200_OK,
+        )
+
     def post(self, request):
         company = getattr(request, "company", None)
         if company is None:

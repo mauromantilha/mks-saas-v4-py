@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from finance.fiscal.models import FiscalCustomerSnapshot, FiscalDocument
+from finance.fiscal.models import FiscalCustomerSnapshot, FiscalDocument, FiscalJob
 
 
 class FiscalCustomerSnapshotSerializer(serializers.ModelSerializer):
@@ -11,8 +11,16 @@ class FiscalCustomerSnapshotSerializer(serializers.ModelSerializer):
         fields = ("name", "cpf_cnpj", "address")
 
 
+class FiscalJobSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FiscalJob
+        fields = ("status", "attempts", "next_retry_at", "last_error")
+        read_only_fields = fields
+
+
 class FiscalDocumentSerializer(serializers.ModelSerializer):
     customer_snapshot = FiscalCustomerSnapshotSerializer(read_only=True)
+    job = FiscalJobSummarySerializer(read_only=True)
     has_xml = serializers.SerializerMethodField()
 
     class Meta:
@@ -28,6 +36,7 @@ class FiscalDocumentSerializer(serializers.ModelSerializer):
             "status",
             "xml_document_id",
             "has_xml",
+            "job",
             "customer_snapshot",
             "created_at",
             "updated_at",
@@ -39,4 +48,3 @@ class FiscalDocumentSerializer(serializers.ModelSerializer):
 
 class IssueFiscalSerializer(serializers.Serializer):
     invoice_id = serializers.IntegerField(min_value=1)
-
