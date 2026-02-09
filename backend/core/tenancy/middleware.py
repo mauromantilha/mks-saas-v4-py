@@ -69,8 +69,8 @@ class TenantContextMiddleware:
         if not host:
             return None
 
-        # Local/dev and explicitly-public hosts are allowed to hit both portal surfaces.
-        if host in self.public_hosts or host.endswith(".localhost"):
+        # Local/dev hosts are allowed to hit both portal surfaces.
+        if host in {"localhost", "127.0.0.1", "testserver"}:
             return None
 
         is_control_plane_host = bool(self.control_plane_host) and host == self.control_plane_host
