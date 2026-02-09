@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from django.urls import path
+from django.urls import include, path
 from rest_framework.authtoken.views import obtain_auth_token
 
 from customers.views import (
@@ -253,5 +253,6 @@ urlpatterns = [
         EndossoAIInsightsAPIView.as_view(),
         name="endossos-ai-insights",
     ),
+    # Insurance core (bounded context): insurers, products, coverages
+    path("api/insurance/", include("insurance_core.api.urls")),
 ]
-

@@ -75,6 +75,9 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
         patch_roles=OWNER_ROLES,
         delete_roles=OWNER_ROLES,
     ),
+    "insurers": build_role_matrix(),
+    "insurance_products": build_role_matrix(),
+    "product_coverages": build_role_matrix(),
 }
 
 DEFAULT_TENANT_ROLE_MATRIX = build_role_matrix()

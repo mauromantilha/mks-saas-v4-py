@@ -84,6 +84,7 @@ if DJANGO_TENANTS_ENABLED:
         # via `search_path` (tenant schema + public).
         "tenancy.apps.TenancyConfig",
         "operational.apps.OperationalConfig",
+        "insurance_core.apps.InsuranceCoreConfig",
         "ledger.apps.LedgerConfig",
     ]
 
@@ -135,6 +136,7 @@ else:
         "control_plane.apps.ControlPlaneConfig",
         "customers.apps.CustomersConfig",
         "operational.apps.OperationalConfig",
+        "insurance_core.apps.InsuranceCoreConfig",
         "ledger.apps.LedgerConfig",
     ]
     if guardian_available:

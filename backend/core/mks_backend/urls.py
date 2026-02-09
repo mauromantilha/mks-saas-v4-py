@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.http import JsonResponse
-from django.urls import path
+from django.urls import include, path
 from rest_framework.authtoken.views import obtain_auth_token
 
 from control_plane.views import (
@@ -298,4 +298,5 @@ urlpatterns = [
         EndossoAIInsightsAPIView.as_view(),
         name="endossos-ai-insights",
     ),
+    path("api/insurance/", include("insurance_core.api.urls")),
 ]
