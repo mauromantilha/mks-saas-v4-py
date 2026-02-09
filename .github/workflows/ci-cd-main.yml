@@ -157,13 +157,17 @@ jobs:
           CONTROL_PLANE_HOST="${CONTROL_PLANE_SUBDOMAIN}.${TENANT_BASE_DOMAIN}"
           ENV_VARS="^|^DEBUG=False|ALLOWED_HOSTS=.run.app,.${TENANT_BASE_DOMAIN},${TENANT_BASE_DOMAIN}|GOOGLE_CLOUD_PROJECT=${PROJECT_ID}|VERTEX_AI_ENABLED=${VERTEX_AI_ENABLED}|VERTEX_AI_PROJECT_ID=${PROJECT_ID}|VERTEX_AI_LOCATION=${REGION}|TENANT_BASE_DOMAIN=${TENANT_BASE_DOMAIN}|CONTROL_PLANE_SUBDOMAIN=${CONTROL_PLANE_SUBDOMAIN}|CONTROL_PLANE_HOST=${CONTROL_PLANE_HOST}|CLOUD_SQL_INSTANCE=${INSTANCE_CONNECTION_NAME}|DATABASE_ENGINE=django_tenants.postgresql_backend|DATABASE_NAME=${DATABASE_NAME}|DATABASE_USER=${DATABASE_USER}|CLOUD_STORAGE_BUCKET=${CLOUD_STORAGE_BUCKET}"
           SECRET_VARS="SECRET_KEY=${DJANGO_SECRET_KEY_SECRET_NAME}:latest,DATABASE_PASSWORD=${DB_PASSWORD_SECRET_NAME}:latest"
+          # When migrating an existing shared-schema database into django-tenants,
+          # tenant rows may exist before their schemas exist. We create missing schemas
+          # before running tenant migrations to avoid `no schema has been selected` errors.
+          MIGRATE_CMD="python manage.py migrate_schemas --shared --noinput && python manage.py create_missing_schemas && python manage.py migrate_schemas --noinput"
 
           if gcloud run jobs describe "${CLOUD_RUN_MIGRATION_JOB}" --region "${REGION}" >/dev/null 2>&1; then
             gcloud run jobs update "${CLOUD_RUN_MIGRATION_JOB}" \
               --image "${IMAGE_URI}" \
               --region "${REGION}" \
-              --command python \
-              --args manage.py,migrate_schemas,--noinput \
+              --command bash \
+              --args -lc,"${MIGRATE_CMD}" \
               --set-cloudsql-instances "${INSTANCE_CONNECTION_NAME}" \
               --set-env-vars "${ENV_VARS}" \
               --set-secrets "${SECRET_VARS}" \
@@ -174,8 +178,8 @@ jobs:
             gcloud run jobs create "${CLOUD_RUN_MIGRATION_JOB}" \
               --image "${IMAGE_URI}" \
               --region "${REGION}" \
-              --command python \
-              --args manage.py,migrate_schemas,--noinput \
+              --command bash \
+              --args -lc,"${MIGRATE_CMD}" \
               --set-cloudsql-instances "${INSTANCE_CONNECTION_NAME}" \
               --set-env-vars "${ENV_VARS}" \
               --set-secrets "${SECRET_VARS}" \
