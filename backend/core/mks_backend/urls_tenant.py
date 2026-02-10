@@ -271,8 +271,8 @@ urlpatterns = [
         EndossoAIInsightsAPIView.as_view(),
         name="endossos-ai-insights",
     ),
-    # Insurance core (bounded context): insurers, products, coverages
+    # Insurance core (bounded context): insurers, products, apólices and subresources.
     path("api/insurance/", include("insurance_core.api.urls")),
-    # Finance fiscal (bounded context): NF issuance/cancellation (tenant-scoped)
-    path("api/finance/", include("finance.fiscal.api.urls")),
+    # Finance bounded context: receivables/payables + fiscal APIs (tenant-scoped)
+    path("api/finance/", include("finance.urls")),
 ]

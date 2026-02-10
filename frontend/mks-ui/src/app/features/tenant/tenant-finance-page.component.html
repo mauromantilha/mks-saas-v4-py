@@ -2,9 +2,9 @@
   <header class="page-header">
     <div>
       <p class="badge">Financeiro</p>
-      <h1>Recebíveis</h1>
+      <h1>Contas a Pagar e Fluxo de Parcelas</h1>
       <p class="subtitle">
-        Visão financeira do tenant com faturas, parcelas e inadimplência operacional.
+        Operação financeira do tenant com baixa de parcelas, inadimplência e visão de repasses.
       </p>
     </div>
     <div class="header-actions">
@@ -24,22 +24,210 @@
 
   <section class="kpi-grid">
     <article class="kpi">
-      <span class="label">Receita em aberto</span>
+      <span class="label">Contas a pagar abertas</span>
+      <strong class="value">{{ formatCurrency(payablesOpenAmount()) }}</strong>
+      <span class="hint">Vencido: {{ formatCurrency(payablesOverdueAmount()) }}</span>
+    </article>
+    <article class="kpi">
+      <span class="label">Parcelas em aberto</span>
+      <strong class="value">{{ formatCurrency(installmentsOpenAmount()) }}</strong>
+      <span class="hint">Inadimplente: {{ formatCurrency(installmentsOverdueAmount()) }}</span>
+    </article>
+    <article class="kpi">
+      <span class="label">Receita faturada em aberto</span>
       <strong class="value">{{ formatCurrency(openAmount()) }}</strong>
-    </article>
-    <article class="kpi">
-      <span class="label">Receita recebida</span>
-      <strong class="value">{{ formatCurrency(paidAmount()) }}</strong>
-    </article>
-    <article class="kpi">
-      <span class="label">Parcelas vencidas</span>
-      <strong class="value">{{ overdueInstallments().overdueCount }}</strong>
-      <span class="hint">{{ formatCurrency(overdueInstallments().overdueAmount) }}</span>
+      <span class="hint">Recebida: {{ formatCurrency(paidAmount()) }}</span>
     </article>
   </section>
 
   <article class="card">
-    <h2>Filtros</h2>
+    <div class="segmented">
+      <button
+        type="button"
+        class="secondary"
+        [class.active]="activeSection() === 'receivables'"
+        (click)="setSection('receivables')"
+      >
+        Faturas
+      </button>
+      <button
+        type="button"
+        class="secondary"
+        [class.active]="activeSection() === 'payables'"
+        (click)="setSection('payables')"
+      >
+        Contas a pagar
+      </button>
+      <button
+        type="button"
+        class="secondary"
+        [class.active]="activeSection() === 'installments'"
+        (click)="setSection('installments')"
+      >
+        Fluxo de parcelas
+      </button>
+    </div>
+  </article>
+
+  <article class="card" *ngIf="activeSection() === 'payables'">
+    <h2>Contas a Pagar</h2>
+    <p *ngIf="filteredPayables().length === 0" class="muted">Nenhum lançamento de contas a pagar.</p>
+    <div class="table-wrap" *ngIf="filteredPayables().length > 0">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Beneficiário</th>
+            <th>Descrição</th>
+            <th>Vencimento</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th>Ref</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let payable of filteredPayables()">
+            <td class="mono">#{{ payable.id }}</td>
+            <td>{{ payable.beneficiary_name || payable.recipient_name || "-" }}</td>
+            <td>{{ payable.description || "-" }}</td>
+            <td>
+              {{ payable.due_date | date : "shortDate" }}
+              <small *ngIf="payable.is_overdue" class="inline-warn">
+                {{ payable.days_overdue }}d atraso
+              </small>
+            </td>
+            <td class="mono">{{ formatCurrency(payable.amount) }}</td>
+            <td>
+              <span
+                class="pill"
+                [class.ok]="payable.status === 'PAID'"
+                [class.warn]="payable.status === 'OPEN'"
+                [class.inactive]="payable.status === 'CANCELLED'"
+              >
+                {{ payableStatusLabel(payable.status) }}
+              </span>
+            </td>
+            <td class="mono">{{ payable.source_ref || "-" }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="card" *ngIf="activeSection() === 'installments'">
+    <h2>Fluxo de Parcelas</h2>
+    <div class="form-grid">
+      <label>
+        Status
+        <select
+          [ngModel]="installmentStatusFilter()"
+          (ngModelChange)="installmentStatusFilter.set($event)"
+        >
+          <option value="">Todos</option>
+          <option value="OPEN">Aberta</option>
+          <option value="PAID">Paga</option>
+          <option value="CANCELLED">Cancelada</option>
+          <option value="DELINQUENT">Inadimplente</option>
+        </select>
+      </label>
+      <label>
+        Apólice
+        <select
+          [ngModel]="installmentPolicyFilter()"
+          (ngModelChange)="installmentPolicyFilter.set(parseOptionalNumber($event))"
+        >
+          <option [ngValue]="null">Todas</option>
+          <option *ngFor="let option of installmentPolicies()" [ngValue]="option.id">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+      <label>
+        Seguradora
+        <select
+          [ngModel]="installmentInsurerFilter()"
+          (ngModelChange)="installmentInsurerFilter.set(parseOptionalNumber($event))"
+        >
+          <option [ngValue]="null">Todas</option>
+          <option *ngFor="let option of installmentInsurers()" [ngValue]="option.id">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+      <label class="checkbox">
+        <input
+          type="checkbox"
+          [ngModel]="installmentsOnlyDelinquent()"
+          (ngModelChange)="installmentsOnlyDelinquent.set(!!$event)"
+        />
+        Somente inadimplentes
+      </label>
+    </div>
+    <div class="header-actions top-gap">
+      <button type="button" class="secondary" (click)="clearInstallmentFilters()" [disabled]="loading()">
+        Limpar filtros
+      </button>
+      <button type="button" (click)="applyInstallmentFilters()" [disabled]="loading()">Aplicar filtros</button>
+    </div>
+
+    <p *ngIf="filteredInstallments().length === 0" class="muted">Nenhuma parcela encontrada.</p>
+    <div class="table-wrap" *ngIf="filteredInstallments().length > 0">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Fatura</th>
+            <th>Parcela</th>
+            <th>Cliente</th>
+            <th>Apólice</th>
+            <th>Seguradora</th>
+            <th>Vencimento</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th class="right">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let installment of filteredInstallments()">
+            <td class="mono">#{{ installment.invoice_id }}</td>
+            <td>#{{ installment.number }}</td>
+            <td>{{ installment.payer_name || "-" }}</td>
+            <td class="mono">{{ installment.policy_number || "-" }}</td>
+            <td>{{ installment.insurer_name || "-" }}</td>
+            <td>
+              {{ installment.due_date | date : "shortDate" }}
+              <small *ngIf="installment.is_overdue" class="inline-warn">
+                {{ installment.days_overdue }}d atraso
+              </small>
+            </td>
+            <td class="mono">{{ formatCurrency(installment.amount) }}</td>
+            <td>
+              <span
+                class="pill"
+                [class.ok]="installment.status === 'PAID'"
+                [class.warn]="installment.status === 'OPEN'"
+                [class.inactive]="installment.status === 'CANCELLED'"
+              >
+                {{ installmentStatusLabel(installment.status) }}
+              </span>
+            </td>
+            <td class="right">
+              <button
+                type="button"
+                class="secondary"
+                (click)="settleInstallment(installment)"
+                [disabled]="installment.status !== 'OPEN' || settlingInstallmentId() === installment.id"
+              >
+                {{ settlingInstallmentId() === installment.id ? "Baixando..." : "Dar baixa" }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="card" *ngIf="activeSection() === 'receivables'">
+    <h2>Faturas de Recebíveis</h2>
     <div class="form-grid">
       <label>
         Status
@@ -60,10 +248,6 @@
         />
       </label>
     </div>
-  </article>
-
-  <article class="card">
-    <h2>Faturas</h2>
     <div class="table-wrap" *ngIf="filteredInvoices().length > 0; else emptyState">
       <table class="table">
         <thead>

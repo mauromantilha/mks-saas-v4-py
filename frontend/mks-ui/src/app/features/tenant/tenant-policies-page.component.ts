@@ -3,6 +3,8 @@ import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 
+import { FinanceService } from "../../core/api/finance.service";
+import { PolicyFinanceSummaryRecord } from "../../core/api/finance.types";
 import { InsuranceCoreService } from "../../core/api/insurance-core.service";
 import {
   CreateEndorsementPayload,
@@ -38,6 +40,11 @@ import { SessionService } from "../../core/auth/session.service";
   styleUrl: "./tenant-policies-page.component.scss",
 })
 export class TenantPoliciesPageComponent {
+  private readonly brlFormatter = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
   readonly session = computed(() => this.sessionService.session());
   readonly canWrite = computed(() => {
     const role = this.session()?.role;
@@ -53,6 +60,7 @@ export class TenantPoliciesPageComponent {
   insurers = signal<InsurerRecord[]>([]);
   products = signal<InsuranceProductRecord[]>([]);
   productCoverages = signal<ProductCoverageRecord[]>([]);
+  policyFinanceMap = signal<Record<number, PolicyFinanceSummaryRecord>>({});
 
   // Listing.
   policies = signal<PolicyRecord[]>([]);
@@ -133,6 +141,7 @@ export class TenantPoliciesPageComponent {
 
   constructor(
     private readonly insuranceCoreService: InsuranceCoreService,
+    private readonly financeService: FinanceService,
     private readonly salesFlowService: SalesFlowService,
     private readonly sessionService: SessionService,
     private readonly router: Router
@@ -202,6 +211,7 @@ export class TenantPoliciesPageComponent {
       .subscribe({
         next: (rows) => {
           this.policies.set(rows);
+          this.loadPolicyFinanceSummaries(rows);
           this.loading.set(false);
         },
         error: (err) => {
@@ -215,6 +225,37 @@ export class TenantPoliciesPageComponent {
           this.loading.set(false);
         },
       });
+  }
+
+  loadPolicyFinanceSummaries(policies: PolicyRecord[]): void {
+    const ids = policies.map((policy) => policy.id);
+    if (ids.length === 0) {
+      this.policyFinanceMap.set({});
+      return;
+    }
+
+    this.financeService.listPolicySummary(ids).subscribe({
+      next: (rows) => {
+        const nextMap: Record<number, PolicyFinanceSummaryRecord> = {};
+        rows.forEach((row) => {
+          nextMap[row.policy_id] = row;
+        });
+        this.policyFinanceMap.set(nextMap);
+      },
+      error: () => {
+        this.policyFinanceMap.set({});
+      },
+    });
+  }
+
+  financeSummaryFor(policyId: number): PolicyFinanceSummaryRecord | null {
+    return this.policyFinanceMap()[policyId] ?? null;
+  }
+
+  formatMoney(value: string | number | null | undefined): string {
+    const parsed = typeof value === "number" ? value : Number(value ?? 0);
+    const amount = Number.isFinite(parsed) ? parsed : 0;
+    return this.brlFormatter.format(amount);
   }
 
   onInsurerChange(insurerId: number | null): void {

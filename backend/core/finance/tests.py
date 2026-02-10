@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
+from django.db import connection
 from django.test import TestCase
 
 from customers.models import Company
@@ -14,6 +15,7 @@ from tenancy.context import reset_current_company, set_current_company
 class FinanceIntegrationTests(TestCase):
     def setUp(self):
         self.company = Company.objects.create(name="Fin Corp", tenant_code="fin", subdomain="fin")
+        connection.set_tenant(self.company)
         self._tenant_token = set_current_company(self.company)
         self.customer = Customer.all_objects.create(
             company=self.company,
@@ -44,6 +46,7 @@ class FinanceIntegrationTests(TestCase):
 
     def tearDown(self):
         reset_current_company(self._tenant_token)
+        connection.set_schema_to_public()
         super().tearDown()
 
     def test_create_receivables_consumer_logic(self):
@@ -101,3 +104,80 @@ class FinanceIntegrationTests(TestCase):
         self.assertEqual(ReceivableInvoice.objects.count(), 1)
         self.assertEqual(ReceivableInstallment.objects.count(), 1)
         self.assertEqual(IntegrationInbox.objects.count(), 1)
+
+    def test_settle_installment_updates_invoice_status(self):
+        from finance.services import settle_receivable_installment
+
+        invoice = ReceivableInvoice.objects.create(
+            company=self.company,
+            payer=self.customer,
+            policy=self.policy,
+            total_amount=Decimal("120.00"),
+            status=ReceivableInvoice.STATUS_OPEN,
+            issue_date=date(2026, 1, 1),
+            description="Teste baixa",
+        )
+        installment1 = ReceivableInstallment.objects.create(
+            company=self.company,
+            invoice=invoice,
+            number=1,
+            amount=Decimal("60.00"),
+            due_date=date(2026, 1, 10),
+            status=ReceivableInstallment.STATUS_OPEN,
+        )
+        installment2 = ReceivableInstallment.objects.create(
+            company=self.company,
+            invoice=invoice,
+            number=2,
+            amount=Decimal("60.00"),
+            due_date=date(2026, 2, 10),
+            status=ReceivableInstallment.STATUS_OPEN,
+        )
+
+        settle_receivable_installment(company=self.company, installment=installment1, actor=None)
+        invoice.refresh_from_db()
+        installment1.refresh_from_db()
+        self.assertEqual(installment1.status, ReceivableInstallment.STATUS_PAID)
+        self.assertEqual(invoice.status, ReceivableInvoice.STATUS_OPEN)
+
+        settle_receivable_installment(company=self.company, installment=installment2, actor=None)
+        invoice.refresh_from_db()
+        installment2.refresh_from_db()
+        self.assertEqual(installment2.status, ReceivableInstallment.STATUS_PAID)
+        self.assertEqual(invoice.status, ReceivableInvoice.STATUS_PAID)
+
+    def test_settle_installment_blocks_cross_tenant(self):
+        from django.core.exceptions import ValidationError
+        from finance.services import settle_receivable_installment
+
+        connection.set_schema_to_public()
+        other_company = Company.objects.create(
+            name="Other Corp",
+            tenant_code="other",
+            subdomain="other",
+        )
+        connection.set_tenant(self.company)
+        invoice = ReceivableInvoice.objects.create(
+            company=self.company,
+            payer=self.customer,
+            policy=self.policy,
+            total_amount=Decimal("50.00"),
+            status=ReceivableInvoice.STATUS_OPEN,
+            issue_date=date(2026, 1, 1),
+            description="Isolamento",
+        )
+        installment = ReceivableInstallment.objects.create(
+            company=self.company,
+            invoice=invoice,
+            number=1,
+            amount=Decimal("50.00"),
+            due_date=date(2026, 1, 10),
+            status=ReceivableInstallment.STATUS_OPEN,
+        )
+
+        with self.assertRaises(ValidationError):
+            settle_receivable_installment(
+                company=other_company,
+                installment=installment,
+                actor=None,
+            )

@@ -1,11 +1,12 @@
 from decimal import Decimal
+
 from dateutil.relativedelta import relativedelta
 from django.db import transaction
 from django.utils import timezone
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+
 from finance.models import IntegrationInbox, ReceivableInvoice, ReceivableInstallment
 from insurance_core.models import Policy
-from insurance_core.events import publish_tenant_event
 from ledger.services import append_ledger_entry
 from operational.models import Customer
 
@@ -97,6 +98,71 @@ def create_receivables_from_policy_event(event: dict, company):
             data_after={"total_amount": str(total_amount), "installments_count": count},
             metadata={"policy_id": policy.id}
         )
+
+
+def sync_receivable_invoice_status(invoice: ReceivableInvoice) -> ReceivableInvoice:
+    """Keep invoice status consistent with installment settlement state."""
+
+    if invoice.status == ReceivableInvoice.STATUS_CANCELLED:
+        return invoice
+
+    has_open_installments = invoice.installments.filter(
+        status=ReceivableInstallment.STATUS_OPEN
+    ).exists()
+    next_status = (
+        ReceivableInvoice.STATUS_OPEN
+        if has_open_installments
+        else ReceivableInvoice.STATUS_PAID
+    )
+
+    if invoice.status != next_status:
+        invoice.status = next_status
+        invoice.save(update_fields=["status", "updated_at"])
+
+    return invoice
+
+
+def settle_receivable_installment(
+    *,
+    company,
+    installment: ReceivableInstallment,
+    actor=None,
+    request=None,
+):
+    """Settle a receivable installment and recompute parent invoice status."""
+
+    if installment.company_id != company.id:
+        raise ValidationError("Installment does not belong to the active tenant.")
+
+    if installment.status != ReceivableInstallment.STATUS_OPEN:
+        raise ValidationError("Only OPEN installments can be settled.")
+
+    with transaction.atomic():
+        installment.status = ReceivableInstallment.STATUS_PAID
+        installment.save(update_fields=["status", "updated_at"])
+
+        invoice = sync_receivable_invoice_status(installment.invoice)
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=company,
+            actor=actor,
+            action="SETTLE",
+            resource_label="ReceivableInstallment",
+            resource_pk=str(installment.pk),
+            request=request,
+            data_after={
+                "status": installment.status,
+                "invoice_id": installment.invoice_id,
+                "invoice_status": invoice.status,
+            },
+            metadata={
+                "invoice_id": installment.invoice_id,
+                "policy_id": invoice.policy_id,
+            },
+        )
+
+    return installment
 
 
 def process_endorsement_financial_impact(event: dict, company) -> None:

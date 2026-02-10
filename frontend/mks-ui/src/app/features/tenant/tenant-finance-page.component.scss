@@ -60,6 +60,17 @@ button.secondary {
   color: #0f172a;
 }
 
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.segmented .secondary.active {
+  background: #0ea5e9;
+  color: #fff;
+}
+
 .ghost {
   background: #e0f2fe;
   color: #075985;
@@ -119,6 +130,13 @@ label {
   font-size: 0.9rem;
   font-weight: 600;
   gap: 0.35rem;
+}
+
+.checkbox {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 1.5rem;
 }
 
 input,
@@ -192,6 +210,17 @@ select {
 .pill.inactive {
   background: #e2e8f0;
   color: #334155;
+}
+
+.inline-warn {
+  color: #b45309;
+  display: inline-block;
+  font-size: 0.72rem;
+  margin-left: 0.35rem;
+}
+
+.top-gap {
+  margin-top: 0.7rem;
 }
 
 .muted {

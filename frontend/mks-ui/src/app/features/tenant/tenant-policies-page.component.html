@@ -729,6 +729,7 @@
           <th>Status</th>
           <th>Vigência</th>
           <th>Prêmio</th>
+          <th>Financeiro</th>
           <th>Ações</th>
         </tr>
       </thead>
@@ -745,6 +746,18 @@
           </td>
           <td>{{ p.start_date }} → {{ p.end_date }}</td>
           <td>{{ p.premium_total }}</td>
+          <td>
+            <ng-container *ngIf="financeSummaryFor(p.id) as finance; else noFinance">
+              <div class="finance-cell">
+                <span>Abertas: {{ finance.open_installments }}</span>
+                <span>Inadimplentes: {{ finance.overdue_installments }}</span>
+                <span>Em aberto: {{ formatMoney(finance.open_amount) }}</span>
+              </div>
+            </ng-container>
+            <ng-template #noFinance>
+              <span class="muted">Sem parcelas</span>
+            </ng-template>
+          </td>
           <td class="actions compact">
             <button type="button" (click)="startEdit(p)" [disabled]="loading()">
               Abrir

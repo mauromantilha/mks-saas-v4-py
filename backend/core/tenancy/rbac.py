@@ -111,6 +111,8 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
     "commission_payouts": build_role_matrix(),
     "insurer_settlements": build_role_matrix(),
     "invoices": build_role_matrix(),
+    "installments": build_role_matrix(),
+    "payables": build_role_matrix(),
 }
 
 DEFAULT_TENANT_ROLE_MATRIX = build_role_matrix()
