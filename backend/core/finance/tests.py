@@ -15,7 +15,9 @@ from tenancy.context import reset_current_company, set_current_company
 class FinanceIntegrationTests(TestCase):
     def setUp(self):
         self.company = Company.objects.create(name="Fin Corp", tenant_code="fin", subdomain="fin")
-        connection.set_tenant(self.company)
+        self._supports_schema_switch = hasattr(connection, "set_tenant")
+        if self._supports_schema_switch:
+            connection.set_tenant(self.company)
         self._tenant_token = set_current_company(self.company)
         self.customer = Customer.all_objects.create(
             company=self.company,
@@ -46,7 +48,8 @@ class FinanceIntegrationTests(TestCase):
 
     def tearDown(self):
         reset_current_company(self._tenant_token)
-        connection.set_schema_to_public()
+        if hasattr(connection, "set_schema_to_public"):
+            connection.set_schema_to_public()
         super().tearDown()
 
     def test_create_receivables_consumer_logic(self):
@@ -150,13 +153,15 @@ class FinanceIntegrationTests(TestCase):
         from django.core.exceptions import ValidationError
         from finance.services import settle_receivable_installment
 
-        connection.set_schema_to_public()
+        if self._supports_schema_switch and hasattr(connection, "set_schema_to_public"):
+            connection.set_schema_to_public()
         other_company = Company.objects.create(
             name="Other Corp",
             tenant_code="other",
             subdomain="other",
         )
-        connection.set_tenant(self.company)
+        if self._supports_schema_switch:
+            connection.set_tenant(self.company)
         invoice = ReceivableInvoice.objects.create(
             company=self.company,
             payer=self.customer,
