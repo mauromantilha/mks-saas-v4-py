@@ -11,7 +11,7 @@
   gap: 16px;
   padding: 18px 18px 14px;
   border-radius: 16px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--mks-border);
   background: radial-gradient(circle at 15% 15%, #eff6ff, #ffffff);
 }
 
@@ -35,7 +35,7 @@ h1 {
 
 .subtitle {
   margin: 0;
-  color: #475467;
+  color: var(--mks-muted);
 }
 
 button {
@@ -54,8 +54,8 @@ button[disabled] {
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 14px;
   padding: 12px;
   margin-top: 12px;
@@ -78,7 +78,7 @@ label {
 input,
 textarea,
 select {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 10px;
   padding: 10px;
   font: inherit;
@@ -95,9 +95,9 @@ select {
 }
 
 button.secondary {
-  background: #ffffff;
+  background: var(--mks-surface);
   color: #0f172a;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--mks-border);
 }
 
 button.ghost {
@@ -122,7 +122,7 @@ button.danger {
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   padding: 12px;
-  background: #f8fafc;
+  background: var(--mks-surface-soft);
 }
 
 .contact-header {
@@ -205,7 +205,7 @@ button.danger {
 }
 
 .muted {
-  color: #667085;
+  color: var(--mks-muted);
 }
 
 .notice {

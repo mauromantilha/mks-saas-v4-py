@@ -35,7 +35,7 @@ h1 {
 
 .subtitle {
   margin: 0;
-  color: #475467;
+  color: var(--mks-muted);
 }
 
 button {
@@ -75,8 +75,8 @@ button[disabled] {
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 14px;
   padding: 12px;
   margin-top: 12px;
@@ -102,7 +102,7 @@ label.checkbox {
   justify-content: space-between;
   gap: 12px;
   border: 1px dashed #d0d5dd;
-  background: #f8fafc;
+  background: var(--mks-surface-soft);
   border-radius: 12px;
   padding: 10px;
   font-size: 13px;
@@ -116,11 +116,11 @@ label.checkbox input {
 input,
 textarea,
 select {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 10px;
   padding: 10px;
   font: inherit;
-  background: #fff;
+  background: var(--mks-surface);
 }
 
 code {
@@ -199,15 +199,15 @@ code {
 }
 
 .pill.neutral {
-  background: #f2f4f7;
+  background: var(--mks-surface-soft);
   border-color: #e4e7ec;
-  color: #344054;
+  color: var(--mks-muted);
 }
 
 .pill.inactive {
-  background: #f2f4f7;
+  background: var(--mks-surface-soft);
   border-color: #e4e7ec;
-  color: #344054;
+  color: var(--mks-muted);
 }
 
 .table-wrap {
@@ -246,7 +246,7 @@ code {
 }
 
 .muted {
-  color: #667085;
+  color: var(--mks-muted);
 }
 
 .notice {

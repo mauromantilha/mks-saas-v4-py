@@ -15,8 +15,8 @@
 }
 
 .upsert {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 16px;
@@ -40,8 +40,8 @@
 .members-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
 }
 
 .members-table th,

@@ -30,7 +30,7 @@ label {
 input {
   width: 120px;
   padding: 10px 12px;
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 10px;
 }
 
@@ -55,10 +55,10 @@ button:disabled {
 }
 
 .table-wrap {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 12px;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--mks-surface);
 }
 
 table {
@@ -75,7 +75,7 @@ td {
 }
 
 th {
-  background: #f8fafc;
+  background: var(--mks-surface-soft);
   font-size: 0.9rem;
 }
 

@@ -5,8 +5,8 @@
 
 .page-header {
   align-items: flex-start;
-  background: #fff;
-  border: 1px solid #d9e3ef;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 14px;
   display: flex;
   justify-content: space-between;
@@ -83,8 +83,8 @@ button.secondary {
 }
 
 .kpi {
-  background: #fff;
-  border: 1px solid #d9e3ef;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 12px;
   display: grid;
   gap: 0.3rem;
@@ -103,13 +103,13 @@ button.secondary {
 }
 
 .kpi .hint {
-  color: #64748b;
+  color: var(--mks-muted);
   font-size: 0.85rem;
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #d9e3ef;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 14px;
   padding: 1rem 1.2rem;
 }
@@ -125,7 +125,7 @@ button.secondary {
 }
 
 label {
-  color: #334155;
+  color: var(--mks-muted);
   display: grid;
   font-size: 0.9rem;
   font-weight: 600;
@@ -141,7 +141,7 @@ label {
 
 input,
 select {
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--mks-border);
   border-radius: 10px;
   font-size: 0.95rem;
   padding: 0.55rem 0.7rem;
@@ -167,7 +167,7 @@ select {
 }
 
 .table th {
-  color: #334155;
+  color: var(--mks-muted);
   font-size: 0.82rem;
   text-transform: uppercase;
 }
@@ -181,7 +181,7 @@ select {
 }
 
 .details-row td {
-  background: #f8fafc;
+  background: var(--mks-surface-soft);
 }
 
 .details-panel {
@@ -209,7 +209,7 @@ select {
 
 .pill.inactive {
   background: #e2e8f0;
-  color: #334155;
+  color: var(--mks-muted);
 }
 
 .inline-warn {
@@ -224,7 +224,7 @@ select {
 }
 
 .muted {
-  color: #64748b;
+  color: var(--mks-muted);
 }
 
 .error {

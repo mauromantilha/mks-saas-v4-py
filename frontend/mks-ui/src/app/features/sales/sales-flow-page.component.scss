@@ -26,8 +26,8 @@
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 12px;
   padding: 12px;
 }
@@ -51,14 +51,14 @@
 }
 
 .metrics-filters input {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 8px;
   padding: 8px;
 }
 
 .filters-summary {
   margin: 0 0 10px;
-  color: #475467;
+  color: var(--mks-muted);
   font-size: 13px;
 }
 
@@ -69,15 +69,15 @@
 }
 
 .metric-item {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--mks-border);
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--mks-surface-soft);
   padding: 10px;
 }
 
 .metric-label {
   display: block;
-  color: #475467;
+  color: var(--mks-muted);
   font-size: 12px;
 }
 
@@ -128,7 +128,7 @@
 .form-grid input,
 .form-grid textarea,
 .form-grid select {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 8px;
   padding: 8px;
 }
@@ -173,7 +173,7 @@
 }
 
 .ai-focus-label input {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 8px;
   padding: 8px;
 }
@@ -189,8 +189,8 @@
 .ai-cnpj-details pre {
   overflow: auto;
   max-height: 220px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface-soft);
+  border: 1px solid var(--mks-border);
   border-radius: 8px;
   padding: 8px;
 }

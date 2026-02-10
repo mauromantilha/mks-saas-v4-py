@@ -11,7 +11,7 @@
   gap: 16px;
   padding: 18px 18px 14px;
   border-radius: 16px;
-  border: 1px solid #e0e7ff;
+  border: 1px solid var(--mks-border);
   background: radial-gradient(circle at 15% 15%, #f8fafc, #ffffff);
 }
 
@@ -24,7 +24,7 @@
   font-size: 0.78rem;
   color: #0f172a;
   background: #e2e8f0;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--mks-border);
   padding: 4px 10px;
   border-radius: 999px;
 }
@@ -35,7 +35,7 @@ h1 {
 
 .subtitle {
   margin: 0;
-  color: #475467;
+  color: var(--mks-muted);
 }
 
 button {
@@ -64,8 +64,8 @@ button[disabled] {
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 14px;
   padding: 12px;
   margin-top: 12px;
@@ -74,9 +74,9 @@ button[disabled] {
 .inline-card {
   margin-top: 12px;
   border-radius: 12px;
-  border: 1px solid #e4e7ec;
+  border: 1px solid var(--mks-border);
   padding: 12px;
-  background: #f8fafc;
+  background: var(--mks-surface-soft);
 }
 
 .form-grid {
@@ -107,11 +107,11 @@ label.checkbox {
 input,
 textarea,
 select {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 10px;
   padding: 10px;
   font: inherit;
-  background: #fff;
+  background: var(--mks-surface);
 }
 
 .actions {
@@ -167,16 +167,16 @@ select {
 }
 
 .pill.expired {
-  background: #f2f4f7;
+  background: var(--mks-surface-soft);
   border-color: #e4e7ec;
-  color: #344054;
+  color: var(--mks-muted);
 }
 
 .customer-preview {
   margin-top: 14px;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid #e0f2fe;
+  border: 1px solid var(--mks-border);
   background: radial-gradient(circle at 15% 15%, #eff8ff, #ffffff);
 }
 
@@ -192,7 +192,7 @@ select {
 
 .preview-grid p {
   margin: 0;
-  color: #344054;
+  color: var(--mks-muted);
   font-size: 0.92rem;
 }
 
@@ -200,11 +200,11 @@ select {
   display: grid;
   gap: 2px;
   font-size: 0.82rem;
-  color: #334155;
+  color: var(--mks-muted);
 }
 
 .muted {
-  color: #667085;
+  color: var(--mks-muted);
 }
 
 .notice {

@@ -53,6 +53,10 @@ html.dark-theme {
   --mks-text: #0f172a;
   --mks-muted: #64748b;
   --mks-input-bg: #ffffff;
+  --mks-primary: #0b57d0;
+  --mks-on-primary: #ffffff;
+  --mks-tonal: #d3e3fd;
+  --mks-on-tonal: #0842a0;
 }
 
 html.dark-theme {
@@ -63,6 +67,10 @@ html.dark-theme {
   --mks-text: #e5e7eb;
   --mks-muted: #94a3b8;
   --mks-input-bg: #0b1220;
+  --mks-primary: #a8c7fa;
+  --mks-on-primary: #062e6f;
+  --mks-tonal: #1f2f48;
+  --mks-on-tonal: #d3e3fd;
 }
 
 * {
@@ -94,7 +102,12 @@ html.dark-theme .session-meta {
 
 html.dark-theme .details-row td,
 html.dark-theme .details-panel,
-html.dark-theme .customer-preview {
+html.dark-theme .customer-preview,
+html.dark-theme .hero,
+html.dark-theme .mini-item,
+html.dark-theme .progress-bar,
+html.dark-theme .bars,
+html.dark-theme .table-wrap {
   background: var(--mks-surface-soft) !important;
 }
 
@@ -132,11 +145,57 @@ html.dark-theme .inner-table td {
   border-bottom-color: var(--mks-border) !important;
 }
 
-html.dark-theme button.secondary,
-html.dark-theme .ghost {
-  background: #162033 !important;
-  color: #dbeafe !important;
+html.dark-theme .hero,
+html.dark-theme .page-header,
+html.dark-theme .customer-preview {
+  background: var(--mks-surface) !important;
   border-color: var(--mks-border) !important;
+}
+
+.content button,
+.content .ghost {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  min-height: 40px;
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.content button {
+  background: var(--mks-primary);
+  color: var(--mks-on-primary);
+  border-color: color-mix(in srgb, var(--mks-primary) 78%, #00000000);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.content button:hover {
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
+  filter: saturate(1.04);
+}
+
+.content button.secondary,
+.content .ghost {
+  background: var(--mks-tonal);
+  color: var(--mks-on-tonal);
+  border-color: color-mix(in srgb, var(--mks-tonal) 65%, var(--mks-border));
+  box-shadow: none;
+}
+
+.content button.secondary:hover,
+.content .ghost:hover {
+  background: color-mix(in srgb, var(--mks-tonal) 88%, var(--mks-surface));
+}
+
+html.dark-theme .content button {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+html.dark-theme .content button.secondary,
+html.dark-theme .content .ghost {
+  border-color: var(--mks-border);
 }
 
 html.dark-theme .pill.warn {

@@ -12,8 +12,8 @@
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #e4e7ec;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 14px;
@@ -43,7 +43,7 @@
 
 input,
 select {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 8px;
   padding: 8px;
 }

@@ -26,7 +26,11 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: 272px 1fr;
-  background: radial-gradient(circle at 15% 20%, #ffffff, var(--shell-bg));
+  background: radial-gradient(
+    circle at 15% 20%,
+    color-mix(in srgb, var(--mks-surface) 72%, var(--shell-bg)),
+    var(--shell-bg)
+  );
   position: relative;
 }
 
@@ -114,7 +118,7 @@
   border: 1px solid color-mix(in srgb, var(--sidebar-active) 25%, var(--border-color));
   border-radius: 10px;
   padding: 10px;
-  background: rgba(255, 255, 255, 0.68);
+  background: color-mix(in srgb, var(--mks-surface) 84%, transparent);
   backdrop-filter: blur(10px);
   font-size: 0.85rem;
 }
@@ -158,8 +162,8 @@
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 35%, #ffffff);
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, #ffffff);
+  background: color-mix(in srgb, var(--accent) 35%, var(--mks-surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--mks-surface));
   flex: 0 0 auto;
 }
 
@@ -169,12 +173,12 @@
 
 .menu a:hover {
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border-color));
-  background: color-mix(in srgb, var(--accent) 10%, #ffffff);
+  background: color-mix(in srgb, var(--accent) 10%, var(--mks-surface));
 }
 
 .menu a.active {
-  background: color-mix(in srgb, var(--accent) 16%, #ffffff);
-  border-color: color-mix(in srgb, var(--accent) 55%, #ffffff);
+  background: color-mix(in srgb, var(--accent) 16%, var(--mks-surface));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--mks-surface));
   color: var(--sidebar-text);
 }
 
@@ -187,7 +191,7 @@
 .logout-btn {
   margin-top: auto;
   border: 1px solid var(--border-color);
-  background: rgba(255, 255, 255, 0.72);
+  background: color-mix(in srgb, var(--mks-surface) 86%, transparent);
   color: var(--sidebar-text);
   border-radius: 10px;
   padding: 10px 12px;
@@ -196,7 +200,7 @@
 }
 
 .logout-btn:hover {
-  background: #fff;
+  background: color-mix(in srgb, var(--mks-surface) 100%, transparent);
 }
 
 :host-context(.dark-theme) .logout-btn {

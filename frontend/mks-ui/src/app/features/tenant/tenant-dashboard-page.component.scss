@@ -11,7 +11,7 @@
   gap: 16px;
   padding: 18px 18px 14px;
   border-radius: 16px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--mks-border);
   background: radial-gradient(circle at 15% 15%, #eff6ff, #ffffff);
 }
 
@@ -35,7 +35,7 @@ h1 {
 
 .subtitle {
   margin: 0;
-  color: #475467;
+  color: var(--mks-muted);
 }
 
 .hero-actions {
@@ -66,9 +66,9 @@ button[disabled] {
 }
 
 .ghost {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   color: #1f2937;
-  background: #fff;
+  background: var(--mks-surface);
 }
 
 .meta {
@@ -76,7 +76,7 @@ button[disabled] {
   flex-wrap: wrap;
   gap: 16px;
   margin: 12px 0 4px;
-  color: #475467;
+  color: var(--mks-muted);
   font-size: 0.95rem;
 }
 
@@ -88,8 +88,8 @@ button[disabled] {
 }
 
 .kpi {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 14px;
   padding: 12px;
 }
@@ -102,7 +102,7 @@ button[disabled] {
 .label {
   display: block;
   font-size: 0.85rem;
-  color: #475467;
+  color: var(--mks-muted);
 }
 
 .value {
@@ -115,7 +115,7 @@ button[disabled] {
   display: block;
   margin-top: 6px;
   font-size: 0.85rem;
-  color: #667085;
+  color: var(--mks-muted);
 }
 
 .grid {
@@ -130,8 +130,8 @@ button[disabled] {
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 14px;
   padding: 12px;
 }
@@ -153,7 +153,7 @@ button[disabled] {
 
 .form-grid input,
 .form-grid textarea {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--mks-border);
   border-radius: 10px;
   padding: 10px;
   font: inherit;
@@ -170,15 +170,15 @@ button[disabled] {
 }
 
 .mini-item {
-  border: 1px solid #f1f5f9;
-  background: #f8fafc;
+  border: 1px solid var(--mks-border);
+  background: var(--mks-surface-soft);
   border-radius: 12px;
   padding: 10px;
 }
 
 .mini-label {
   display: block;
-  color: #475467;
+  color: var(--mks-muted);
   font-size: 0.82rem;
 }
 
@@ -202,7 +202,7 @@ button[disabled] {
 }
 
 .progress-value {
-  color: #344054;
+  color: var(--mks-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -247,7 +247,7 @@ button[disabled] {
 }
 
 .muted {
-  color: #667085;
+  color: var(--mks-muted);
 }
 
 .notice {
