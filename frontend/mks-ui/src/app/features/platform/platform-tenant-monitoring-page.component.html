@@ -1,0 +1,68 @@
+<section class="tenant-monitoring-wrap">
+  <header>
+    <a routerLink="/platform/tenants">Voltar para tenants</a>
+    <div class="header-actions">
+      <label>
+        Período
+        <select [ngModel]="selectedPeriod()" (ngModelChange)="onPeriodChange($event)">
+          @for (option of periodOptions; track option.value) {
+            <option [ngValue]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+      <button type="button" (click)="reload()">Atualizar</button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p>Carregando monitoramento...</p>
+  } @else if (error()) {
+    <p class="error">{{ error() }}</p>
+  } @else if (payload(); as data) {
+    <h1>Monitoramento: {{ data.tenant.legal_name }}</h1>
+    <p>Slug: {{ data.tenant.slug }} | Status: {{ data.tenant.status }}</p>
+    <p class="period-info">Período aplicado: {{ data.period || selectedPeriod() }}</p>
+
+    <article class="card">
+      <h2>Último heartbeat</h2>
+      @if (data.latest) {
+        <p>Última coleta: {{ data.latest.captured_at | date: "dd/MM/yyyy HH:mm:ss" }}</p>
+        <p>P95: {{ data.latest.p95_latency | number: "1.0-2" }} ms</p>
+        <p>Erro: {{ (data.latest.error_rate * 100) | number: "1.0-2" }}%</p>
+        <p>Jobs pendentes: {{ data.latest.jobs_pending }}</p>
+      } @else {
+        <p>Sem heartbeat para este tenant.</p>
+      }
+    </article>
+
+    <article class="card">
+      <h2>Histórico</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Capturado em</th>
+            <th>Request/s</th>
+            <th>Erro (%)</th>
+            <th>P95 (ms)</th>
+            <th>Jobs</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of data.history; track row.id) {
+            <tr>
+              <td>{{ row.captured_at | date: "dd/MM/yyyy HH:mm:ss" }}</td>
+              <td>{{ row.request_rate | number: "1.0-2" }}</td>
+              <td>{{ (row.error_rate * 100) | number: "1.0-2" }}</td>
+              <td>{{ row.p95_latency | number: "1.0-2" }}</td>
+              <td>{{ row.jobs_pending }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">Sem histórico no período selecionado.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </article>
+  }
+</section>

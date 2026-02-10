@@ -26,3 +26,23 @@ class IsPlatformAdmin(BasePermission):
 
         self.message = "Control-plane endpoints are restricted to allowed control-plane hosts."
         return False
+
+
+class IsControlPanelAdmin(IsPlatformAdmin):
+    message = "Only SUPERADMIN/SAAS_ADMIN can access control-panel endpoints."
+
+    def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            return False
+
+        user = request.user
+        if user.is_superuser:
+            return True
+
+        # Role mapping via Django groups.
+        allowed_roles = {"SUPERADMIN", "SAAS_ADMIN"}
+        if user.groups.filter(name__in=allowed_roles).exists():
+            return True
+
+        self.message = "Requires SUPERADMIN or SAAS_ADMIN role."
+        return False

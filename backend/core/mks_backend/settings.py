@@ -14,6 +14,11 @@ env = environ.Env(
     FISCAL_INVOICE_RESOLVER=(str, ""),
     FISCAL_ADAPTER_TIMEOUT_SECONDS=(int, 30),
     FISCAL_WEBHOOK_SECRET=(str, ""),
+    MONITORING_INGEST_TOKEN=(str, ""),
+    CONTROL_PLANE_SOFT_DELETE_RETENTION_DAYS=(int, 90),
+    CONTROL_PLANE_ALERT_HEARTBEAT_MINUTES=(int, 15),
+    CONTROL_PLANE_ALERT_HIGH_ERROR_RATE=(float, 0.10),
+    TENANT_RATE_LIMIT_CACHE_SECONDS=(int, 70),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
@@ -100,6 +105,11 @@ if not DEBUG and not _is_management_command:
 FISCAL_INVOICE_RESOLVER = (env("FISCAL_INVOICE_RESOLVER") or "").strip()
 FISCAL_ADAPTER_TIMEOUT_SECONDS = env("FISCAL_ADAPTER_TIMEOUT_SECONDS")
 FISCAL_WEBHOOK_SECRET = env("FISCAL_WEBHOOK_SECRET")
+MONITORING_INGEST_TOKEN = env("MONITORING_INGEST_TOKEN")
+CONTROL_PLANE_SOFT_DELETE_RETENTION_DAYS = env("CONTROL_PLANE_SOFT_DELETE_RETENTION_DAYS")
+CONTROL_PLANE_ALERT_HEARTBEAT_MINUTES = env("CONTROL_PLANE_ALERT_HEARTBEAT_MINUTES")
+CONTROL_PLANE_ALERT_HIGH_ERROR_RATE = env("CONTROL_PLANE_ALERT_HIGH_ERROR_RATE")
+TENANT_RATE_LIMIT_CACHE_SECONDS = env("TENANT_RATE_LIMIT_CACHE_SECONDS")
 
 USE_X_FORWARDED_HOST = env.bool("USE_X_FORWARDED_HOST", default=True)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -314,6 +324,14 @@ TENANT_EXEMPT_PATH_PREFIXES = env.list(
     "TENANT_EXEMPT_PATH_PREFIXES",
     default=["/api/auth/token/", "/api/auth/me/"],
 )
+TENANT_SUSPENSION_EXEMPT_PATH_PREFIXES = env.list(
+    "TENANT_SUSPENSION_EXEMPT_PATH_PREFIXES",
+    default=[
+        "/api/auth/token/",
+        "/api/auth/password-reset/request/",
+        "/api/auth/password-reset/confirm/",
+    ],
+)
 CONTROL_PLANE_SUBDOMAIN = env("CONTROL_PLANE_SUBDOMAIN", default="sistema").strip().lower()
 CONTROL_PLANE_HOST = env("CONTROL_PLANE_HOST", default="").strip().lower()
 if not CONTROL_PLANE_HOST and TENANT_BASE_DOMAIN and CONTROL_PLANE_SUBDOMAIN:
@@ -431,6 +449,8 @@ DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL",
     default=f"no-reply@{TENANT_BASE_DOMAIN or 'localhost'}",
 )
+RESEND_API_KEY = env("RESEND_API_KEY", default="").strip()
+RESEND_FROM_EMAIL = env("RESEND_FROM_EMAIL", default=DEFAULT_FROM_EMAIL).strip()
 
 # ------------------------------------------------------------------------------
 # Logging (mask CPF/CNPJ in logs)

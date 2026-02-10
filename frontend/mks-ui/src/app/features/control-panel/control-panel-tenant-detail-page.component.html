@@ -1,0 +1,619 @@
+<section class="tenant-detail-wrap">
+  <header class="page-header">
+    <div>
+      <h1>Tenant Detail</h1>
+      <p *ngIf="tenant() as current">
+        {{ current.legal_name }} • {{ current.slug }}.{{ current.subdomain }}
+      </p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/control-panel/tenants/new" class="secondary">Novo Tenant</a>
+      <button type="button" class="secondary" (click)="backToTenants()">Voltar</button>
+    </div>
+  </header>
+
+  <p *ngIf="loading()">Carregando tenant...</p>
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <p class="success" *ngIf="success()">{{ success() }}</p>
+
+  <ng-container *ngIf="tenant() as current">
+    <nav class="tabs">
+      <button type="button" [class.active]="selectedTab() === 'overview'" (click)="setTab('overview')">
+        Overview
+      </button>
+      <button type="button" [class.active]="selectedTab() === 'billing'" (click)="setTab('billing')">
+        Plano & Cobrança
+      </button>
+      <button type="button" [class.active]="selectedTab() === 'contracts'" (click)="setTab('contracts')">
+        Contratos
+      </button>
+      <button type="button" [class.active]="selectedTab() === 'monitoring'" (click)="setTab('monitoring')">
+        Monitoramento
+      </button>
+      <button type="button" [class.active]="selectedTab() === 'governance'" (click)="setTab('governance')">
+        Governança
+      </button>
+      <button type="button" [class.active]="selectedTab() === 'features'" (click)="setTab('features')">
+        Features
+      </button>
+      <button type="button" [class.active]="selectedTab() === 'notes'" (click)="setTab('notes')">
+        Notas
+      </button>
+      <button type="button" [class.active]="selectedTab() === 'audit'" (click)="setTab('audit')">
+        Auditoria
+      </button>
+    </nav>
+
+    <section class="tab-panel" *ngIf="selectedTab() === 'overview'">
+      <div class="grid two">
+        <article class="card">
+          <h3>Dados cadastrais</h3>
+          <dl>
+            <div><dt>Razão social</dt><dd>{{ current.legal_name }}</dd></div>
+            <div><dt>Slug</dt><dd>{{ current.slug }}</dd></div>
+            <div><dt>Subdomínio</dt><dd>{{ current.subdomain }}</dd></div>
+            <div><dt>CNPJ</dt><dd>{{ current.cnpj || '-' }}</dd></div>
+            <div><dt>Email contato</dt><dd>{{ current.contact_email || '-' }}</dd></div>
+            <div><dt>Status</dt><dd>{{ current.status }}</dd></div>
+            <div><dt>Último motivo</dt><dd>{{ current.last_status_reason || '-' }}</dd></div>
+          </dl>
+        </article>
+
+        <article class="card">
+          <h3>Endereço</h3>
+          <dl>
+            <div><dt>CEP</dt><dd>{{ current.cep || '-' }}</dd></div>
+            <div><dt>Logradouro</dt><dd>{{ current.street || '-' }}</dd></div>
+            <div><dt>Número</dt><dd>{{ current.number || '-' }}</dd></div>
+            <div><dt>Complemento</dt><dd>{{ current.complement || '-' }}</dd></div>
+            <div><dt>Bairro</dt><dd>{{ current.district || '-' }}</dd></div>
+            <div><dt>Cidade/UF</dt><dd>{{ current.city || '-' }} / {{ current.state || '-' }}</dd></div>
+          </dl>
+        </article>
+      </div>
+
+      <article class="card actions-card">
+        <h3>Ações administrativas</h3>
+        <div class="actions">
+          <button type="button" class="warn" (click)="suspendTenant()" [disabled]="actionLoading() || current.status !== 'ACTIVE'">
+            Suspender
+          </button>
+          <button
+            type="button"
+            class="ok"
+            (click)="unsuspendTenant()"
+            [disabled]="actionLoading() || current.status !== 'SUSPENDED' || !canUnsuspend()"
+          >
+            Reativar
+          </button>
+          <button type="button" class="danger" (click)="softDeleteTenant()" [disabled]="actionLoading() || current.status === 'DELETED'">
+            Excluir (soft)
+          </button>
+          <button type="button" class="secondary" (click)="exportTenantData()" [disabled]="actionLoading()">
+            Exportar dados
+          </button>
+        </div>
+        <small>
+          Exclusão exige confirmação forte digitando o slug; reativação é restrita a SUPERADMIN.
+        </small>
+      </article>
+    </section>
+
+    <section class="tab-panel" *ngIf="selectedTab() === 'billing'">
+      <article class="card">
+        <h3>Plano e Cobrança</h3>
+        <div class="grid two">
+          <label>
+            Plano
+            <select [ngModel]="subscriptionPlanId()" (ngModelChange)="subscriptionPlanId.set($event)">
+              <option [ngValue]="null">Selecione um plano</option>
+              <option *ngFor="let plan of plans()" [ngValue]="plan.id">
+                {{ planLabel(plan) }}
+              </option>
+            </select>
+          </label>
+
+          <label>
+            Trial
+            <select [ngModel]="subscriptionIsTrial()" (ngModelChange)="subscriptionIsTrial.set($event)">
+              <option [ngValue]="true">Sim</option>
+              <option [ngValue]="false">Não</option>
+            </select>
+          </label>
+
+          <label *ngIf="subscriptionIsTrial()">
+            Dias de trial
+            <input
+              type="number"
+              min="1"
+              max="90"
+              [ngModel]="subscriptionTrialDays()"
+              (ngModelChange)="subscriptionTrialDays.set(+$event || 7)"
+            />
+          </label>
+
+          <label>
+            Cortesia
+            <select [ngModel]="subscriptionIsCourtesy()" (ngModelChange)="subscriptionIsCourtesy.set($event)">
+              <option [ngValue]="true">Sim</option>
+              <option [ngValue]="false">Não</option>
+            </select>
+          </label>
+
+          <label>
+            Setup fee override (0 ou 150)
+            <input
+              type="number"
+              min="0"
+              max="150"
+              step="150"
+              [ngModel]="subscriptionSetupFeeOverride()"
+              (ngModelChange)="onSubscriptionSetupFeeOverrideChange($event)"
+            />
+          </label>
+        </div>
+
+        <div class="actions top-gap">
+          <button type="button" (click)="saveSubscription()" [disabled]="actionLoading()">
+            Salvar plano e cobrança
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <section class="tab-panel" *ngIf="selectedTab() === 'contracts'">
+      <article class="card">
+        <h3>Contratos</h3>
+        <div class="contract-toolbar">
+          <button type="button" (click)="createContractDraft()" [disabled]="actionLoading()">
+            Criar draft
+          </button>
+          <label>
+            E-mail destino
+            <input
+              type="email"
+              [ngModel]="contractEmail()"
+              (ngModelChange)="contractEmail.set($event || '')"
+              placeholder="contato@tenant.com"
+            />
+          </label>
+        </div>
+
+        <table class="table" *ngIf="contracts().length > 0; else emptyContracts">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Versão</th>
+              <th>Status</th>
+              <th>Criado em</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let contract of contracts()">
+              <td>#{{ contract.id }}</td>
+              <td>{{ contract.contract_version }}</td>
+              <td>{{ contract.status }}</td>
+              <td>{{ contract.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <div class="actions">
+                  <button type="button" class="secondary" (click)="openContract(contract.id)">Detalhar</button>
+                  <button type="button" (click)="sendContract(contract)">Enviar</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #emptyContracts>
+          <p>Nenhum contrato para este tenant.</p>
+        </ng-template>
+      </article>
+
+      <article class="card" *ngIf="selectedContract() as contract">
+        <h4>Contrato #{{ contract.id }} • {{ contract.status }}</h4>
+        <p>Versão {{ contract.contract_version }} • Criado em {{ contract.created_at | date: 'dd/MM/yyyy HH:mm' }}</p>
+
+        <div *ngIf="contract.email_logs?.length; else noContractLogs">
+          <h5>Histórico de envio</h5>
+          <table class="table compact">
+            <thead>
+              <tr>
+                <th>Para</th>
+                <th>Status</th>
+                <th>Message ID</th>
+                <th>Enviado em</th>
+                <th>Erro</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let log of contract.email_logs">
+                <td>{{ log.to_email }}</td>
+                <td>{{ log.status }}</td>
+                <td>{{ log.resend_message_id || '-' }}</td>
+                <td>{{ log.sent_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ log.error || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noContractLogs>
+          <p>Sem logs de envio para este contrato.</p>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="tab-panel" *ngIf="selectedTab() === 'monitoring'">
+      <article class="card">
+        <div class="monitoring-header">
+          <h3>Monitoramento do tenant</h3>
+          <label>
+            Período
+            <select [ngModel]="monitoringPeriod()" (ngModelChange)="onMonitoringPeriodChange($event)">
+              <option *ngFor="let option of monitoringPeriodOptions" [ngValue]="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+        </div>
+        <p class="period-info">Período aplicado: {{ monitoring()?.period || monitoringPeriod() }}</p>
+        <p *ngIf="monitoring()?.latest as latest">
+          Último heartbeat: {{ latest.last_seen_at ? (latest.last_seen_at | date: 'dd/MM/yyyy HH:mm:ss') : '-' }}
+          • P95: {{ latest.p95_latency }}ms
+          • Error rate: {{ latest.error_rate }}
+          • Jobs pendentes: {{ latest.jobs_pending }}
+        </p>
+
+        <table class="table" *ngIf="monitoring()?.history?.length; else emptyMonitoring">
+          <thead>
+            <tr>
+              <th>Capturado em</th>
+              <th>Req/s</th>
+              <th>Error rate</th>
+              <th>P95</th>
+              <th>Jobs pendentes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of monitoring()?.history">
+              <td>{{ row.captured_at | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+              <td>{{ row.request_rate }}</td>
+              <td>{{ row.error_rate }}</td>
+              <td>{{ row.p95_latency }}ms</td>
+              <td>{{ row.jobs_pending }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #emptyMonitoring>
+          <p>Sem snapshots de monitoramento para este tenant.</p>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="tab-panel" *ngIf="selectedTab() === 'governance'">
+      <article class="card">
+        <div class="monitoring-header">
+          <h3>Rate limits e limites de armazenamento</h3>
+          <button type="button" (click)="saveLimits()" [disabled]="actionLoading() || !tenantLimits()">
+            Salvar limites
+          </button>
+        </div>
+        <div class="grid two" *ngIf="tenantLimits() as limits">
+          <label>
+            Requests/min
+            <input
+              type="number"
+              min="1"
+              [ngModel]="limits.requests_per_minute"
+              (ngModelChange)="updateLimitsField('requests_per_minute', +$event || 1)"
+            />
+          </label>
+          <label>
+            Limite total de storage (GB)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              [ngModel]="limits.storage_limit_gb"
+              (ngModelChange)="updateLimitsField('storage_limit_gb', asString($event, '0'))"
+            />
+          </label>
+          <label>
+            Limite docs (GB)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              [ngModel]="limits.docs_storage_limit_gb"
+              (ngModelChange)="updateLimitsField('docs_storage_limit_gb', asString($event, '0'))"
+            />
+          </label>
+          <label>
+            Uso atual total (GB)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              [ngModel]="limits.current_storage_gb"
+              (ngModelChange)="updateLimitsField('current_storage_gb', asString($event, '0'))"
+            />
+          </label>
+          <label>
+            Uso atual docs (GB)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              [ngModel]="limits.current_docs_storage_gb"
+              (ngModelChange)="updateLimitsField('current_docs_storage_gb', asString($event, '0'))"
+            />
+          </label>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3>Integrações por tenant (Secret Manager reference only)</h3>
+        <div class="grid two">
+          <label>
+            Provider
+            <select [ngModel]="integrationProvider()" (ngModelChange)="integrationProvider.set($event)">
+              <option value="RESEND">Resend</option>
+              <option value="WHATSAPP">WhatsApp</option>
+              <option value="VERTEX_AI">Vertex AI</option>
+              <option value="CUSTOM">Custom</option>
+            </select>
+          </label>
+          <label>
+            Alias
+            <input type="text" [ngModel]="integrationAlias()" (ngModelChange)="integrationAlias.set($event || '')" />
+          </label>
+          <label class="full">
+            Secret Manager Ref
+            <input
+              type="text"
+              [ngModel]="integrationSecretRef()"
+              (ngModelChange)="integrationSecretRef.set($event || '')"
+              placeholder="projects/<project>/secrets/<name>"
+            />
+          </label>
+          <label class="full">
+            Metadata JSON
+            <textarea
+              rows="3"
+              [ngModel]="integrationMetadata()"
+              (ngModelChange)="integrationMetadata.set($event || '')"
+              placeholder='{\"from_email\":\"no-reply@mksbrasil.com\"}'
+            ></textarea>
+          </label>
+        </div>
+        <div class="actions top-gap">
+          <button type="button" (click)="upsertIntegration()" [disabled]="actionLoading()">Salvar integração</button>
+        </div>
+        <table class="table top-gap" *ngIf="tenantIntegrations().length > 0">
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Alias</th>
+              <th>Secret Ref</th>
+              <th>Ativo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of tenantIntegrations()">
+              <td>{{ row.provider }}</td>
+              <td>{{ row.alias }}</td>
+              <td>{{ row.secret_manager_ref }}</td>
+              <td>{{ row.is_active ? 'Sim' : 'Não' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Changelog e versão por tenant</h3>
+        <div class="grid two">
+          <label>
+            Backend version
+            <input
+              type="text"
+              [ngModel]="releaseBackendVersion()"
+              (ngModelChange)="releaseBackendVersion.set($event || '')"
+            />
+          </label>
+          <label>
+            Frontend version
+            <input
+              type="text"
+              [ngModel]="releaseFrontendVersion()"
+              (ngModelChange)="releaseFrontendVersion.set($event || '')"
+            />
+          </label>
+          <label>
+            Git SHA
+            <input type="text" [ngModel]="releaseGitSha()" (ngModelChange)="releaseGitSha.set($event || '')" />
+          </label>
+          <label>
+            Source
+            <input type="text" [ngModel]="releaseSource()" (ngModelChange)="releaseSource.set($event || '')" />
+          </label>
+          <label class="full">
+            Changelog
+            <textarea
+              rows="3"
+              [ngModel]="releaseChangelog()"
+              (ngModelChange)="releaseChangelog.set($event || '')"
+            ></textarea>
+          </label>
+        </div>
+        <div class="actions top-gap">
+          <button type="button" (click)="createReleaseRecord()" [disabled]="actionLoading()">
+            Registrar versão
+          </button>
+          <button type="button" class="secondary" (click)="startImpersonation()" [disabled]="actionLoading()">
+            Entrar como tenant
+          </button>
+        </div>
+        <table class="table top-gap" *ngIf="tenantReleases().length > 0">
+          <thead>
+            <tr>
+              <th>Backend</th>
+              <th>Frontend</th>
+              <th>SHA</th>
+              <th>Atual</th>
+              <th>Deploy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let release of tenantReleases()">
+              <td>{{ release.backend_version }}</td>
+              <td>{{ release.frontend_version || '-' }}</td>
+              <td>{{ release.git_sha || '-' }}</td>
+              <td>{{ release.is_current ? 'Sim' : 'Não' }}</td>
+              <td>{{ release.deployed_at | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <div class="monitoring-header">
+          <h3>Alertas automáticos</h3>
+          <label>
+            Filtro
+            <select [ngModel]="alertsFilter()" (ngModelChange)="applyAlertsFilter($event)">
+              <option value="OPEN">OPEN</option>
+              <option value="RESOLVED">RESOLVED</option>
+            </select>
+          </label>
+        </div>
+        <table class="table" *ngIf="tenantAlerts().length > 0; else noTenantAlerts">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Severidade</th>
+              <th>Status</th>
+              <th>Mensagem</th>
+              <th>Última ocorrência</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let alert of tenantAlerts()">
+              <td>{{ alert.alert_type }}</td>
+              <td>{{ alert.severity }}</td>
+              <td>{{ alert.status }}</td>
+              <td>{{ alert.message }}</td>
+              <td>{{ alert.last_seen_at | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+              <td>
+                <button
+                  type="button"
+                  *ngIf="alert.status === 'OPEN'"
+                  (click)="resolveAlert(alert.id)"
+                  [disabled]="actionLoading()"
+                >
+                  Resolver
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #noTenantAlerts>
+          <p>Sem alertas para o filtro atual.</p>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="tab-panel" *ngIf="selectedTab() === 'features'">
+      <article class="card">
+        <h3>Features</h3>
+        <table class="table" *ngIf="features().length > 0; else emptyFeatures">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Descrição</th>
+              <th>Global</th>
+              <th>Tenant</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of features()">
+              <td>{{ row.feature.key }}</td>
+              <td>{{ row.feature.description || '-' }}</td>
+              <td>{{ row.feature.is_active ? 'Ativa' : 'Inativa' }}</td>
+              <td>{{ row.enabled ? 'Habilitada' : 'Desabilitada' }}</td>
+              <td>
+                <button
+                  type="button"
+                  (click)="toggleFeature(row)"
+                  [disabled]="actionLoading() || !row.feature.is_active"
+                >
+                  {{ row.enabled ? 'Desabilitar' : 'Habilitar' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #emptyFeatures>
+          <p>Nenhuma feature disponível.</p>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="tab-panel" *ngIf="selectedTab() === 'notes'">
+      <article class="card">
+        <h3>Notas internas</h3>
+
+        <div class="note-create">
+          <textarea
+            rows="4"
+            [ngModel]="noteDraft()"
+            (ngModelChange)="noteDraft.set($event || '')"
+            placeholder="Registre uma nota interna do tenant"
+          ></textarea>
+          <button type="button" (click)="createNote()" [disabled]="actionLoading()">Salvar nota</button>
+        </div>
+
+        <ul class="notes-list" *ngIf="notes().length > 0; else emptyNotes">
+          <li *ngFor="let note of notes()">
+            <p>{{ note.note }}</p>
+            <small>
+              {{ note.created_by_username || '-' }} • {{ note.created_at | date: 'dd/MM/yyyy HH:mm' }}
+            </small>
+          </li>
+        </ul>
+        <ng-template #emptyNotes>
+          <p>Nenhuma nota registrada para este tenant.</p>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="tab-panel" *ngIf="selectedTab() === 'audit'">
+      <article class="card">
+        <h3>Auditoria</h3>
+        <table class="table" *ngIf="auditEvents().length > 0; else emptyAudit">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Ação</th>
+              <th>Entidade</th>
+              <th>Usuário</th>
+              <th>Correlation ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let event of auditEvents()">
+              <td>{{ event.created_at | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+              <td>{{ event.action }}</td>
+              <td>{{ event.entity_type }} #{{ event.entity_id || '-' }}</td>
+              <td>{{ event.actor_username || '-' }}</td>
+              <td>{{ event.correlation_id || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #emptyAudit>
+          <p>Sem eventos de auditoria para este tenant.</p>
+        </ng-template>
+      </article>
+    </section>
+  </ng-container>
+</section>

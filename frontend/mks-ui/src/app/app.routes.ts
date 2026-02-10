@@ -1,11 +1,19 @@
 import { Routes } from "@angular/router";
 
 import { authGuard } from "./core/auth/auth.guard";
+import { permissionGuard } from "./core/auth/permission.guard";
 import { portalGuard } from "./core/portal/portal.guard";
+import { ControlPanelLayoutComponent } from "./features/control-panel/control-panel-layout.component";
+import { ControlPanelPlaceholderPageComponent } from "./features/control-panel/control-panel-placeholder-page.component";
+import { ControlPanelTenantDetailPageComponent } from "./features/control-panel/control-panel-tenant-detail-page.component";
+import { ControlPanelTenantFormPageComponent } from "./features/control-panel/control-panel-tenant-form-page.component";
+import { ControlPanelTenantsListPageComponent } from "./features/control-panel/control-panel-tenants-list-page.component";
 import { ForgotPasswordPageComponent } from "./features/auth/forgot-password-page.component";
 import { LoginPageComponent } from "./features/auth/login-page.component";
 import { ResetPasswordPageComponent } from "./features/auth/reset-password-page.component";
 import { PlatformTenantsPageComponent } from "./features/platform/platform-tenants-page.component";
+import { PlatformMonitoringPageComponent } from "./features/platform/platform-monitoring-page.component";
+import { PlatformTenantMonitoringPageComponent } from "./features/platform/platform-tenant-monitoring-page.component";
 import { SalesFlowPageComponent } from "./features/sales/sales-flow-page.component";
 import { SectionPlaceholderPageComponent } from "./features/shared/section-placeholder-page.component";
 import { TenantActivitiesPageComponent } from "./features/tenant/tenant-activities-page.component";
@@ -143,6 +151,104 @@ export const routes: Routes = [
     },
   },
   {
+    path: "control-panel",
+    component: ControlPanelLayoutComponent,
+    canActivate: [authGuard, portalGuard, permissionGuard],
+    data: { portal: "CONTROL_PLANE", permission: "control_panel.access" },
+    children: [
+      {
+        path: "",
+        pathMatch: "full",
+        redirectTo: "dashboard",
+      },
+      {
+        path: "dashboard",
+        component: ControlPanelPlaceholderPageComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permission: "control_panel.dashboard",
+          title: "Dashboard",
+          description: "Visão geral do SaaS: tenants ativos, uso e alertas críticos.",
+        },
+      },
+      {
+        path: "tenants",
+        component: ControlPanelTenantsListPageComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permission: "control_panel.tenants.read",
+          title: "Tenants",
+          description: "Gestão de tenants, planos, status e governança operacional.",
+        },
+      },
+      {
+        path: "tenants/new",
+        component: ControlPanelTenantFormPageComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permission: "control_panel.tenants.read",
+        },
+      },
+      {
+        path: "tenants/:id/edit",
+        component: ControlPanelTenantFormPageComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permission: "control_panel.tenants.read",
+        },
+      },
+      {
+        path: "tenants/:id",
+        component: ControlPanelTenantDetailPageComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permission: "control_panel.tenants.read",
+        },
+      },
+      {
+        path: "plans",
+        component: ControlPanelPlaceholderPageComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permission: "control_panel.plans.read",
+          title: "Plans",
+          description: "Catálogo de planos e precificação do SaaS.",
+        },
+      },
+      {
+        path: "contracts",
+        component: ControlPanelPlaceholderPageComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permission: "control_panel.contracts.read",
+          title: "Contracts",
+          description: "Acompanhamento de contratos, envio e status de assinatura.",
+        },
+      },
+      {
+        path: "monitoring",
+        component: PlatformMonitoringPageComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permission: "control_panel.monitoring.read",
+          title: "Monitoring",
+          description: "Monitoramento global e por tenant com telemetria operacional.",
+        },
+      },
+      {
+        path: "audit",
+        component: ControlPanelPlaceholderPageComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permission: "control_panel.audit.read",
+          title: "Audit",
+          description: "Auditoria administrativa e trilha de mudanças no control panel.",
+        },
+      },
+    ],
+  },
+  // Legacy routes kept for backward compatibility while migrating to /control-panel/*.
+  {
     path: "platform/tenants",
     component: PlatformTenantsPageComponent,
     canActivate: [authGuard, portalGuard],
@@ -161,7 +267,7 @@ export const routes: Routes = [
   },
   {
     path: "platform/monitoring",
-    component: SectionPlaceholderPageComponent,
+    component: PlatformMonitoringPageComponent,
     canActivate: [authGuard, portalGuard],
     data: {
       portal: "CONTROL_PLANE",
@@ -169,6 +275,12 @@ export const routes: Routes = [
       description:
         "Saúde de provisionamento, banco por tenant e telemetria operacional.",
     },
+  },
+  {
+    path: "platform/tenants/:id/monitoring",
+    component: PlatformTenantMonitoringPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: { portal: "CONTROL_PLANE" },
   },
   {
     path: "tenant/members",

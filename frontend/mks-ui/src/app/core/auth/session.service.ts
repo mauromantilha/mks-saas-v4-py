@@ -1,7 +1,7 @@
 import { computed, Injectable, signal } from "@angular/core";
 
 import { TenantUserRole } from "../api/auth.types";
-import { UserSession } from "./session.types";
+import { SessionPortalType, UserSession } from "./session.types";
 
 const SESSION_STORAGE_KEY = "mks_ui_session_v1";
 
@@ -40,6 +40,20 @@ export class SessionService {
     this.writeSession(updated);
   }
 
+  updateTenantContext(tenantCode: string | null, portalType: SessionPortalType): void {
+    const current = this.state();
+    if (!current) {
+      return;
+    }
+    const updated: UserSession = {
+      ...current,
+      tenantCode,
+      portalType,
+    };
+    this.state.set(updated);
+    this.writeSession(updated);
+  }
+
   private readSession(): UserSession | null {
     try {
       const raw = localStorage.getItem(SESSION_STORAGE_KEY);
@@ -56,6 +70,8 @@ export class SessionService {
         username: parsed.username,
         role: parsed.role ?? null,
         platformAdmin: Boolean(parsed.platformAdmin),
+        isStaff: Boolean(parsed.isStaff),
+        isSuperuser: Boolean(parsed.isSuperuser),
         portalType: parsed.portalType === "CONTROL_PLANE" ? "CONTROL_PLANE" : "TENANT",
       };
     } catch {

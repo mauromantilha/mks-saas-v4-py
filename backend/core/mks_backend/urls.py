@@ -24,6 +24,7 @@ from control_plane.views import (
     ControlPlaneTenantListCreateAPIView,
     ControlPlaneTenantProvisionExecuteAPIView,
     ControlPlaneTenantProvisionAPIView,
+    MonitoringHeartbeatAPIView,
 )
 from customers.views import (
     ActiveTenantUserAPIView,
@@ -88,6 +89,7 @@ def healthz(_request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("healthz/", healthz, name="healthz"),
+    path("monitoring/heartbeat/", MonitoringHeartbeatAPIView.as_view(), name="monitoring-heartbeat"),
     path(
         "platform/api/tenants/",
         ControlPlaneTenantListCreateAPIView.as_view(),
@@ -108,6 +110,7 @@ urlpatterns = [
         ControlPlaneTenantProvisionExecuteAPIView.as_view(),
         name="platform-tenants-provision-execute",
     ),
+    path("control-panel/", include("control_plane.urls")),
     path(
         "platform/api/ledger/",
         PlatformLedgerEntryListAPIView.as_view(),

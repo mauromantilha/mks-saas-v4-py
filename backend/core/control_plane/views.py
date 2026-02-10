@@ -1,14 +1,18 @@
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from control_plane.models import TenantContract, TenantProvisioning
-from control_plane.permissions import IsPlatformAdmin
+from control_plane.models import SystemHealthSnapshot, Tenant, TenantHealthSnapshot, TenantContract, TenantProvisioning
+from control_plane.permissions import IsControlPanelAdmin, IsPlatformAdmin
 from control_plane.provisioning import execute_tenant_provisioning
+from control_plane.services.cep_lookup import CepLookupError, lookup_cep
 from control_plane.serializers import (
+    MonitoringHeartbeatSerializer,
     TenantControlPlaneCreateSerializer,
     TenantControlPlaneReadSerializer,
     TenantControlPlaneUpdateSerializer,
@@ -236,4 +240,77 @@ class ControlPlaneTenantProvisionExecuteAPIView(APIView):
                 "tenant": read_serializer.data,
             },
             status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class ControlPanelCepLookupAPIView(APIView):
+    permission_classes = [IsControlPanelAdmin]
+
+    def get(self, request, cep: str):
+        try:
+            payload = lookup_cep(cep)
+        except CepLookupError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class MonitoringHeartbeatAPIView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        expected_token = (getattr(settings, "MONITORING_INGEST_TOKEN", "") or "").strip()
+        if not expected_token:
+            return Response(
+                {"detail": "Monitoring ingest token is not configured."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        provided_token = (request.headers.get("X-Monitoring-Token", "") or "").strip()
+        if provided_token != expected_token:
+            return Response({"detail": "Invalid monitoring token."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = MonitoringHeartbeatSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
+
+        metadata = payload.get("metadata_json", {})
+        # Avoid storing large/sensitive payloads by keeping only explicit keys.
+        if metadata and len(metadata.keys()) > 30:
+            metadata = {k: metadata[k] for k in list(metadata.keys())[:30]}
+
+        system_snapshot = SystemHealthSnapshot.objects.create(
+            service_name=payload["service_name"],
+            status=payload["status"],
+            latency_ms=payload.get("latency_ms", 0),
+            error_rate=payload.get("error_rate", 0),
+            metadata_json=metadata,
+        )
+
+        tenant = None
+        tenant_id = payload.get("tenant_id")
+        tenant_slug = payload.get("tenant_slug")
+        if tenant_id:
+            tenant = Tenant.objects.filter(id=tenant_id).first()
+        elif tenant_slug:
+            tenant = Tenant.objects.filter(slug=tenant_slug).first()
+
+        tenant_snapshot = None
+        if tenant is not None:
+            tenant_snapshot = TenantHealthSnapshot.objects.create(
+                tenant=tenant,
+                last_seen_at=payload.get("last_seen_at", timezone.now()),
+                request_rate=payload.get("request_rate", 0),
+                error_rate=payload.get("error_rate", 0),
+                p95_latency=payload.get("p95_latency", payload.get("latency_ms", 0)),
+                jobs_pending=payload.get("jobs_pending", 0),
+            )
+
+        return Response(
+            {
+                "status": "ok",
+                "system_snapshot_id": system_snapshot.id,
+                "tenant_snapshot_id": tenant_snapshot.id if tenant_snapshot else None,
+            },
+            status=status.HTTP_202_ACCEPTED,
         )

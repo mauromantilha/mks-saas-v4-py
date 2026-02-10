@@ -8,5 +8,7 @@ export interface UserSession {
   username: string;
   role: TenantUserRole;
   platformAdmin: boolean;
+  isStaff: boolean;
+  isSuperuser: boolean;
   portalType: SessionPortalType;
 }

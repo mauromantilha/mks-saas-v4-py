@@ -1,0 +1,18 @@
+<html>
+  <body style="font-family: Arial, sans-serif;">
+    <h2>Contrato SaaS - {{ tenant.legal_name }}</h2>
+    <p>Versão: {{ contract.contract_version }}</p>
+    <p>Status: {{ contract.status }}</p>
+    <h3>Resumo</h3>
+    <ul>
+      <li>CNPJ: {{ snapshot.cnpj }}</li>
+      <li>Plano: {{ snapshot.plan.name }}</li>
+      <li>Mensalidade: {{ snapshot.plan.monthly_price }}</li>
+      <li>Taxa de instalação: {{ snapshot.plan.setup_fee }}</li>
+      <li>Trial: {{ snapshot.plan.is_trial|yesno:"Sim,Não" }}</li>
+      <li>Cortesia: {{ snapshot.plan.is_courtesy|yesno:"Sim,Não" }}</li>
+    </ul>
+    <p>Subdomínio: {{ snapshot.subdomain }}</p>
+    <p>Gerado em: {{ snapshot.generated_at }}</p>
+  </body>
+</html>

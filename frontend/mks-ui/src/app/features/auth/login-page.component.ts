@@ -53,7 +53,7 @@ export class LoginPageComponent {
 
       if (hostPortal === "CONTROL_PLANE") {
         if (session?.platformAdmin) {
-          void this.router.navigate(["/platform/tenants"]);
+          void this.router.navigate(["/control-panel/dashboard"]);
         } else {
           this.sessionService.clearSession();
         }
@@ -161,11 +161,13 @@ export class LoginPageComponent {
             username: authenticatedUser.username,
             role: tenantMe?.role ?? fallbackRole,
             platformAdmin: authenticatedUser.platform_admin,
+            isStaff: authenticatedUser.is_staff,
+            isSuperuser: authenticatedUser.is_superuser,
             portalType: isControlPlaneLogin ? "CONTROL_PLANE" : "TENANT",
           });
           this.loading.set(false);
           void this.router.navigate(
-            isControlPlaneLogin ? ["/platform/tenants"] : ["/tenant/dashboard"]
+            isControlPlaneLogin ? ["/control-panel/dashboard"] : ["/tenant/dashboard"]
           );
         },
         error: (err) => {

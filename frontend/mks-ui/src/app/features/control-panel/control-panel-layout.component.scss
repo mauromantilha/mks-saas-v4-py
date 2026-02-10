@@ -1,0 +1,74 @@
+.control-panel-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.topbar {
+  border-bottom: 1px solid var(--mks-border);
+  background: var(--mks-surface);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+
+  strong {
+    display: block;
+    font-size: 1rem;
+  }
+
+  span {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--mks-text-muted);
+  }
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 0;
+}
+
+.sidebar {
+  border-right: 1px solid var(--mks-border);
+  padding: 12px;
+  background: var(--mks-surface-soft);
+
+  nav {
+    display: grid;
+    gap: 6px;
+  }
+
+  a {
+    text-decoration: none;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: inherit;
+    border: 1px solid transparent;
+  }
+
+  a:hover {
+    border-color: var(--mks-border);
+  }
+
+  a.active {
+    background: color-mix(in srgb, var(--mks-accent) 14%, var(--mks-surface));
+    border-color: color-mix(in srgb, var(--mks-accent) 45%, var(--mks-border));
+  }
+}
+
+.content {
+  min-width: 0;
+  padding: 16px;
+}
+
+@media (max-width: 960px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--mks-border);
+  }
+}

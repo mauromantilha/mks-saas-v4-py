@@ -1,0 +1,78 @@
+.tenant-monitoring-wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 16px 24px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 12px;
+
+  a {
+    color: var(--md-sys-color-primary);
+    text-decoration: none;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+  }
+
+  label {
+    display: grid;
+    gap: 4px;
+    font-size: 0.82rem;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  select,
+  button {
+    border-radius: 12px;
+    padding: 10px 16px;
+  }
+
+  select {
+    border: 1px solid var(--md-sys-color-outline-variant);
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  button {
+    border: none;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    cursor: pointer;
+  }
+}
+
+.card {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 18px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: var(--md-sys-color-surface-container-low);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.error {
+  color: #c62828;
+}
+
+.period-info {
+  color: var(--md-sys-color-on-surface-variant);
+  margin-top: 0;
+}

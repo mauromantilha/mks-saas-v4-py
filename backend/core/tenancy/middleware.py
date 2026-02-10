@@ -1,10 +1,15 @@
+import logging
+import uuid
 from dataclasses import dataclass
 from typing import Optional
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import DisallowedHost
+from django.apps import apps
 from django.db import connection
 from django.http import JsonResponse
+from django.utils import timezone
 
 from customers.models import Company
 from tenancy.context import reset_current_company, set_current_company
@@ -34,6 +39,7 @@ class MksTenantMainMiddleware(TenantMainMiddleware):
 
     def __init__(self, get_response):
         super().__init__(get_response)
+        self.logger = logging.getLogger(__name__)
         self.tenant_id_header = getattr(settings, "TENANT_ID_HEADER", "X-Tenant-ID")
         self.required_path_prefixes = tuple(
             getattr(settings, "TENANT_REQUIRED_PATH_PREFIXES", ["/api/"])
@@ -45,6 +51,17 @@ class MksTenantMainMiddleware(TenantMainMiddleware):
                 ["/api/auth/token/", "/api/auth/me/"],
             )
         )
+        self.suspension_exempt_path_prefixes = tuple(
+            getattr(
+                settings,
+                "TENANT_SUSPENSION_EXEMPT_PATH_PREFIXES",
+                [
+                    "/api/auth/token/",
+                    "/api/auth/password-reset/request/",
+                    "/api/auth/password-reset/confirm/",
+                ],
+            )
+        )
         self.control_plane_host = getattr(settings, "CONTROL_PLANE_HOST", "").strip().lower()
         self.public_hosts = set(
             host.lower() for host in getattr(settings, "TENANT_PUBLIC_HOSTS", [])
@@ -53,6 +70,7 @@ class MksTenantMainMiddleware(TenantMainMiddleware):
             self.public_hosts.add(self.control_plane_host)
 
     def process_request(self, request):
+        request.correlation_id = self._resolve_correlation_id(request)
         # Tenant metadata is stored in the public schema.
         connection.set_schema_to_public()
 
@@ -78,6 +96,21 @@ class MksTenantMainMiddleware(TenantMainMiddleware):
                         {"detail": "Invalid tenant identifier."},
                         status=self.TENANT_NOT_FOUND_STATUS,
                     )
+                try:
+                    control_tenant = tenant.control_tenant
+                except Exception:
+                    control_tenant = None
+                if control_tenant is not None and control_tenant.status != "ACTIVE":
+                    if not request.path.startswith(self.suspension_exempt_path_prefixes):
+                        reason = self._build_status_reason(control_tenant.status, control_tenant)
+                        return self._tenant_blocked_response(
+                            request=request,
+                            tenant=tenant,
+                            detail=reason["detail"],
+                            http_status=reason["status_code"],
+                            reason_code=reason["reason_code"],
+                            status_value=control_tenant.status,
+                        )
 
                 request.tenant = tenant
                 tenant.domain_url = hostname
@@ -107,7 +140,29 @@ class MksTenantMainMiddleware(TenantMainMiddleware):
             )
 
         if not getattr(tenant, "is_active", True):
-            return JsonResponse({"detail": "Tenant is inactive."}, status=403)
+            return self._tenant_blocked_response(
+                request=request,
+                tenant=tenant,
+                detail="Tenant is inactive.",
+                http_status=403,
+                reason_code="INACTIVE",
+            )
+        try:
+            control_tenant = tenant.control_tenant
+        except Exception:
+            control_tenant = None
+        if control_tenant is not None and control_tenant.status != "ACTIVE":
+            if request.path.startswith(self.suspension_exempt_path_prefixes):
+                return None
+            reason = self._build_status_reason(control_tenant.status, control_tenant)
+            return self._tenant_blocked_response(
+                request=request,
+                tenant=tenant,
+                detail=reason["detail"],
+                http_status=reason["status_code"],
+                reason_code=reason["reason_code"],
+                status_value=control_tenant.status,
+            )
 
         tenant.domain_url = hostname
         request.tenant = tenant
@@ -137,6 +192,70 @@ class MksTenantMainMiddleware(TenantMainMiddleware):
             return False
         return True
 
+    @staticmethod
+    def _resolve_correlation_id(request) -> str:
+        header_value = (request.headers.get("X-Correlation-ID", "") or "").strip()
+        return header_value or str(uuid.uuid4())
+
+    def _tenant_blocked_response(
+        self,
+        request,
+        tenant,
+        detail: str,
+        http_status: int,
+        reason_code: str,
+        status_value: str = "",
+    ) -> JsonResponse:
+        payload = {
+            "detail": detail,
+            "reason": reason_code,
+            "correlation_id": request.correlation_id,
+        }
+        response = JsonResponse(payload, status=http_status)
+        response["X-Correlation-ID"] = request.correlation_id
+        self.logger.warning(
+            "tenant request blocked",
+            extra={
+                "correlation_id": request.correlation_id,
+                "tenant_id": getattr(tenant, "id", None),
+                "tenant_status": status_value,
+                "reason": reason_code,
+                "path": request.path,
+            },
+        )
+        return response
+
+    @staticmethod
+    def _build_status_reason(status_value: str, control_tenant):
+        latest_reason = (
+            control_tenant.status_history.order_by("-created_at").values_list("reason", flat=True).first()
+            or ""
+        )
+        normalized = (status_value or "").upper()
+        if normalized == "SUSPENDED":
+            return {
+                "detail": f"Tenant is suspended. {latest_reason}".strip(),
+                "reason_code": "SUSPENDED",
+                "status_code": 423,
+            }
+        if normalized == "CANCELLED":
+            return {
+                "detail": f"Tenant is cancelled. {latest_reason}".strip(),
+                "reason_code": "CANCELLED",
+                "status_code": 423,
+            }
+        if normalized == "DELETED":
+            return {
+                "detail": "Tenant is deleted.",
+                "reason_code": "DELETED",
+                "status_code": 423,
+            }
+        return {
+            "detail": "Tenant is inactive.",
+            "reason_code": "INACTIVE",
+            "status_code": 403,
+        }
+
 
 @dataclass(frozen=True)
 class TenantResolutionResult:
@@ -147,6 +266,7 @@ class TenantResolutionResult:
 class TenantContextMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
+        self.logger = logging.getLogger(__name__)
         self.tenant_id_header = getattr(settings, "TENANT_ID_HEADER", "X-Tenant-ID")
         self.required_path_prefixes = tuple(
             getattr(settings, "TENANT_REQUIRED_PATH_PREFIXES", ["/api/"])
@@ -156,6 +276,17 @@ class TenantContextMiddleware:
                 settings,
                 "TENANT_EXEMPT_PATH_PREFIXES",
                 ["/api/auth/token/", "/api/auth/me/"],
+            )
+        )
+        self.suspension_exempt_path_prefixes = tuple(
+            getattr(
+                settings,
+                "TENANT_SUSPENSION_EXEMPT_PATH_PREFIXES",
+                [
+                    "/api/auth/token/",
+                    "/api/auth/password-reset/request/",
+                    "/api/auth/password-reset/confirm/",
+                ],
             )
         )
         self.control_plane_host = getattr(settings, "CONTROL_PLANE_HOST", "").strip().lower()
@@ -169,19 +300,29 @@ class TenantContextMiddleware:
         self.base_domain = getattr(settings, "TENANT_BASE_DOMAIN", "").lower()
 
     def __call__(self, request):
+        request.correlation_id = self._resolve_correlation_id(request)
         portal_access = self._ensure_portal_access(request)
         if portal_access is not None:
+            portal_access["X-Correlation-ID"] = request.correlation_id
             return portal_access
 
         tenant_resolution = self._resolve_company(request)
 
         if tenant_resolution.error_response is not None:
+            tenant_resolution.error_response["X-Correlation-ID"] = request.correlation_id
             return tenant_resolution.error_response
 
         token = set_current_company(tenant_resolution.company)
         request.company = tenant_resolution.company
         try:
-            return self.get_response(request)
+            rate_limit_response = self._enforce_tenant_rate_limit(request, tenant_resolution.company)
+            if rate_limit_response is not None:
+                rate_limit_response["X-Correlation-ID"] = request.correlation_id
+                return rate_limit_response
+
+            response = self.get_response(request)
+            response["X-Correlation-ID"] = request.correlation_id
+            return response
         finally:
             reset_current_company(token)
 
@@ -269,16 +410,51 @@ class TenantContextMiddleware:
                     ),
                 )
 
-            return TenantResolutionResult(company=header_company)
+            return self._validate_company_access(request, header_company)
 
         if host_company is not None:
-            return TenantResolutionResult(company=host_company)
+            return self._validate_company_access(request, host_company)
 
         return TenantResolutionResult(
             company=None,
             error_response=JsonResponse(
                 {"detail": "Tenant not provided. Send X-Tenant-ID or use tenant subdomain."},
                 status=400,
+            ),
+        )
+
+    def _validate_company_access(self, request, company: Company) -> TenantResolutionResult:
+        try:
+            control_tenant = company.control_tenant
+        except Exception:
+            control_tenant = None
+
+        if control_tenant is None or control_tenant.status == "ACTIVE":
+            return TenantResolutionResult(company=company)
+
+        if request.path.startswith(self.suspension_exempt_path_prefixes):
+            return TenantResolutionResult(company=company)
+
+        reason = self._build_status_reason(control_tenant.status, control_tenant)
+        self.logger.warning(
+            "tenant request blocked",
+            extra={
+                "correlation_id": request.correlation_id,
+                "tenant_id": company.id,
+                "tenant_status": control_tenant.status,
+                "reason": reason["reason_code"],
+                "path": request.path,
+            },
+        )
+        return TenantResolutionResult(
+            company=None,
+            error_response=JsonResponse(
+                {
+                    "detail": reason["detail"],
+                    "reason": reason["reason_code"],
+                    "correlation_id": request.correlation_id,
+                },
+                status=reason["status_code"],
             ),
         )
 
@@ -326,6 +502,36 @@ class TenantContextMiddleware:
                 ),
             )
 
+        try:
+            control_tenant = company.control_tenant
+        except Exception:
+            control_tenant = None
+        if control_tenant is not None and control_tenant.status != "ACTIVE":
+            if request.path.startswith(self.suspension_exempt_path_prefixes):
+                return TenantResolutionResult(company=company)
+            reason = self._build_status_reason(control_tenant.status, control_tenant)
+            self.logger.warning(
+                "tenant request blocked",
+                extra={
+                    "correlation_id": request.correlation_id,
+                    "tenant_id": company.id,
+                    "tenant_status": control_tenant.status,
+                    "reason": reason["reason_code"],
+                    "path": request.path,
+                },
+            )
+            return TenantResolutionResult(
+                company=None,
+                error_response=JsonResponse(
+                    {
+                        "detail": reason["detail"],
+                        "reason": reason["reason_code"],
+                        "correlation_id": request.correlation_id,
+                    },
+                    status=reason["status_code"],
+                ),
+            )
+
         return TenantResolutionResult(company=company)
 
     def _company_from_host(self, host_with_port: str) -> Optional[Company]:
@@ -369,3 +575,130 @@ class TenantContextMiddleware:
             return parts[0]
 
         return None
+
+    @staticmethod
+    def _resolve_correlation_id(request) -> str:
+        header_value = (request.headers.get("X-Correlation-ID", "") or "").strip()
+        return header_value or str(uuid.uuid4())
+
+    @staticmethod
+    def _build_status_reason(status_value: str, control_tenant):
+        latest_reason = (
+            control_tenant.status_history.order_by("-created_at").values_list("reason", flat=True).first()
+            or ""
+        )
+        normalized = (status_value or "").upper()
+        if normalized == "SUSPENDED":
+            return {
+                "detail": f"Tenant is suspended. {latest_reason}".strip(),
+                "reason_code": "SUSPENDED",
+                "status_code": 423,
+            }
+        if normalized == "CANCELLED":
+            return {
+                "detail": f"Tenant is cancelled. {latest_reason}".strip(),
+                "reason_code": "CANCELLED",
+                "status_code": 423,
+            }
+        if normalized == "DELETED":
+            return {
+                "detail": "Tenant is deleted.",
+                "reason_code": "DELETED",
+                "status_code": 423,
+            }
+        return {
+            "detail": "Tenant is inactive.",
+            "reason_code": "INACTIVE",
+            "status_code": 403,
+        }
+
+    def _enforce_tenant_rate_limit(self, request, company: Optional[Company]) -> Optional[JsonResponse]:
+        if company is None:
+            return None
+        if not request.path.startswith(self.required_path_prefixes):
+            return None
+        if request.path.startswith(self.exempt_path_prefixes):
+            return None
+
+        tenant_settings_model = apps.get_model("control_plane", "TenantOperationalSettings")
+        tenant_alert_model = apps.get_model("control_plane", "TenantAlertEvent")
+        if tenant_settings_model is None:
+            return None
+
+        settings_obj = (
+            tenant_settings_model.objects.filter(tenant__company=company)
+            .only("requests_per_minute")
+            .first()
+        )
+        requests_per_minute = int(getattr(settings_obj, "requests_per_minute", 600))
+        if requests_per_minute <= 0:
+            return None
+
+        now = timezone.now()
+        bucket = now.strftime("%Y%m%d%H%M")
+        cache_ttl = max(5, int(getattr(settings, "TENANT_RATE_LIMIT_CACHE_SECONDS", 70)))
+        rate_key = f"tenant:rate-limit:{company.id}:{bucket}"
+
+        added = cache.add(rate_key, 1, timeout=cache_ttl)
+        if added:
+            current_count = 1
+        else:
+            try:
+                current_count = cache.incr(rate_key)
+            except Exception:
+                cache.set(rate_key, 1, timeout=cache_ttl)
+                current_count = 1
+
+        if current_count <= requests_per_minute:
+            return None
+
+        alert_cache_key = f"tenant:rate-limit-alert:{company.id}:{bucket}"
+        if cache.add(alert_cache_key, 1, timeout=cache_ttl) and tenant_alert_model is not None:
+            tenant = getattr(company, "control_tenant", None)
+            if tenant is not None:
+                try:
+                    tenant_alert_model.objects.get_or_create(
+                        tenant=tenant,
+                        alert_type="RATE_LIMIT_EXCEEDED",
+                        status="OPEN",
+                        defaults={
+                            "severity": "WARNING",
+                            "message": (
+                                f"Rate limit exceeded ({current_count}/{requests_per_minute} rpm)."
+                            ),
+                            "metrics_json": {
+                                "requests_per_minute": requests_per_minute,
+                                "observed_requests": current_count,
+                                "bucket": bucket,
+                            },
+                        },
+                    )
+                except Exception:
+                    self.logger.exception(
+                        "failed to register tenant rate-limit alert",
+                        extra={
+                            "tenant_id": getattr(tenant, "id", None),
+                            "correlation_id": getattr(request, "correlation_id", ""),
+                        },
+                    )
+
+        self.logger.warning(
+            "tenant rate-limit exceeded",
+            extra={
+                "correlation_id": getattr(request, "correlation_id", ""),
+                "tenant_id": company.id,
+                "path": request.path,
+                "limit": requests_per_minute,
+                "observed": current_count,
+            },
+        )
+        return JsonResponse(
+            {
+                "detail": "Tenant rate limit exceeded. Please retry later.",
+                "reason": "RATE_LIMIT_EXCEEDED",
+                "limit": requests_per_minute,
+                "observed": current_count,
+                "correlation_id": getattr(request, "correlation_id", ""),
+            },
+            status=429,
+        )

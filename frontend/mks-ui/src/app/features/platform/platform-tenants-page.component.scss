@@ -67,6 +67,54 @@ select {
   gap: 8px;
 }
 
+.billing-box {
+  border: 1px solid var(--mks-border);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--mks-surface-soft);
+}
+
+.tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tab-row button.active {
+  border: 1px solid #2563eb;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.note-create {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.note-create textarea {
+  width: 100%;
+  border: 1px solid var(--mks-border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.notes-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.notes-list li {
+  border: 1px solid var(--mks-border);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--mks-surface);
+}
+
 .top-gap {
   margin-top: 10px;
 }
@@ -77,4 +125,22 @@ select {
 
 .success {
   color: #067647;
+}
+
+.actions .warn {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+}
+
+.actions .success-btn {
+  background: #dcfce7;
+  border: 1px solid #22c55e;
+  color: #166534;
+}
+
+.actions .danger {
+  background: #fee2e2;
+  border: 1px solid #ef4444;
+  color: #991b1b;
 }

@@ -1,0 +1,157 @@
+<section class="tenant-form-wrap">
+  <header class="page-header">
+    <div>
+      <h1>{{ isEdit() ? "Editar Tenant" : "Novo Tenant" }}</h1>
+      <p>Cadastro completo com plano, trial/cortesia e endereço por CEP.</p>
+    </div>
+    <a routerLink="/control-panel/tenants">Voltar</a>
+  </header>
+
+  <p *ngIf="loading()">Carregando dados...</p>
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <p class="success" *ngIf="success()">{{ success() }}</p>
+
+  <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading()">
+    <div class="grid">
+      <label>
+        Nome *
+        <input type="text" formControlName="legal_name" />
+        <small class="field-error" *ngIf="form.controls.legal_name.touched && form.controls.legal_name.invalid">
+          Nome é obrigatório (mínimo 3 caracteres).
+        </small>
+      </label>
+
+      <label>
+        Slug *
+        <input type="text" formControlName="slug" />
+        <small class="field-error" *ngIf="form.controls.slug.touched && form.controls.slug.invalid">
+          Slug inválido. Use letras minúsculas, números e hífen.
+        </small>
+      </label>
+
+      <label>
+        Subdomínio *
+        <input type="text" formControlName="subdomain" />
+        <small class="field-error" *ngIf="form.controls.subdomain.touched && form.controls.subdomain.invalid">
+          Subdomínio inválido.
+        </small>
+      </label>
+
+      <label>
+        CNPJ
+        <input type="text" formControlName="cnpj" />
+        <small class="field-error" *ngIf="form.controls.cnpj.touched && form.controls.cnpj.hasError('cnpjInvalid')">
+          CNPJ inválido.
+        </small>
+      </label>
+
+      <label>
+        Email contato
+        <input type="email" formControlName="contact_email" />
+        <small class="field-error" *ngIf="form.controls.contact_email.touched && form.controls.contact_email.invalid">
+          Email inválido.
+        </small>
+      </label>
+
+      <label>
+        CEP
+        <input type="text" formControlName="cep" />
+        <small class="field-error" *ngIf="form.controls.cep.touched && form.controls.cep.hasError('cepInvalid')">
+          CEP deve ter 8 dígitos.
+        </small>
+      </label>
+
+      <label>
+        Logradouro
+        <input type="text" formControlName="street" />
+      </label>
+
+      <label>
+        Número
+        <input type="text" formControlName="number" />
+      </label>
+
+      <label>
+        Complemento
+        <input type="text" formControlName="complement" />
+      </label>
+
+      <label>
+        Bairro
+        <input type="text" formControlName="district" />
+      </label>
+
+      <label>
+        Cidade
+        <input type="text" formControlName="city" />
+      </label>
+
+      <label>
+        UF
+        <input type="text" formControlName="state" maxlength="2" />
+      </label>
+
+      <label>
+        Plano *
+        <select formControlName="plan_id">
+          <option [ngValue]="null">Selecione</option>
+          <option *ngFor="let plan of plans()" [ngValue]="plan.id">
+            {{ plan.name }} ({{ plan.tier }})
+          </option>
+        </select>
+        <small class="field-error" *ngIf="form.controls.plan_id.touched && form.controls.plan_id.invalid">
+          Selecione um plano.
+        </small>
+      </label>
+
+      <label>
+        Status *
+        <select formControlName="status">
+          <option value="ACTIVE">ACTIVE</option>
+          <option value="SUSPENDED">SUSPENDED</option>
+          <option value="CANCELLED">CANCELLED</option>
+          <option value="DELETED">DELETED</option>
+        </select>
+      </label>
+
+      <label>
+        Trial
+        <select formControlName="is_trial">
+          <option [ngValue]="true">Sim</option>
+          <option [ngValue]="false">Não</option>
+        </select>
+      </label>
+
+      <label *ngIf="form.controls.is_trial.value">
+        Dias de trial
+        <input type="number" formControlName="trial_days" min="1" max="90" />
+      </label>
+
+      <label>
+        Cortesia
+        <select formControlName="is_courtesy">
+          <option [ngValue]="true">Sim</option>
+          <option [ngValue]="false">Não</option>
+        </select>
+      </label>
+
+      <label>
+        Setup fee override (0 ou 150)
+        <input type="number" formControlName="setup_fee_override" />
+        <small
+          class="field-error"
+          *ngIf="form.controls.setup_fee_override.touched && form.controls.setup_fee_override.hasError('setupFeeInvalid')"
+        >
+          Valor permitido: 0 ou 150.
+        </small>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="submit" [disabled]="saving()">
+        {{ saving() ? "Salvando..." : isEdit() ? "Salvar alterações" : "Criar tenant" }}
+      </button>
+      <a routerLink="/control-panel/tenants" class="secondary-link">Cancelar</a>
+    </div>
+  </form>
+</section>

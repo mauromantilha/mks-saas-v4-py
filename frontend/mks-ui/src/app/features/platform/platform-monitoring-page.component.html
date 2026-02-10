@@ -1,0 +1,104 @@
+<section class="monitoring-wrap">
+  <header class="page-header">
+    <div>
+      <h1>Control Plane: Monitoramento</h1>
+      <p>Saúde global dos serviços e telemetria por tenant.</p>
+    </div>
+    <div class="header-actions">
+      <label>
+        Período
+        <select [ngModel]="selectedPeriod()" (ngModelChange)="onPeriodChange($event)">
+          @for (option of periodOptions; track option.value) {
+            <option [ngValue]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+      <button type="button" (click)="reload()">Atualizar</button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p>Carregando monitoramento...</p>
+  } @else if (error()) {
+    <p class="error">{{ error() }}</p>
+  } @else if (payload(); as monitoring) {
+    <p class="period-info">Período aplicado: {{ monitoring.period || selectedPeriod() }}</p>
+
+    <div class="summary-cards">
+      <article>
+        <span class="label">Serviços</span>
+        <strong>{{ monitoring.summary.total_services }}</strong>
+      </article>
+      <article>
+        <span class="label">Tenants Monitorados</span>
+        <strong>{{ monitoring.summary.total_tenants }}</strong>
+      </article>
+      <article>
+        <span class="label">Tenants Degradados</span>
+        <strong>{{ monitoring.summary.degraded_tenants }}</strong>
+      </article>
+    </div>
+
+    <section class="panel">
+      <h2>Serviços (último heartbeat)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Serviço</th>
+            <th>Status</th>
+            <th>Latência (ms)</th>
+            <th>Erro (%)</th>
+            <th>Capturado em</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (service of monitoring.services; track trackService($index, service)) {
+            <tr>
+              <td>{{ service.service_name }}</td>
+              <td><span class="status" [class]="statusClass(service.status)">{{ service.status }}</span></td>
+              <td>{{ service.latency_ms | number: "1.0-2" }}</td>
+              <td>{{ (service.error_rate * 100) | number: "1.0-2" }}</td>
+              <td>{{ service.captured_at | date: "dd/MM/yyyy HH:mm:ss" }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">Sem dados de serviços no período selecionado.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Tenants (último heartbeat)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Tenant</th>
+            <th>Request/s</th>
+            <th>Erro (%)</th>
+            <th>P95 (ms)</th>
+            <th>Jobs pendentes</th>
+            <th>Last seen</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (tenant of monitoring.tenants; track trackTenant($index, tenant)) {
+            <tr>
+              <td>{{ tenant.tenant_name }} ({{ tenant.tenant_slug }})</td>
+              <td>{{ tenant.request_rate | number: "1.0-2" }}</td>
+              <td>{{ (tenant.error_rate * 100) | number: "1.0-2" }}</td>
+              <td>{{ tenant.p95_latency | number: "1.0-2" }}</td>
+              <td>{{ tenant.jobs_pending }}</td>
+              <td>{{ tenant.last_seen_at ? (tenant.last_seen_at | date: "dd/MM/yyyy HH:mm:ss") : "-" }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">Sem dados de tenants no período selecionado.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+</section>

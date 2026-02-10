@@ -1,0 +1,14 @@
+Contrato SaaS - {{ tenant.legal_name }}
+Versão: {{ contract.contract_version }}
+Status: {{ contract.status }}
+
+Resumo:
+- CNPJ: {{ snapshot.cnpj }}
+- Plano: {{ snapshot.plan.name }}
+- Mensalidade: {{ snapshot.plan.monthly_price }}
+- Taxa de instalação: {{ snapshot.plan.setup_fee }}
+- Trial: {{ snapshot.plan.is_trial|yesno:"Sim,Não" }}
+- Cortesia: {{ snapshot.plan.is_courtesy|yesno:"Sim,Não" }}
+
+Subdomínio: {{ snapshot.subdomain }}
+Gerado em: {{ snapshot.generated_at }}

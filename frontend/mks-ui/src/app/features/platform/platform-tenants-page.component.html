@@ -1,5 +1,5 @@
 <section class="platform-wrap">
-  <h1>Control Plane: Gestão de Tenants</h1>
+  <h1>Control Panel: Tenants, Planos e Cobrança</h1>
 
   <div class="meta" *ngIf="session()">
     <span><strong>Usuário:</strong> {{ session()?.username }}</span>
@@ -12,13 +12,38 @@
   <p *ngIf="success()" class="success">{{ success() }}</p>
 
   <article class="card">
-    <h2>Buscar</h2>
+    <h2>Planos</h2>
+    <table *ngIf="plans().length > 0" class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Tier</th>
+          <th>Mensalidade</th>
+          <th>Instalação</th>
+          <th>Ativo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let plan of plans()">
+          <td>{{ plan.name }}</td>
+          <td>{{ plan.tier }}</td>
+          <td>R$ {{ plan.price?.monthly_price || "-" }}</td>
+          <td>R$ {{ plan.price?.setup_fee || "-" }}</td>
+          <td>{{ plan.is_active ? "Sim" : "Não" }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="plans().length === 0">Nenhum plano cadastrado.</p>
+  </article>
+
+  <article class="card">
+    <h2>Buscar Tenants</h2>
     <div class="search-row">
       <input
         type="text"
         [ngModel]="search()"
         (ngModelChange)="search.set($event)"
-        placeholder="Buscar por nome do tenant"
+        placeholder="Buscar por nome/CNPJ"
       />
       <button type="button" (click)="load()" [disabled]="loading()">Pesquisar</button>
     </div>
@@ -29,44 +54,89 @@
     <div class="create-grid">
       <label>
         Nome
-        <input
-          type="text"
-          [ngModel]="createName()"
-          (ngModelChange)="createName.set($event)"
-          placeholder="Acme Seguros"
-        />
+        <input type="text" [ngModel]="createName()" (ngModelChange)="createName.set($event)" />
+      </label>
+      <label>
+        CNPJ
+        <input type="text" [ngModel]="createCnpj()" (ngModelChange)="createCnpj.set($event)" />
       </label>
       <label>
         Tenant Code
-        <input
-          type="text"
-          [ngModel]="createTenantCode()"
-          (ngModelChange)="createTenantCode.set($event)"
-          placeholder="acme"
-        />
+        <input type="text" [ngModel]="createTenantCode()" (ngModelChange)="createTenantCode.set($event)" />
       </label>
       <label>
         Subdomain
+        <input type="text" [ngModel]="createSubdomain()" (ngModelChange)="createSubdomain.set($event)" />
+      </label>
+      <label>
+        CEP
+        <input type="text" [ngModel]="createCep()" (ngModelChange)="onCreateCepChange($event)" maxlength="8" />
+      </label>
+      <label>
+        Logradouro
+        <input type="text" [ngModel]="createStreet()" (ngModelChange)="createStreet.set($event)" />
+      </label>
+      <label>
+        Bairro
+        <input type="text" [ngModel]="createDistrict()" (ngModelChange)="createDistrict.set($event)" />
+      </label>
+      <label>
+        Cidade
+        <input type="text" [ngModel]="createCity()" (ngModelChange)="createCity.set($event)" />
+      </label>
+      <label>
+        UF
         <input
           type="text"
-          [ngModel]="createSubdomain()"
-          (ngModelChange)="createSubdomain.set($event)"
-          placeholder="acme"
+          [ngModel]="createState()"
+          (ngModelChange)="createState.set(($event || '').toUpperCase())"
+          maxlength="2"
         />
       </label>
       <label>
         Plano
-        <select [ngModel]="createPlan()" (ngModelChange)="createPlan.set($event)">
-          <option value="STARTER">STARTER</option>
-          <option value="PRO">PRO</option>
-          <option value="ENTERPRISE">ENTERPRISE</option>
+        <select [ngModel]="createPlanId()" (ngModelChange)="createPlanId.set($event)">
+          <option *ngFor="let plan of plans()" [ngValue]="plan.id">{{ planLabel(plan) }}</option>
         </select>
       </label>
+      <label>
+        Trial
+        <select [ngModel]="createIsTrial()" (ngModelChange)="createIsTrial.set($event)">
+          <option [ngValue]="true">Sim</option>
+          <option [ngValue]="false">Não</option>
+        </select>
+      </label>
+      <label *ngIf="createIsTrial()">
+        Dias de trial
+        <input
+          type="number"
+          min="1"
+          max="90"
+          [ngModel]="createTrialDays()"
+          (ngModelChange)="createTrialDays.set(+$event || 7)"
+        />
+      </label>
+      <label>
+        Cortesia
+        <select [ngModel]="createIsCourtesy()" (ngModelChange)="createIsCourtesy.set($event)">
+          <option [ngValue]="false">Não</option>
+          <option [ngValue]="true">Sim</option>
+        </select>
+      </label>
+      <label>
+        Setup override (0 ou 150)
+        <input
+          type="number"
+                      min="0"
+                      max="150"
+                      step="150"
+                      [ngModel]="createSetupFeeOverride()"
+                      (ngModelChange)="onCreateSetupFeeOverrideChange($event)"
+                    />
+                  </label>
     </div>
     <div class="actions top-gap">
-      <button type="button" (click)="createTenant()" [disabled]="loading()">
-        Criar tenant
-      </button>
+      <button type="button" (click)="createTenant()" [disabled]="loading()">Criar tenant</button>
     </div>
   </article>
 
@@ -76,83 +146,247 @@
       <thead>
         <tr>
           <th>Tenant</th>
-          <th>Plano/Contrato</th>
-          <th>Provisioning</th>
-          <th>Banco</th>
-          <th>Portal</th>
+          <th>Status</th>
+          <th>Assinatura atual</th>
           <th>Ações</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let tenant of tenants()">
-          <td>
-            <strong>{{ tenant.name }}</strong><br />
-            <small>{{ tenant.tenant_code }} | {{ tenant.subdomain }}</small><br />
-            <small>Status: {{ tenant.is_active ? "Ativo" : "Inativo" }}</small>
-          </td>
-          <td>
-            <span *ngIf="tenant.contract; else noContract">
-              {{ tenant.contract.plan }} / {{ tenant.contract.status }}<br />
-              Seats: {{ tenant.contract.seats }}<br />
-              Fee: {{ tenant.contract.monthly_fee }}
-            </span>
-            <ng-template #noContract>Sem contrato</ng-template>
-          </td>
-          <td>
-            <span *ngIf="tenant.provisioning; else noProvisioning">
-              {{ tenant.provisioning.status }}<br />
-              {{ tenant.provisioning.isolation_model }}
-            </span>
-            <ng-template #noProvisioning>Sem provisioning</ng-template>
-          </td>
-          <td>
-            <span *ngIf="tenant.provisioning">
-              {{ tenant.provisioning.database_alias }}<br />
-              {{ tenant.provisioning.database_name }}
-            </span>
-          </td>
-          <td>
-            <a *ngIf="tenant.provisioning?.portal_url" [href]="tenant.provisioning?.portal_url" target="_blank">
-              {{ tenant.provisioning?.portal_url }}
-            </a>
-            <span *ngIf="!tenant.provisioning?.portal_url">-</span>
-          </td>
-          <td>
-            <div class="actions">
-              <button type="button" (click)="toggleTenantActive(tenant)" [disabled]="loading()">
-                {{ tenant.is_active ? "Desativar" : "Ativar" }}
-              </button>
-              <button
-                type="button"
-                (click)="setProvisionStatus(tenant, 'PROVISIONING')"
-                [disabled]="loading()"
-              >
-                Provisioning
-              </button>
-              <button
-                type="button"
-                (click)="setProvisionStatus(tenant, 'READY')"
-                [disabled]="loading()"
-              >
-                Ready
-              </button>
-              <button
-                type="button"
-                (click)="setProvisionStatus(tenant, 'FAILED')"
-                [disabled]="loading()"
-              >
-                Failed
-              </button>
-              <button
-                type="button"
-                (click)="executeProvisioning(tenant)"
-                [disabled]="loading()"
-              >
-                Executar Provisioning
-              </button>
-            </div>
-          </td>
-        </tr>
+        <ng-container *ngFor="let tenant of tenants()">
+          <tr>
+            <td>
+              <strong>{{ tenant.legal_name }}</strong><br />
+              <small>{{ tenant.slug }} | {{ tenant.subdomain }}</small><br />
+              <small>{{ tenant.cnpj || "-" }}</small>
+            </td>
+            <td>
+              <strong>{{ tenant.status }}</strong><br />
+              <small *ngIf="tenant.last_status_reason">Motivo: {{ tenant.last_status_reason }}</small><br />
+              <small *ngIf="tenant.last_status_changed_at">
+                Atualizado em: {{ tenant.last_status_changed_at | date: "dd/MM/yyyy HH:mm" }}
+              </small>
+            </td>
+            <td>
+              <span *ngIf="tenant.subscription; else noSub">
+                {{ planLabel(tenant.subscription.plan) }}<br />
+                Trial: {{ tenant.subscription.is_trial ? "Sim" : "Não" }}<br />
+                Cortesia: {{ tenant.subscription.is_courtesy ? "Sim" : "Não" }}
+              </span>
+              <ng-template #noSub>Sem assinatura</ng-template>
+            </td>
+            <td>
+              <div class="actions">
+                <button type="button" (click)="openTenantTab(tenant, 'billing')" [disabled]="loading()">
+                  Plano e Cobrança
+                </button>
+                <button type="button" class="secondary" (click)="openMonitoring(tenant)">
+                  Monitoramento
+                </button>
+                <button type="button" class="secondary" (click)="exportTenantData(tenant)">
+                  Exportar dados
+                </button>
+                <button
+                  type="button"
+                  class="warn"
+                  (click)="suspendTenant(tenant)"
+                  [disabled]="loading() || tenant.status !== 'ACTIVE'"
+                >
+                  Suspender
+                </button>
+                <button
+                  type="button"
+                  class="success-btn"
+                  (click)="unsuspendTenant(tenant)"
+                  [disabled]="loading() || tenant.status !== 'SUSPENDED'"
+                >
+                  Reativar
+                </button>
+                <button
+                  type="button"
+                  class="danger"
+                  (click)="softDeleteTenant(tenant)"
+                  [disabled]="loading() || tenant.status === 'DELETED'"
+                >
+                  Excluir (soft)
+                </button>
+                <button type="button" class="secondary" (click)="openTenantTab(tenant, 'audit')">
+                  Audit
+                </button>
+                <button type="button" class="secondary" (click)="openTenantTab(tenant, 'notes')">
+                  Notas
+                </button>
+                <button type="button" class="secondary" (click)="openTenantTab(tenant, 'features')">
+                  Features
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="billingTenantId() === tenant.id">
+            <td colspan="4">
+              <div class="billing-box">
+                <div class="tab-row">
+                  <button type="button" [class.active]="activeTenantTab() === 'billing'" (click)="openTenantTab(tenant, 'billing')">
+                    Plano e Cobrança
+                  </button>
+                  <button type="button" [class.active]="activeTenantTab() === 'audit'" (click)="openTenantTab(tenant, 'audit')">
+                    Audit
+                  </button>
+                  <button type="button" [class.active]="activeTenantTab() === 'notes'" (click)="openTenantTab(tenant, 'notes')">
+                    Notas
+                  </button>
+                  <button type="button" [class.active]="activeTenantTab() === 'features'" (click)="openTenantTab(tenant, 'features')">
+                    Features
+                  </button>
+                </div>
+
+                <ng-container *ngIf="activeTenantTab() === 'billing'">
+                  <h3>Aba: Plano e Cobrança</h3>
+                  <div class="create-grid">
+                    <label>
+                      Plano
+                      <select [ngModel]="billingPlanId()" (ngModelChange)="billingPlanId.set($event)">
+                        <option *ngFor="let plan of plans()" [ngValue]="plan.id">{{ planLabel(plan) }}</option>
+                      </select>
+                    </label>
+                    <label>
+                      Trial
+                      <select [ngModel]="billingIsTrial()" (ngModelChange)="billingIsTrial.set($event)">
+                        <option [ngValue]="true">Sim</option>
+                        <option [ngValue]="false">Não</option>
+                      </select>
+                    </label>
+                    <label *ngIf="billingIsTrial()">
+                      Dias de trial
+                      <input
+                        type="number"
+                        min="1"
+                        max="90"
+                        [ngModel]="billingTrialDays()"
+                        (ngModelChange)="billingTrialDays.set(+$event || 7)"
+                      />
+                    </label>
+                    <label>
+                      Cortesia
+                      <select [ngModel]="billingIsCourtesy()" (ngModelChange)="billingIsCourtesy.set($event)">
+                        <option [ngValue]="false">Não</option>
+                        <option [ngValue]="true">Sim</option>
+                      </select>
+                    </label>
+                    <label>
+                      Setup override (0 ou 150)
+                      <input
+                        type="number"
+                        min="0"
+                        max="150"
+                        step="150"
+                        [ngModel]="billingSetupFeeOverride()"
+                        (ngModelChange)="onBillingSetupFeeOverrideChange($event)"
+                      />
+                    </label>
+                  </div>
+                  <div class="actions top-gap">
+                    <button type="button" (click)="applySubscription(tenant)" [disabled]="loading()">
+                      Salvar assinatura
+                    </button>
+                  </div>
+                </ng-container>
+
+                <ng-container *ngIf="activeTenantTab() === 'audit'">
+                  <h3>Aba: Audit</h3>
+                  <table class="table" *ngIf="detailAudit().length > 0; else emptyAudit">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Ação</th>
+                        <th>Entidade</th>
+                        <th>Usuário</th>
+                        <th>Correlation</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let event of detailAudit()">
+                        <td>{{ event.created_at | date: "dd/MM/yyyy HH:mm:ss" }}</td>
+                        <td>{{ event.action }}</td>
+                        <td>{{ event.entity_type }} #{{ event.entity_id || "-" }}</td>
+                        <td>{{ event.actor_username || "-" }}</td>
+                        <td>{{ event.correlation_id || "-" }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <ng-template #emptyAudit>
+                    <p>Nenhum evento de auditoria.</p>
+                  </ng-template>
+                </ng-container>
+
+                <ng-container *ngIf="activeTenantTab() === 'notes'">
+                  <h3>Aba: Notas</h3>
+                  <div class="note-create">
+                    <textarea
+                      rows="3"
+                      [ngModel]="detailNoteDraft()"
+                      (ngModelChange)="detailNoteDraft.set($event)"
+                      placeholder="Registrar nota interna do tenant..."
+                    ></textarea>
+                    <button type="button" (click)="createTenantNote(tenant.id)">Salvar nota</button>
+                  </div>
+                  <ul class="notes-list" *ngIf="detailNotes().length > 0; else emptyNotes">
+                    <li *ngFor="let note of detailNotes()">
+                      <p>{{ note.note }}</p>
+                      <small>
+                        {{ note.created_by_username || "-" }} ·
+                        {{ note.created_at | date: "dd/MM/yyyy HH:mm" }}
+                      </small>
+                    </li>
+                  </ul>
+                  <ng-template #emptyNotes>
+                    <p>Nenhuma nota registrada.</p>
+                  </ng-template>
+                </ng-container>
+
+                <ng-container *ngIf="activeTenantTab() === 'features'">
+                  <h3>Aba: Features</h3>
+                  <table class="table" *ngIf="detailFeatures().length > 0; else emptyFeatures">
+                    <thead>
+                      <tr>
+                        <th>Feature</th>
+                        <th>Descrição</th>
+                        <th>Ativa global</th>
+                        <th>Habilitada tenant</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of detailFeatures()">
+                        <td>{{ row.feature.key }}</td>
+                        <td>{{ row.feature.description || "-" }}</td>
+                        <td>{{ row.feature.is_active ? "Sim" : "Não" }}</td>
+                        <td>{{ row.enabled ? "Sim" : "Não" }}</td>
+                        <td>
+                          <button
+                            type="button"
+                            (click)="toggleTenantFeature(tenant.id, row)"
+                            [disabled]="loading() || !row.feature.is_active"
+                          >
+                            {{ row.enabled ? "Desabilitar" : "Habilitar" }}
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <ng-template #emptyFeatures>
+                    <p>Nenhuma feature cadastrada.</p>
+                  </ng-template>
+                </ng-container>
+
+                <div class="actions top-gap">
+                  <button type="button" (click)="billingTenantId.set(null)" class="secondary">
+                    Fechar detalhe
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </ng-container>
       </tbody>
     </table>
     <p *ngIf="tenants().length === 0">Nenhum tenant encontrado.</p>

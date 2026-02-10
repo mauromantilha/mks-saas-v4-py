@@ -1,0 +1,27 @@
+<section class="control-panel-shell">
+  <header class="topbar">
+    <div>
+      <strong>Control Panel</strong>
+      <span>Administração SaaS</span>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="sidebar">
+      <nav>
+        <a
+          *ngFor="let item of menuItems"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.exact ?? true }"
+        >
+          {{ item.label }}
+        </a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</section>

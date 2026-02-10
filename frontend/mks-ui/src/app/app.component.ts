@@ -37,9 +37,12 @@ export class AppComponent {
   });
 
   private readonly controlPlaneMenu: NavItem[] = [
-    { label: "Tenants", path: "/platform/tenants", accent: "#f97316" },
-    { label: "Contratos", path: "/platform/contracts", accent: "#fb7185" },
-    { label: "Monitoramento", path: "/platform/monitoring", accent: "#f59e0b" },
+    { label: "Dashboard", path: "/control-panel/dashboard", accent: "#f97316" },
+    { label: "Tenants", path: "/control-panel/tenants", accent: "#fb7185" },
+    { label: "Plans", path: "/control-panel/plans", accent: "#38bdf8" },
+    { label: "Contracts", path: "/control-panel/contracts", accent: "#f59e0b" },
+    { label: "Monitoring", path: "/control-panel/monitoring", accent: "#22c55e" },
+    { label: "Audit", path: "/control-panel/audit", accent: "#64748b" },
   ];
 
   private readonly tenantMenu: NavItem[] = [

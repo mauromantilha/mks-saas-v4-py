@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.http import JsonResponse
-from django.urls import path
+from django.urls import include, path
 from rest_framework.authtoken.views import obtain_auth_token
 
 from control_plane.views import (
@@ -8,6 +8,7 @@ from control_plane.views import (
     ControlPlaneTenantListCreateAPIView,
     ControlPlaneTenantProvisionExecuteAPIView,
     ControlPlaneTenantProvisionAPIView,
+    MonitoringHeartbeatAPIView,
 )
 from customers.views import (
     AuthenticatedUserAPIView,
@@ -23,6 +24,7 @@ def healthz(_request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("healthz/", healthz, name="healthz"),
+    path("monitoring/heartbeat/", MonitoringHeartbeatAPIView.as_view(), name="monitoring-heartbeat"),
     # Control plane APIs (public schema only).
     path(
         "platform/api/tenants/",
@@ -44,6 +46,7 @@ urlpatterns = [
         ControlPlaneTenantProvisionExecuteAPIView.as_view(),
         name="platform-tenants-provision-execute",
     ),
+    path("control-panel/", include("control_plane.urls")),
     # Auth endpoints (shared auth/public schema).
     path("api/auth/token/", obtain_auth_token, name="api-token-auth"),
     path("api/auth/me/", AuthenticatedUserAPIView.as_view(), name="auth-me"),

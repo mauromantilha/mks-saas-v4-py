@@ -1,0 +1,75 @@
+.tenant-form-wrap {
+  display: grid;
+  gap: 14px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 1.2rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--mks-text-muted);
+  }
+}
+
+form {
+  border: 1px solid var(--mks-border);
+  border-radius: 12px;
+  background: var(--mks-surface);
+  padding: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+input,
+select {
+  border: 1px solid var(--mks-border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+button {
+  border: 1px solid var(--mks-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.secondary-link {
+  text-decoration: none;
+  color: var(--mks-text-muted);
+}
+
+.field-error,
+.error {
+  color: #b42318;
+}
+
+.success {
+  color: #067647;
+}
