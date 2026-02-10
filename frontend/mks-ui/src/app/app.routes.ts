@@ -14,6 +14,7 @@ import { TenantDashboardPageComponent } from "./features/tenant/tenant-dashboard
 import { TenantInsurersPageComponent } from "./features/tenant/tenant-insurers-page.component";
 import { TenantLeadsPageComponent } from "./features/tenant/tenant-leads-page.component";
 import { TenantOpportunitiesPageComponent } from "./features/tenant/tenant-opportunities-page.component";
+import { TenantFinancePageComponent } from "./features/tenant/tenant-finance-page.component";
 import { TenantPoliciesPageComponent } from "./features/tenant/tenant-policies-page.component";
 import { TenantMembersPageComponent } from "./features/tenant-settings/tenant-members-page.component";
 import { TenantFiscalPageComponent } from "./features/tenant-settings/tenant-fiscal-page.component";
@@ -95,6 +96,17 @@ export const routes: Routes = [
       title: "Seguradoras",
       description:
         "Cadastro e gestão de seguradoras (insurers) com regras de integração por tenant.",
+    },
+  },
+  {
+    path: "tenant/finance",
+    component: TenantFinancePageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Financeiro",
+      description:
+        "Recebíveis, parcelas e inadimplência do tenant com integração ao operacional.",
     },
   },
   {

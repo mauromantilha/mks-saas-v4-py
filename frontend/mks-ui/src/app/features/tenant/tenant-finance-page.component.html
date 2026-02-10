@@ -1,0 +1,137 @@
+<section class="tenant-wrap">
+  <header class="page-header">
+    <div>
+      <p class="badge">Financeiro</p>
+      <h1>Recebíveis</h1>
+      <p class="subtitle">
+        Visão financeira do tenant com faturas, parcelas e inadimplência operacional.
+      </p>
+    </div>
+    <div class="header-actions">
+      <a class="ghost" routerLink="/tenant/policies">Ir para Apólices</a>
+      <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+    </div>
+  </header>
+
+  <div *ngIf="session() as s" class="meta">
+    <span><strong>Tenant:</strong> {{ s.tenantCode }}</span>
+    <span><strong>Usuário:</strong> {{ s.username }}</span>
+  </div>
+
+  <p *ngIf="loading()" class="muted">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+
+  <section class="kpi-grid">
+    <article class="kpi">
+      <span class="label">Receita em aberto</span>
+      <strong class="value">{{ formatCurrency(openAmount()) }}</strong>
+    </article>
+    <article class="kpi">
+      <span class="label">Receita recebida</span>
+      <strong class="value">{{ formatCurrency(paidAmount()) }}</strong>
+    </article>
+    <article class="kpi">
+      <span class="label">Parcelas vencidas</span>
+      <strong class="value">{{ overdueInstallments().overdueCount }}</strong>
+      <span class="hint">{{ formatCurrency(overdueInstallments().overdueAmount) }}</span>
+    </article>
+  </section>
+
+  <article class="card">
+    <h2>Filtros</h2>
+    <div class="form-grid">
+      <label>
+        Status
+        <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+          <option value="">Todos</option>
+          <option value="OPEN">Aberto</option>
+          <option value="PAID">Pago</option>
+          <option value="CANCELLED">Cancelado</option>
+        </select>
+      </label>
+      <label>
+        Busca
+        <input
+          type="text"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          placeholder="invoice, cliente, apólice..."
+        />
+      </label>
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>Faturas</h2>
+    <div class="table-wrap" *ngIf="filteredInvoices().length > 0; else emptyState">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Invoice</th>
+            <th>Cliente</th>
+            <th>Apólice</th>
+            <th>Emissão</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th class="right">Detalhes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let invoice of filteredInvoices()">
+            <tr>
+              <td class="mono">#{{ invoice.id }}</td>
+              <td>{{ invoice.payer_name || "-" }}</td>
+              <td class="mono">{{ invoice.policy_number || "-" }}</td>
+              <td>{{ invoice.issue_date | date : "shortDate" }}</td>
+              <td class="mono">{{ formatCurrency(invoice.total_amount) }}</td>
+              <td>
+                <span class="pill" [class.ok]="invoice.status === 'PAID'" [class.warn]="invoice.status === 'OPEN'"
+                  [class.inactive]="invoice.status === 'CANCELLED'">
+                  {{ statusLabel(invoice.status) }}
+                </span>
+              </td>
+              <td class="right">
+                <button type="button" class="secondary" (click)="toggleInvoiceDetails(invoice.id)">
+                  {{ isExpanded(invoice.id) ? "Ocultar" : "Ver parcelas" }}
+                </button>
+              </td>
+            </tr>
+            <tr class="details-row" *ngIf="isExpanded(invoice.id)">
+              <td colspan="7">
+                <div class="details-panel">
+                  <p class="muted" *ngIf="invoice.description">{{ invoice.description }}</p>
+                  <table class="inner-table" *ngIf="invoice.installments.length > 0; else noInstallments">
+                    <thead>
+                      <tr>
+                        <th>Parcela</th>
+                        <th>Vencimento</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let installment of invoice.installments">
+                        <td>#{{ installment.number }}</td>
+                        <td>{{ installment.due_date | date : "shortDate" }}</td>
+                        <td class="mono">{{ formatCurrency(installment.amount) }}</td>
+                        <td>{{ installmentStatusLabel(installment.status) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <ng-template #noInstallments>
+                    <p class="muted">Sem parcelas vinculadas.</p>
+                  </ng-template>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <p class="muted">Nenhuma fatura encontrada para os filtros atuais.</p>
+    </ng-template>
+  </article>
+</section>
