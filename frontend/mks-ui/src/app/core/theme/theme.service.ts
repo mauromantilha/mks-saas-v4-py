@@ -64,7 +64,10 @@ export class ThemeService {
 
   private applyThemeClass(mode: ThemeMode): void {
     const root = this.document.documentElement;
+    const body = this.document.body;
     root.classList.toggle("dark-theme", mode === "dark");
     root.setAttribute("data-theme", mode);
+    body.classList.toggle("dark-theme", mode === "dark");
+    body.setAttribute("data-theme", mode);
   }
 }

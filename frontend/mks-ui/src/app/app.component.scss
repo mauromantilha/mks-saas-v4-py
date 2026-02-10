@@ -43,6 +43,25 @@
   --content-text: #1f2937;
 }
 
+:host-context(.dark-theme) .shell {
+  background: radial-gradient(circle at 15% 20%, #0b1322, var(--shell-bg));
+}
+
+:host-context(.dark-theme) .shell.tenant-portal {
+  --shell-bg: #071120;
+  --sidebar-bg: #0b1628;
+  --sidebar-gradient-to: #102139;
+  --sidebar-active: #38bdf8;
+}
+
+:host-context(.dark-theme) .shell.control-plane {
+  --shell-bg: #1a1310;
+  --sidebar-bg: #221813;
+  --sidebar-gradient-to: #2a1d16;
+  --sidebar-active: #fb923c;
+  --content-text: #f3f4f6;
+}
+
 .shell.no-session {
   grid-template-columns: 1fr;
 }

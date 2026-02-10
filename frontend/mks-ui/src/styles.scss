@@ -36,11 +36,33 @@ html {
   color-scheme: light;
   font-family: "Roboto", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   @include mat.all-component-themes($mks-light-theme);
+  @include mat.typography-hierarchy($mks-light-theme);
 }
 
 html.dark-theme {
   color-scheme: dark;
   @include mat.all-component-colors($mks-dark-theme);
+  @include mat.typography-hierarchy($mks-dark-theme);
+}
+
+:root {
+  --mks-bg: #f6f7f9;
+  --mks-surface: #ffffff;
+  --mks-surface-soft: #f8fafc;
+  --mks-border: #d9e3ef;
+  --mks-text: #0f172a;
+  --mks-muted: #64748b;
+  --mks-input-bg: #ffffff;
+}
+
+html.dark-theme {
+  --mks-bg: #060b13;
+  --mks-surface: #0f172a;
+  --mks-surface-soft: #111827;
+  --mks-border: #334155;
+  --mks-text: #e5e7eb;
+  --mks-muted: #94a3b8;
+  --mks-input-bg: #0b1220;
 }
 
 * {
@@ -49,12 +71,85 @@ html.dark-theme {
 
 body {
   margin: 0;
-  background: #f6f7f9;
-  color: #1f2937;
+  background: var(--mks-bg);
+  color: var(--mks-text);
   transition: background-color 180ms ease, color 180ms ease;
 }
 
 html.dark-theme body {
-  background: #060b13;
-  color: #e5e7eb;
+  background: var(--mks-bg);
+  color: var(--mks-text);
+}
+
+html.dark-theme .card,
+html.dark-theme .inline-card,
+html.dark-theme .kpi,
+html.dark-theme .page-header,
+html.dark-theme .theme-toggle-panel,
+html.dark-theme .session-meta {
+  background: var(--mks-surface) !important;
+  border-color: var(--mks-border) !important;
+  color: var(--mks-text) !important;
+}
+
+html.dark-theme .details-row td,
+html.dark-theme .details-panel,
+html.dark-theme .customer-preview {
+  background: var(--mks-surface-soft) !important;
+}
+
+html.dark-theme p,
+html.dark-theme h1,
+html.dark-theme h2,
+html.dark-theme h3,
+html.dark-theme h4,
+html.dark-theme h5,
+html.dark-theme label,
+html.dark-theme th,
+html.dark-theme td,
+html.dark-theme span {
+  color: inherit;
+}
+
+html.dark-theme .muted,
+html.dark-theme .subtitle,
+html.dark-theme .hint {
+  color: var(--mks-muted) !important;
+}
+
+html.dark-theme input,
+html.dark-theme select,
+html.dark-theme textarea {
+  background: var(--mks-input-bg) !important;
+  color: var(--mks-text) !important;
+  border-color: var(--mks-border) !important;
+}
+
+html.dark-theme .table th,
+html.dark-theme .table td,
+html.dark-theme .inner-table th,
+html.dark-theme .inner-table td {
+  border-bottom-color: var(--mks-border) !important;
+}
+
+html.dark-theme button.secondary,
+html.dark-theme .ghost {
+  background: #162033 !important;
+  color: #dbeafe !important;
+  border-color: var(--mks-border) !important;
+}
+
+html.dark-theme .pill.warn {
+  background: #3f2c11 !important;
+  color: #fde68a !important;
+}
+
+html.dark-theme .pill.ok {
+  background: #123127 !important;
+  color: #86efac !important;
+}
+
+html.dark-theme .pill.inactive {
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
 }
