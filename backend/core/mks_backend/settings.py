@@ -96,7 +96,6 @@ FISCAL_WEBHOOK_SECRET = env("FISCAL_WEBHOOK_SECRET")
 
 USE_X_FORWARDED_HOST = env.bool("USE_X_FORWARDED_HOST", default=True)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    )
 
 DATABASE_ENGINE = env("DATABASE_ENGINE", default="django_tenants.postgresql_backend").strip()
 DJANGO_TENANTS_ENABLED = DATABASE_ENGINE == "django_tenants.postgresql_backend"
