@@ -77,8 +77,23 @@ class TenantScopedAPIViewMixin:
     model = None
     ordering = ()
 
+    def dispatch(self, request, *args, **kwargs):
+        """Validate tenant context is present before processing request."""
+        if not hasattr(request, 'company') or request.company is None:
+            return Response(
+                {"detail": "Tenant context not found or invalid"},
+                status=403
+            )
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
-        queryset = self.model.objects.all()
+        """Filter queryset by current tenant company (SECURITY: prevent cross-tenant data access)."""
+        company = getattr(self.request, "company", None)
+        if company is None:
+            # Return empty queryset if tenant context is missing
+            return self.model.objects.none()
+        
+        queryset = self.model.objects.filter(company=company)
         if self.ordering:
             return queryset.order_by(*self.ordering)
         return queryset
@@ -377,7 +392,7 @@ class LeadQualifyAPIView(APIView):
     tenant_resource_key = "leads"
 
     def post(self, request, pk):
-        lead = get_object_or_404(Lead.objects.all(), pk=pk)
+        lead = get_object_or_404(Lead.objects.filter(company=request.company), pk=pk)
         before = _instance_payload(lead)
         try:
             lead.transition_status("QUALIFIED")
@@ -405,7 +420,7 @@ class LeadDisqualifyAPIView(APIView):
     tenant_resource_key = "leads"
 
     def post(self, request, pk):
-        lead = get_object_or_404(Lead.objects.all(), pk=pk)
+        lead = get_object_or_404(Lead.objects.filter(company=request.company), pk=pk)
         before = _instance_payload(lead)
         try:
             lead.transition_status("DISQUALIFIED")
@@ -515,7 +530,7 @@ class LeadConvertAPIView(APIView):
     tenant_resource_key = "leads"
 
     def post(self, request, pk):
-        lead = get_object_or_404(Lead.objects.select_related("customer"), pk=pk)
+        lead = get_object_or_404(Lead.objects.filter(company=request.company).select_related("customer"), pk=pk)
         lead_before = _instance_payload(lead)
         serializer = LeadConvertSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -944,7 +959,7 @@ class CommercialActivityCompleteAPIView(APIView):
     tenant_resource_key = "activities"
 
     def post(self, request, pk):
-        activity = get_object_or_404(CommercialActivity.objects.all(), pk=pk)
+        activity = get_object_or_404(CommercialActivity.objects.filter(company=request.company), pk=pk)
         before = _instance_payload(activity)
         activity.mark_done()
         append_ledger_entry(
@@ -968,7 +983,7 @@ class CommercialActivityReopenAPIView(APIView):
     tenant_resource_key = "activities"
 
     def post(self, request, pk):
-        activity = get_object_or_404(CommercialActivity.objects.all(), pk=pk)
+        activity = get_object_or_404(CommercialActivity.objects.filter(company=request.company), pk=pk)
         before = _instance_payload(activity)
         activity.reopen()
         append_ledger_entry(
@@ -1012,7 +1027,7 @@ class CommercialActivityMarkRemindedAPIView(APIView):
     tenant_resource_key = "activities"
 
     def post(self, request, pk):
-        activity = get_object_or_404(CommercialActivity.objects.all(), pk=pk)
+        activity = get_object_or_404(CommercialActivity.objects.filter(company=request.company), pk=pk)
         before = _instance_payload(activity)
         activity.reminder_sent = True
         activity.save(update_fields=("reminder_sent", "updated_at"))
@@ -1037,7 +1052,7 @@ class LeadHistoryAPIView(APIView):
     tenant_resource_key = "leads"
 
     def get(self, request, pk):
-        lead = get_object_or_404(Lead.objects.all(), pk=pk)
+        lead = get_object_or_404(Lead.objects.filter(company=request.company), pk=pk)
         activities = CommercialActivity.objects.filter(lead=lead).select_related(
             "assigned_to", "created_by"
         )
@@ -1057,7 +1072,7 @@ class OpportunityHistoryAPIView(APIView):
     tenant_resource_key = "opportunities"
 
     def get(self, request, pk):
-        opportunity = get_object_or_404(Opportunity.objects.all(), pk=pk)
+        opportunity = get_object_or_404(Opportunity.objects.filter(company=request.company), pk=pk)
         activities = CommercialActivity.objects.filter(opportunity=opportunity).select_related(
             "assigned_to", "created_by"
         )

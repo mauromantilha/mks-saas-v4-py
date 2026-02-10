@@ -83,8 +83,12 @@ class ControlPlaneTenantListCreateAPIView(APIView):
                     **{**base_provisioning, **provisioning_data},
                 )
         except IntegrityError as exc:
+            # SECURITY: Do not expose database error details to client
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Tenant creation integrity error: {exc}")
             return Response(
-                {"detail": str(exc)},
+                {"detail": "Tenant name, code, or subdomain already exists. Please use a unique identifier."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

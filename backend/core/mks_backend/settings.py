@@ -49,17 +49,54 @@ SECRET_KEY = env("SECRET_KEY", default="")
 if not SECRET_KEY:
     SECRET_KEY = read_secret_from_manager(
         env("DJANGO_SECRET_KEY_SECRET", default=""),
-        default_value="django-insecure-change-me",
+        default_value=None,
     )
+
+if not SECRET_KEY:
+    # In all environments, SECRET_KEY must be explicitly configured.
+    # Do NOT use a hardcoded default in production.
+    import sys
+    if "runserver" not in sys.argv and "test" not in sys.argv:
+        # Production-like environment detected
+        raise RuntimeError(
+            "FATAL: SECRET_KEY must be set via environment variable or DJANGO_SECRET_KEY_SECRET "
+            "(GCP Secret Manager). Using a default SECRET_KEY is a critical security vulnerability."
+        )
+    # Allow a development secret only for runserver/test
+    SECRET_KEY = "django-insecure-dev-only-change-me-in-production"
 
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+
+# Validate ALLOWED_HOSTS is not empty in non-debug mode
+if not DEBUG and not ALLOWED_HOSTS:
+    raise RuntimeError(
+        "FATAL: ALLOWED_HOSTS must be configured in production. "
+        "Set ALLOWED_HOSTS environment variable with a comma-separated list."
+    )
+
+# Validate CORS origins are configured in production
+CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+if not DEBUG and not CORS_ALLOWED_ORIGINS:
+    raise RuntimeError(
+        "FATAL: CORS_ALLOWED_ORIGINS must be configured in production. "
+        "Set CORS_ALLOWED_ORIGINS environment variable with valid origins."
+    )
+
+CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
+if not DEBUG and not CSRF_TRUSTED_ORIGINS:
+    raise RuntimeError(
+        "FATAL: CSRF_TRUSTED_ORIGINS must be configured in production. "
+        "Set CSRF_TRUSTED_ORIGINS environment variable with valid origins."
+    )
+
 FISCAL_INVOICE_RESOLVER = (env("FISCAL_INVOICE_RESOLVER") or "").strip()
 FISCAL_ADAPTER_TIMEOUT_SECONDS = env("FISCAL_ADAPTER_TIMEOUT_SECONDS")
 FISCAL_WEBHOOK_SECRET = env("FISCAL_WEBHOOK_SECRET")
 
 USE_X_FORWARDED_HOST = env.bool("USE_X_FORWARDED_HOST", default=True)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    )
 
 DATABASE_ENGINE = env("DATABASE_ENGINE", default="django_tenants.postgresql_backend").strip()
 DJANGO_TENANTS_ENABLED = DATABASE_ENGINE == "django_tenants.postgresql_backend"
