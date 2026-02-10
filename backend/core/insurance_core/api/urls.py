@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 from .views import (
     PolicyEndorsementListCreateAPIView,
     PolicyListCreateAPIView,
@@ -21,6 +22,10 @@ from .views import (
     DocumentTrashListAPIView,
     DocumentRestoreAPIView,
 )
+from .views.insurer import InsurerViewSet
+
+router = DefaultRouter()
+router.register(r'insurers', InsurerViewSet, basename='insurer')
 
 urlpatterns = [
     path(
@@ -124,3 +129,5 @@ urlpatterns = [
         name="document-restore",
     ),
 ]
+
+urlpatterns += router.urls
