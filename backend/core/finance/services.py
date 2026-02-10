@@ -2,10 +2,12 @@ from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from django.db import transaction
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 from finance.models import IntegrationInbox, ReceivableInvoice, ReceivableInstallment
 from insurance_core.models import Policy
 from insurance_core.events import publish_tenant_event
 from ledger.services import append_ledger_entry
+from operational.models import Customer
 
 
 def create_receivables_from_policy_event(event: dict, company):
@@ -13,7 +15,7 @@ def create_receivables_from_policy_event(event: dict, company):
     if not event_id:
         return
 
-    if IntegrationInbox.objects.filter(company=company, event_id=event_id).exists():
+    if IntegrationInbox.all_objects.filter(company=company, event_id=event_id).exists():
         return
 
     policy_id = event.get("data", {}).get("policy_id")
@@ -21,14 +23,14 @@ def create_receivables_from_policy_event(event: dict, company):
         return
 
     with transaction.atomic():
-        IntegrationInbox.objects.create(
+        IntegrationInbox.all_objects.create(
             company=company,
             event_id=event_id,
             event_type="POLICY_ISSUED_RECEIVABLES",
         )
 
         try:
-            policy = Policy.objects.select_related("billing_config", "customer").get(
+            policy = Policy.all_objects.select_related("billing_config").get(
                 id=policy_id, company=company
             )
         except Policy.DoesNotExist:
@@ -37,6 +39,16 @@ def create_receivables_from_policy_event(event: dict, company):
         if not hasattr(policy, "billing_config"):
             return
 
+        payer = getattr(policy, "customer", None)
+        if payer is None:
+            insured_party_id = getattr(policy, "insured_party_id", None)
+            if insured_party_id is None:
+                return
+            try:
+                payer = Customer.all_objects.get(company=company, id=insured_party_id)
+            except ObjectDoesNotExist:
+                return
+
         billing = policy.billing_config
         total_amount = billing.premium_total
         count = billing.installments_count
@@ -44,7 +56,7 @@ def create_receivables_from_policy_event(event: dict, company):
 
         invoice = ReceivableInvoice.objects.create(
             company=company,
-            payer=policy.customer,
+            payer=payer,
             policy=policy,
             total_amount=total_amount,
             issue_date=timezone.localdate(),
@@ -89,7 +101,7 @@ def create_receivables_from_policy_event(event: dict, company):
 
 def process_endorsement_financial_impact(event: dict, company) -> None:
     event_id = event.get("id")
-    if not event_id or IntegrationInbox.objects.filter(company=company, event_id=event_id).exists():
+    if not event_id or IntegrationInbox.all_objects.filter(company=company, event_id=event_id).exists():
         return
 
     data = event.get("data", {})
@@ -102,7 +114,7 @@ def process_endorsement_financial_impact(event: dict, company) -> None:
         return
 
     with transaction.atomic():
-        IntegrationInbox.objects.create(
+        IntegrationInbox.all_objects.create(
             company=company,
             event_id=event_id,
             event_type="ENDORSEMENT_FINANCE_IMPACT",

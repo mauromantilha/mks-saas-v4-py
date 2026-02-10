@@ -24,8 +24,17 @@ class CommissionModelsIsolationTests(TestCase):
         self.assertEqual(CommissionPlan.objects.count(), 0)
 
     def test_manager_filters_by_current_company(self):
-        CommissionPlan.all_objects.create(company=self.company_a, name="Plan A")
-        CommissionPlan.all_objects.create(company=self.company_b, name="Plan B")
+        token = set_current_company(self.company_a)
+        try:
+            CommissionPlan.all_objects.create(company=self.company_a, name="Plan A")
+        finally:
+            reset_current_company(token)
+
+        token = set_current_company(self.company_b)
+        try:
+            CommissionPlan.all_objects.create(company=self.company_b, name="Plan B")
+        finally:
+            reset_current_company(token)
 
         token = set_current_company(self.company_a)
         try:
@@ -50,20 +59,23 @@ class CommissionModelsIsolationTests(TestCase):
             reset_current_company(token)
 
     def test_scope_and_split_inherit_company_from_parent(self):
-        plan = CommissionPlan.all_objects.create(company=self.company_a, name="Plan A")
-        scope = CommissionPlanScope.all_objects.create(
-            plan=plan,
-            company=self.company_a,
-            dimension=CommissionPlanScope.Dimension.INSURER,
-            value="INS-1",
-        )
-        split = CommissionSplit.all_objects.create(
-            scope=scope,
-            company=self.company_a,
-            recipient_type=CommissionSplit.RecipientType.ROLE,
-            recipient_ref="OWNER",
-            percentage="60.00",
-        )
+        token = set_current_company(self.company_a)
+        try:
+            plan = CommissionPlan.all_objects.create(company=self.company_a, name="Plan A")
+            scope = CommissionPlanScope.all_objects.create(
+                plan=plan,
+                company=self.company_a,
+                dimension=CommissionPlanScope.Dimension.INSURER,
+                value="INS-1",
+            )
+            split = CommissionSplit.all_objects.create(
+                scope=scope,
+                company=self.company_a,
+                recipient_type=CommissionSplit.RecipientType.ROLE,
+                recipient_ref="OWNER",
+                percentage="60.00",
+            )
+        finally:
+            reset_current_company(token)
         self.assertEqual(scope.company_id, plan.company_id)
         self.assertEqual(split.company_id, scope.company_id)
-
