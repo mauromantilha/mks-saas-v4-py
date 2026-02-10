@@ -68,27 +68,34 @@ if not SECRET_KEY:
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
-# Validate ALLOWED_HOSTS is not empty in non-debug mode
-if not DEBUG and not ALLOWED_HOSTS:
-    raise RuntimeError(
-        "FATAL: ALLOWED_HOSTS must be configured in production. "
-        "Set ALLOWED_HOSTS environment variable with a comma-separated list."
-    )
+# Validate security settings only in actual production (not during management commands)
+import sys
+_is_management_command = any(cmd in sys.argv for cmd in ["check", "migrate", "makemigrations", "test", "runserver"])
+
+if not DEBUG and not _is_management_command:
+    # Only validate in actual server runtime (gunicorn, uwsgi, etc.)
+    if not ALLOWED_HOSTS:
+        raise RuntimeError(
+            "FATAL: ALLOWED_HOSTS must be configured in production. "
+            "Set ALLOWED_HOSTS environment variable with a comma-separated list."
+        )
 
 # Validate CORS origins are configured in production
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
-if not DEBUG and not CORS_ALLOWED_ORIGINS:
-    raise RuntimeError(
-        "FATAL: CORS_ALLOWED_ORIGINS must be configured in production. "
-        "Set CORS_ALLOWED_ORIGINS environment variable with valid origins."
-    )
+if not DEBUG and not _is_management_command:
+    if not CORS_ALLOWED_ORIGINS:
+        raise RuntimeError(
+            "FATAL: CORS_ALLOWED_ORIGINS must be configured in production. "
+            "Set CORS_ALLOWED_ORIGINS environment variable with valid origins."
+        )
 
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
-if not DEBUG and not CSRF_TRUSTED_ORIGINS:
-    raise RuntimeError(
-        "FATAL: CSRF_TRUSTED_ORIGINS must be configured in production. "
-        "Set CSRF_TRUSTED_ORIGINS environment variable with valid origins."
-    )
+if not DEBUG and not _is_management_command:
+    if not CSRF_TRUSTED_ORIGINS:
+        raise RuntimeError(
+            "FATAL: CSRF_TRUSTED_ORIGINS must be configured in production. "
+            "Set CSRF_TRUSTED_ORIGINS environment variable with valid origins."
+        )
 
 FISCAL_INVOICE_RESOLVER = (env("FISCAL_INVOICE_RESOLVER") or "").strip()
 FISCAL_ADAPTER_TIMEOUT_SECONDS = env("FISCAL_ADAPTER_TIMEOUT_SECONDS")
