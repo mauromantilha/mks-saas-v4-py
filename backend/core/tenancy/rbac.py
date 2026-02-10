@@ -56,14 +56,6 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
         patch_roles=NO_ROLES,
         delete_roles=NO_ROLES,
     ),
-    "fiscal_documents": build_role_matrix(),
-    "fiscal_config": build_role_matrix(
-        read_roles=OWNER_ROLES,
-        post_roles=OWNER_ROLES,
-        put_roles=OWNER_ROLES,
-        patch_roles=OWNER_ROLES,
-        delete_roles=NO_ROLES,
-    ),
     "ledger": build_role_matrix(
         read_roles=WRITE_ROLES,
         post_roles=NO_ROLES,
@@ -77,7 +69,19 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
         patch_roles=OWNER_ROLES,
         delete_roles=OWNER_ROLES,
     ),
+    "policies": build_role_matrix(
+        post_roles=OWNER_ROLES,
+        put_roles=OWNER_ROLES,
+        patch_roles=OWNER_ROLES,
+        delete_roles=OWNER_ROLES,
+    ),
     "endossos": build_role_matrix(
+        post_roles=OWNER_ROLES,
+        put_roles=OWNER_ROLES,
+        patch_roles=OWNER_ROLES,
+        delete_roles=OWNER_ROLES,
+    ),
+    "claims": build_role_matrix(
         post_roles=OWNER_ROLES,
         put_roles=OWNER_ROLES,
         patch_roles=OWNER_ROLES,
@@ -86,11 +90,27 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
     "insurers": build_role_matrix(),
     "insurance_products": build_role_matrix(),
     "product_coverages": build_role_matrix(),
-    "policies": build_role_matrix(),
-    "policy_items": build_role_matrix(),
-    "policy_coverages": build_role_matrix(),
-    "policy_document_requirements": build_role_matrix(),
-    "endorsements": build_role_matrix(),
+    "commission_plans": build_role_matrix(
+        post_roles=OWNER_ROLES,
+        put_roles=OWNER_ROLES,
+        patch_roles=OWNER_ROLES,
+        delete_roles=OWNER_ROLES,
+    ),
+    "commission_accruals": build_role_matrix(
+        post_roles=NO_ROLES,
+        put_roles=NO_ROLES,
+        patch_roles=NO_ROLES,
+        delete_roles=NO_ROLES,
+    ),
+    "participant_profiles": build_role_matrix(
+        post_roles=OWNER_ROLES,
+        put_roles=OWNER_ROLES,
+        patch_roles=OWNER_ROLES,
+        delete_roles=OWNER_ROLES,
+    ),
+    "commission_payouts": build_role_matrix(),
+    "insurer_settlements": build_role_matrix(),
+    "invoices": build_role_matrix(),
 }
 
 DEFAULT_TENANT_ROLE_MATRIX = build_role_matrix()

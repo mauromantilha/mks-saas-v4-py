@@ -95,6 +95,7 @@ if DJANGO_TENANTS_ENABLED:
         "operational.apps.OperationalConfig",
         "insurance_core.apps.InsuranceCoreConfig",
         "commission.apps.CommissionConfig",
+        "finance.apps.FinanceConfig",
         "finance.fiscal.apps.FinanceFiscalConfig",
         "ledger.apps.LedgerConfig",
     ]

@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
-from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.forms.models import model_to_dict
@@ -25,19 +26,32 @@ from operational.models import (
     CommercialActivity,
     Customer,
     Endosso,
+    Installment,
     Lead,
     Opportunity,
     PolicyRequest,
     ProposalOption,
     SalesGoal,
 )
+from commission.models import (
+    CommissionAccrual,
+    CommissionPayoutBatch,
+    CommissionPlanScope,
+    InsurerSettlementBatch,
+)
 from operational.serializers import (
     AIInsightRequestSerializer,
     ApoliceSerializer,
     CNPJEnrichmentRequestSerializer,
     CommercialActivitySerializer,
+    CommissionAccrualSerializer,
+    CommissionPayoutBatchCreateSerializer,
+    CommissionPayoutBatchSerializer,
+    CommissionPlanScopeSerializer,
     CustomerSerializer,
     EndossoSerializer,
+    InsurerSettlementBatchCreateSerializer,
+    InsurerSettlementBatchSerializer,
     LeadConvertSerializer,
     LeadHistorySerializer,
     LeadSerializer,
@@ -48,6 +62,12 @@ from operational.serializers import (
     ProposalOptionSerializer,
     SalesGoalSerializer,
     SalesMetricsSerializer,
+)
+from operational.services import (
+    approve_commission_payout_batch,
+    approve_insurer_settlement_batch,
+    create_commission_payout_batch,
+    create_insurer_settlement_batch,
 )
 from tenancy.permissions import IsTenantRoleAllowed
 
@@ -1160,6 +1180,186 @@ class BaseCommercialAIInsightsAPIView(APIView):
                 "updated_fields": updated_fields,
             }
         )
+
+
+class CommissionPlanScopeListCreateAPIView(
+    TenantScopedAPIViewMixin, generics.ListCreateAPIView
+):
+    model = CommissionPlanScope
+    serializer_class = CommissionPlanScopeSerializer
+    ordering = ("-priority", "-created_at")
+    tenant_resource_key = "commission_plans"
+
+
+class CommissionPlanScopeDetailAPIView(
+    TenantScopedAPIViewMixin, generics.RetrieveUpdateDestroyAPIView
+):
+    model = CommissionPlanScope
+    serializer_class = CommissionPlanScopeSerializer
+    tenant_resource_key = "commission_plans"
+
+
+class CommissionAccrualListAPIView(TenantScopedAPIViewMixin, generics.ListAPIView):
+    model = CommissionAccrual
+    serializer_class = CommissionAccrualSerializer
+    ordering = ("-created_at",)
+    tenant_resource_key = "commission_accruals"
+
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related("recipient")
+        
+        # Filters
+        period_start = self.request.query_params.get("period_start")
+        period_end = self.request.query_params.get("period_end")
+        producer_id = self.request.query_params.get("producer_id")
+        policy_id = self.request.query_params.get("policy_id")
+
+        if period_start:
+            queryset = queryset.filter(created_at__date__gte=period_start)
+        if period_end:
+            queryset = queryset.filter(created_at__date__lte=period_end)
+        if producer_id:
+            queryset = queryset.filter(recipient_id=producer_id)
+        
+        if policy_id:
+            # Complex filter: Accruals linked to Endosso or Installment of the Policy
+            endosso_ct = ContentType.objects.get_for_model(Endosso)
+            installment_ct = ContentType.objects.get_for_model(Installment)
+            
+            endosso_ids = Endosso.objects.filter(
+                company=self.request.company, apolice_id=policy_id
+            ).values_list("id", flat=True)
+            
+            installment_ids = Installment.objects.filter(
+                company=self.request.company, endosso__apolice_id=policy_id
+            ).values_list("id", flat=True)
+
+            queryset = queryset.filter(
+                Q(content_type=endosso_ct, object_id__in=endosso_ids) |
+                Q(content_type=installment_ct, object_id__in=installment_ids)
+            )
+
+        return queryset
+
+
+class CommissionPayoutBatchListCreateAPIView(
+    TenantScopedAPIViewMixin, generics.ListCreateAPIView
+):
+    model = CommissionPayoutBatch
+    serializer_class = CommissionPayoutBatchSerializer
+    ordering = ("-created_at",)
+    tenant_resource_key = "commission_payouts"
+
+    def create(self, request, *args, **kwargs):
+        serializer = CommissionPayoutBatchCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        batch = create_commission_payout_batch(
+            company=request.company,
+            period_from=serializer.validated_data["period_start"],
+            period_to=serializer.validated_data["period_end"],
+            created_by=request.user,
+            producer_id=serializer.validated_data.get("producer_id"),
+        )
+
+        if not batch:
+            return Response(
+                {"detail": "No eligible accruals found for this period."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        self._append_ledger(
+            "CREATE",
+            batch,
+            after=_instance_payload(batch),
+            metadata={"tenant_resource_key": "commission_payouts"},
+        )
+        return Response(
+            CommissionPayoutBatchSerializer(batch).data,
+            status=status.HTTP_201_CREATED
+        )
+
+
+class CommissionPayoutBatchDetailAPIView(
+    TenantScopedAPIViewMixin, generics.RetrieveDestroyAPIView
+):
+    model = CommissionPayoutBatch
+    serializer_class = CommissionPayoutBatchSerializer
+    tenant_resource_key = "commission_payouts"
+
+
+class CommissionPayoutBatchApproveAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "commission_payouts"
+
+    def post(self, request, pk):
+        try:
+            approve_commission_payout_batch(pk, request.user, request.company)
+        except (ValidationError, PermissionDenied) as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        batch = get_object_or_404(CommissionPayoutBatch, pk=pk, company=request.company)
+        return Response(CommissionPayoutBatchSerializer(batch).data)
+
+
+class InsurerSettlementBatchListCreateAPIView(
+    TenantScopedAPIViewMixin, generics.ListCreateAPIView
+):
+    model = InsurerSettlementBatch
+    serializer_class = InsurerSettlementBatchSerializer
+    ordering = ("-created_at",)
+    tenant_resource_key = "insurer_settlements"
+
+    def create(self, request, *args, **kwargs):
+        serializer = InsurerSettlementBatchCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        batch = create_insurer_settlement_batch(
+            company=request.company,
+            insurer_name=serializer.validated_data["insurer_name"],
+            period_start=serializer.validated_data["period_start"],
+            period_end=serializer.validated_data["period_end"],
+            created_by=request.user,
+        )
+
+        if not batch:
+            return Response(
+                {"detail": "No eligible settlements found for this insurer/period."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        self._append_ledger(
+            "CREATE",
+            batch,
+            after=_instance_payload(batch),
+            metadata={"tenant_resource_key": "insurer_settlements"},
+        )
+        return Response(
+            InsurerSettlementBatchSerializer(batch).data,
+            status=status.HTTP_201_CREATED
+        )
+
+
+class InsurerSettlementBatchDetailAPIView(
+    TenantScopedAPIViewMixin, generics.RetrieveDestroyAPIView
+):
+    model = InsurerSettlementBatch
+    serializer_class = InsurerSettlementBatchSerializer
+    tenant_resource_key = "insurer_settlements"
+
+
+class InsurerSettlementBatchApproveAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "insurer_settlements"
+
+    def post(self, request, pk):
+        try:
+            approve_insurer_settlement_batch(pk, request.user, request.company)
+        except (ValidationError, PermissionDenied) as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        batch = get_object_or_404(InsurerSettlementBatch, pk=pk, company=request.company)
+        return Response(InsurerSettlementBatchSerializer(batch).data)
 
 
 class LeadAIInsightsAPIView(BaseCommercialAIInsightsAPIView):

@@ -318,4 +318,6 @@ urlpatterns = [
     ),
     path("api/insurance/", include("insurance_core.api.urls")),
     path("api/finance/", include("finance.fiscal.api.urls")),
+    path("api/finance/", include("finance.api.urls")),
+    path("api/commission/", include("commission.urls")),
 ]

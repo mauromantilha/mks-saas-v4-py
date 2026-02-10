@@ -2,6 +2,8 @@ from datetime import timedelta
 from uuid import uuid4
 
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -115,52 +117,6 @@ class Customer(BaseTenantModel):
 
     def __str__(self):
         return f"{self.name} <{self.email}>"
-
-
-class CustomerContact(BaseTenantModel):
-    customer = models.ForeignKey(
-        Customer,
-        related_name="contacts",
-        on_delete=models.CASCADE,
-    )
-    name = models.CharField(max_length=255)
-    email = models.EmailField(blank=True)
-    phone = models.CharField(max_length=30, blank=True)
-    role = models.CharField(max_length=120, blank=True)
-    is_primary = models.BooleanField(default=False)
-    notes = models.TextField(blank=True)
-
-    class Meta:
-        ordering = ("-is_primary", "name", "id")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("company", "customer"),
-                condition=models.Q(is_primary=True),
-                name="uq_customer_primary_contact_per_customer",
-            ),
-        ]
-        indexes = [
-            models.Index(
-                fields=("company", "customer"),
-                name="idx_customer_contact_customer",
-            ),
-        ]
-
-    def __str__(self) -> str:  # pragma: no cover - admin/debug helper
-        primary = " (primary)" if self.is_primary else ""
-        return f"{self.name}{primary}"
-
-    def clean(self):
-        super().clean()
-        if self.customer_id and self.customer.company_id != self.company_id:
-            raise ValidationError(
-                "Customer contact and Customer must belong to the same company."
-            )
-
-    def save(self, *args, **kwargs):
-        if self.customer_id:
-            self.company = self.customer.company
-        return super().save(*args, **kwargs)
 
 
 class Lead(BaseTenantModel):
@@ -901,3 +857,37 @@ class SalesGoal(BaseTenantModel):
 
     def __str__(self):
         return f"{self.company.tenant_code} {self.year}-{self.month:02d}"
+
+
+class OperationalIntegrationInbox(BaseTenantModel):
+    event_id = models.CharField(max_length=120)
+    event_type = models.CharField(max_length=120)
+    processed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "event_id"),
+                name="uq_integration_inbox_event_id_company",
+            ),
+        ]
+
+
+class Installment(BaseTenantModel):
+    endosso = models.ForeignKey(
+        Endosso,
+        related_name="installments",
+        on_delete=models.CASCADE,
+    )
+    number = models.PositiveSmallIntegerField()
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    due_date = models.DateField()
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "endosso", "number"),
+                name="uq_installment_number_per_endosso",
+            ),
+        ]

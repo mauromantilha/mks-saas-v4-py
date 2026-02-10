@@ -1,31 +1,126 @@
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
-
-from insurance_core.api.views.coverage import ProductCoverageViewSet
-from insurance_core.api.views.insurer import InsurerViewSet
-from insurance_core.api.views.policy import (
-    EndorsementViewSet,
-    PolicyCoverageViewSet,
-    PolicyDocumentRequirementViewSet,
-    PolicyItemViewSet,
-    PolicyViewSet,
+from django.urls import path
+from .views import (
+    PolicyEndorsementListCreateAPIView,
+    PolicyListCreateAPIView,
+    PolicyDetailAPIView,
+    PolicyIssueAPIView,
+    PolicyCancelAPIView,
+    PolicyRenewAPIView,
+    EndorsementSimulationAPIView,
+    ClaimListCreateAPIView,
+    ClaimDetailAPIView,
+    ClaimTransitionAPIView,
+    PolicyDocumentUploadAPIView,
+    EndorsementDocumentUploadAPIView,
+    ClaimDocumentUploadAPIView,
+    GenericDocumentUploadAPIView,
+    DocumentConfirmUploadAPIView,
+    DocumentDownloadAPIView,
+    DocumentDetailAPIView,
+    PolicyDocumentListAPIView,
+    DocumentTrashListAPIView,
+    DocumentRestoreAPIView,
 )
-from insurance_core.api.views.product import InsuranceProductViewSet
-
-router = DefaultRouter()
-router.register(r"insurers", InsurerViewSet, basename="insurer")
-router.register(r"products", InsuranceProductViewSet, basename="insurance-product")
-router.register(r"coverages", ProductCoverageViewSet, basename="product-coverage")
-router.register(r"policies", PolicyViewSet, basename="policy")
-router.register(r"policy-items", PolicyItemViewSet, basename="policy-item")
-router.register(r"policy-coverages", PolicyCoverageViewSet, basename="policy-coverage")
-router.register(
-    r"policy-document-requirements",
-    PolicyDocumentRequirementViewSet,
-    basename="policy-document-requirement",
-)
-router.register(r"endorsements", EndorsementViewSet, basename="endorsement")
 
 urlpatterns = [
-    path("", include(router.urls)),
+    path(
+        "policies/<int:policy_id>/endorsements/",
+        PolicyEndorsementListCreateAPIView.as_view(),
+        name="policy-endorsements-list-create",
+    ),
+    path(
+        "policies/<int:policy_id>/endorsements/preview/",
+        EndorsementSimulationAPIView.as_view(),
+        name="policy-endorsements-preview",
+    ),
+    path(
+        "policies/",
+        PolicyListCreateAPIView.as_view(),
+        name="policy-list-create",
+    ),
+    path(
+        "policies/<int:pk>/",
+        PolicyDetailAPIView.as_view(),
+        name="policy-detail",
+    ),
+    path(
+        "policies/<int:policy_id>/documents/",
+        PolicyDocumentListAPIView.as_view(),
+        name="policy-documents-list",
+    ),
+    path(
+        "policies/<int:pk>/documents/upload-url/",
+        PolicyDocumentUploadAPIView.as_view(),
+        name="policy-documents-upload",
+    ),
+    path(
+        "policies/<int:pk>/issue/",
+        PolicyIssueAPIView.as_view(),
+        name="policy-issue",
+    ),
+    path(
+        "policies/<int:pk>/cancel/",
+        PolicyCancelAPIView.as_view(),
+        name="policy-cancel",
+    ),
+    path(
+        "policies/<int:pk>/renew/",
+        PolicyRenewAPIView.as_view(),
+        name="policy-renew",
+    ),
+    path(
+        "policies/<int:policy_id>/claims/",
+        ClaimListCreateAPIView.as_view(),
+        name="policy-claims-list-create",
+    ),
+    path(
+        "endorsements/<int:pk>/documents/upload-url/",
+        EndorsementDocumentUploadAPIView.as_view(),
+        name="endorsement-documents-upload",
+    ),
+    path(
+        "claims/<int:pk>/",
+        ClaimDetailAPIView.as_view(),
+        name="claim-detail",
+    ),
+    path(
+        "claims/<int:pk>/transition/",
+        ClaimTransitionAPIView.as_view(),
+        name="claim-transition",
+    ),
+    path(
+        "claims/<int:pk>/documents/upload-url/",
+        ClaimDocumentUploadAPIView.as_view(),
+        name="claim-documents-upload",
+    ),
+    path(
+        "documents/signed-upload-url/",
+        GenericDocumentUploadAPIView.as_view(),
+        name="generic-documents-upload-url",
+    ),
+    path(
+        "documents/<int:pk>/confirm-upload/",
+        DocumentConfirmUploadAPIView.as_view(),
+        name="document-confirm-upload",
+    ),
+    path(
+        "documents/<int:pk>/download-url/",
+        DocumentDownloadAPIView.as_view(),
+        name="document-download-url",
+    ),
+    path(
+        "documents/<int:pk>/",
+        DocumentDetailAPIView.as_view(),
+        name="document-detail",
+    ),
+    path(
+        "documents/trash/",
+        DocumentTrashListAPIView.as_view(),
+        name="document-trash-list",
+    ),
+    path(
+        "documents/<int:pk>/restore/",
+        DocumentRestoreAPIView.as_view(),
+        name="document-restore",
+    ),
 ]

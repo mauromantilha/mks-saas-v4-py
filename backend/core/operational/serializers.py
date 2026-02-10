@@ -4,7 +4,6 @@ from operational.models import (
     Apolice,
     CommercialActivity,
     Customer,
-    CustomerContact,
     Endosso,
     Lead,
     Opportunity,
@@ -12,43 +11,18 @@ from operational.models import (
     ProposalOption,
     SalesGoal,
 )
-
-
-class CustomerContactSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(required=False)
-
-    class Meta:
-        model = CustomerContact
-        fields = (
-            "id",
-            "name",
-            "email",
-            "phone",
-            "role",
-            "is_primary",
-            "notes",
-            "created_at",
-            "updated_at",
-        )
-        read_only_fields = (
-            "created_at",
-            "updated_at",
-        )
+from commission.models import (
+    CommissionAccrual,
+    CommissionPayoutBatch,
+    CommissionPlanScope,
+    InsurerSettlementBatch,
+)
 
 
 class CustomerSerializer(serializers.ModelSerializer):
     assigned_to_username = serializers.CharField(
         source="assigned_to.username", read_only=True
     )
-    contacts = CustomerContactSerializer(many=True, required=False)
-
-    def validate_contacts(self, value):
-        if not value:
-            return value
-        primary_count = sum(bool(item.get("is_primary")) for item in value)
-        if primary_count > 1:
-            raise serializers.ValidationError("Only one contact can be marked as primary.")
-        return value
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -69,59 +43,6 @@ class CustomerSerializer(serializers.ModelSerializer):
                 )
 
         return attrs
-
-    def _sync_contacts(self, customer: Customer, contacts_data: list[dict]) -> None:
-        existing = {contact.id: contact for contact in customer.contacts.all()}
-        keep_ids: set[int] = set()
-
-        for item in contacts_data:
-            contact_id = item.get("id")
-            if contact_id is None:
-                created = CustomerContact.objects.create(customer=customer, **item)
-                keep_ids.add(created.id)
-                continue
-
-            try:
-                contact_id_int = int(contact_id)
-            except (TypeError, ValueError):
-                raise serializers.ValidationError(
-                    {"contacts": f"Invalid contact id '{contact_id}'."}
-                )
-
-            instance = existing.get(contact_id_int)
-            if instance is None:
-                raise serializers.ValidationError(
-                    {
-                        "contacts": (
-                            f"Contact id '{contact_id_int}' does not exist for this customer."
-                        )
-                    }
-                )
-
-            for field in ("name", "email", "phone", "role", "is_primary", "notes"):
-                if field in item:
-                    setattr(instance, field, item[field])
-            instance.save()
-            keep_ids.add(instance.id)
-
-        # Replace semantics: if contacts are provided, any missing contact is deleted.
-        for contact_id, contact in existing.items():
-            if contact_id not in keep_ids:
-                contact.delete()
-
-    def create(self, validated_data):
-        contacts_data = validated_data.pop("contacts", [])
-        customer = super().create(validated_data)
-        if contacts_data:
-            self._sync_contacts(customer, contacts_data)
-        return customer
-
-    def update(self, instance, validated_data):
-        contacts_data = validated_data.pop("contacts", None)
-        customer = super().update(instance, validated_data)
-        if contacts_data is not None:
-            self._sync_contacts(customer, contacts_data)
-        return customer
 
     class Meta:
         model = Customer
@@ -162,7 +83,6 @@ class CustomerSerializer(serializers.ModelSerializer):
             "street",
             "street_number",
             "address_complement",
-            "contacts",
             "assigned_to",
             "assigned_to_username",
             "last_contact_at",
@@ -603,3 +523,116 @@ class SalesMetricsSerializer(serializers.Serializer):
     activities_by_priority = serializers.DictField(child=serializers.IntegerField())
     pipeline_value = serializers.DictField(child=serializers.FloatField())
     conversion = serializers.DictField(child=serializers.FloatField())
+
+
+class CommissionPlanScopeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommissionPlanScope
+        fields = (
+            "id",
+            "priority",
+            "insurer_name",
+            "product_line",
+            "trigger_basis",
+            "commission_percent",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
+
+
+class CommissionAccrualSerializer(serializers.ModelSerializer):
+    recipient_username = serializers.CharField(source="recipient.username", read_only=True)
+
+    class Meta:
+        model = CommissionAccrual
+        fields = (
+            "id",
+            "amount",
+            "description",
+            "status",
+            "recipient",
+            "recipient_username",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
+
+
+class CommissionPayoutBatchSerializer(serializers.ModelSerializer):
+    created_by_username = serializers.CharField(source="created_by.username", read_only=True)
+    approved_by_username = serializers.CharField(source="approved_by.username", read_only=True)
+
+    class Meta:
+        model = CommissionPayoutBatch
+        fields = (
+            "id",
+            "status",
+            "period_start",
+            "period_end",
+            "total_amount",
+            "created_by",
+            "created_by_username",
+            "approved_by",
+            "approved_by_username",
+            "approved_at",
+            "notes",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "status",
+            "total_amount",
+            "created_by",
+            "approved_by",
+            "approved_at",
+            "created_at",
+            "updated_at",
+        )
+
+
+class CommissionPayoutBatchCreateSerializer(serializers.Serializer):
+    period_start = serializers.DateField()
+    period_end = serializers.DateField()
+    producer_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+class InsurerSettlementBatchSerializer(serializers.ModelSerializer):
+    created_by_username = serializers.CharField(source="created_by.username", read_only=True)
+    approved_by_username = serializers.CharField(source="approved_by.username", read_only=True)
+
+    class Meta:
+        model = InsurerSettlementBatch
+        fields = (
+            "id",
+            "insurer_name",
+            "status",
+            "period_start",
+            "period_end",
+            "total_amount",
+            "created_by",
+            "created_by_username",
+            "approved_by",
+            "approved_by_username",
+            "approved_at",
+            "notes",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "status",
+            "total_amount",
+            "created_by",
+            "approved_by",
+            "approved_at",
+            "created_at",
+            "updated_at",
+        )
+
+
+class InsurerSettlementBatchCreateSerializer(serializers.Serializer):
+    insurer_name = serializers.CharField(max_length=120)
+    period_start = serializers.DateField()
+    period_end = serializers.DateField()

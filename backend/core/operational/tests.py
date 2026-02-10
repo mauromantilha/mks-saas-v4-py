@@ -1,18 +1,32 @@
 from datetime import date, timedelta
+from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from customers.models import Company, CompanyMembership
+from finance.models import Payable
 from operational.models import (
     Apolice,
     CommercialActivity,
     Customer,
     Endosso,
+    OperationalIntegrationInbox,
+    Installment,
     Lead,
     Opportunity,
+)
+from commission.models import (
+    ParticipantProfile,
+    CommissionPlanScope,
+    CommissionAccrual,
+    CommissionPayoutBatch,
+    CommissionPayoutItem,
+    InsurerPayableAccrual,
+    InsurerSettlementBatch,
 )
 from tenancy.context import reset_current_company, set_current_company
 
@@ -1118,3 +1132,431 @@ class TenantIsolationTests(TestCase):
             HTTP_X_TENANT_ID=self.company_a.tenant_code,
         )
         self.assertEqual(manager_response.status_code, 201)
+
+
+class AccrualServiceTests(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(
+            name="Accrual Corp", tenant_code="accrual", subdomain="accrual"
+        )
+        self.apolice = Apolice.all_objects.create(
+            company=self.company,
+            numero="AP-001",
+            seguradora="Seguradora A",
+            ramo="Auto",
+            cliente_nome="Cliente Teste",
+            cliente_cpf_cnpj="000",
+            inicio_vigencia=date(2026, 1, 1),
+            fim_vigencia=date(2027, 1, 1),
+        )
+        self.endosso = Endosso.all_objects.create(
+            company=self.company,
+            apolice=self.apolice,
+            numero_endosso="0",
+            tipo="EMISSAO",
+            premio_liquido="1000.00",
+            data_emissao=date(2026, 1, 1),
+        )
+        self.installment = Installment.all_objects.create(
+            company=self.company,
+            endosso=self.endosso,
+            number=1,
+            amount="500.00",
+            due_date=date(2026, 2, 1),
+        )
+
+    def test_accrue_on_policy_issued_respects_priority_and_basis(self):
+        from operational.services import accrue_on_policy_issued
+
+        # Plan 1: Low priority, matches everything
+        CommissionPlanScope.all_objects.create(
+            company=self.company,
+            priority=10,
+            commission_percent="10.00",
+            trigger_basis="ISSUED",
+        )
+        # Plan 2: High priority, matches specific insurer
+        CommissionPlanScope.all_objects.create(
+            company=self.company,
+            priority=100,
+            insurer_name="Seguradora A",
+            commission_percent="20.00",
+            trigger_basis="ISSUED",
+        )
+
+        event = {"id": "evt_1", "data": {"endosso_id": self.endosso.id}}
+        accrue_on_policy_issued(event, self.company)
+
+        accrual = CommissionAccrual.objects.get(company=self.company)
+        # Should match Plan 2 (20% of 1000 = 200)
+        self.assertEqual(accrual.amount, 200.00)
+        self.assertEqual(accrual.content_object, self.endosso)
+
+        payable = InsurerPayableAccrual.objects.get(company=self.company)
+        self.assertEqual(payable.amount, 200.00)
+        self.assertEqual(payable.insurer_name, "Seguradora A")
+
+    def test_accrue_on_policy_issued_ignores_paid_basis_plans(self):
+        from operational.services import accrue_on_policy_issued
+
+        CommissionPlanScope.all_objects.create(
+            company=self.company,
+            priority=100,
+            commission_percent="20.00",
+            trigger_basis="PAID",
+        )
+
+        event = {"id": "evt_2", "data": {"endosso_id": self.endosso.id}}
+        accrue_on_policy_issued(event, self.company)
+
+        self.assertFalse(CommissionAccrual.objects.exists())
+
+    def test_accrue_on_installment_paid_respects_basis(self):
+        from operational.services import accrue_on_installment_paid
+
+        CommissionPlanScope.all_objects.create(
+            company=self.company,
+            priority=100,
+            commission_percent="15.00",
+            trigger_basis="PAID",
+        )
+
+        event = {"id": "evt_3", "data": {"installment_id": self.installment.id}}
+        accrue_on_installment_paid(event, self.company)
+
+        accrual = CommissionAccrual.objects.get(company=self.company)
+        # 15% of 500 = 75
+        self.assertEqual(accrual.amount, 75.00)
+        self.assertEqual(accrual.content_object, self.installment)
+
+    def test_idempotency_prevents_double_accrual(self):
+        from operational.services import accrue_on_policy_issued
+
+        CommissionPlanScope.all_objects.create(
+            company=self.company,
+            priority=100,
+            commission_percent="10.00",
+            trigger_basis="ISSUED",
+        )
+
+        event = {"id": "evt_duplicate", "data": {"endosso_id": self.endosso.id}}
+        
+        # First call
+        accrue_on_policy_issued(event, self.company)
+        self.assertEqual(CommissionAccrual.objects.count(), 1)
+        self.assertEqual(OperationalIntegrationInbox.objects.count(), 1)
+
+        # Second call with same event ID
+        accrue_on_policy_issued(event, self.company)
+        self.assertEqual(CommissionAccrual.objects.count(), 1)
+
+        # Different event ID
+        event["id"] = "evt_new"
+        accrue_on_policy_issued(event, self.company)
+        self.assertEqual(CommissionAccrual.objects.count(), 2)
+
+    def test_apply_endorsement_delta_creates_adjustment(self):
+        from operational.services import apply_endorsement_delta
+        from django.contrib.contenttypes.models import ContentType
+
+        # Initial accrual
+        ct = ContentType.objects.get_for_model(Endosso)
+        CommissionAccrual.objects.create(
+            company=self.company,
+            content_type=ct,
+            object_id=self.endosso.id,
+            amount=Decimal("100.00"),
+            status=CommissionAccrual.STATUS_PAYABLE
+        )
+
+        # Update endorsement commission to 150 (Delta +50)
+        self.endosso.valor_comissao = Decimal("150.00")
+        self.endosso.save()
+
+        event = {"data": {"endosso_id": self.endosso.id}}
+        apply_endorsement_delta(event, self.company)
+
+        self.assertEqual(CommissionAccrual.objects.count(), 2)
+        delta_accrual = CommissionAccrual.objects.latest("created_at")
+        self.assertEqual(delta_accrual.amount, Decimal("50.00"))
+
+    def test_apply_endorsement_delta_creates_negative_adjustment(self):
+        from operational.services import apply_endorsement_delta
+        from django.contrib.contenttypes.models import ContentType
+
+        # Initial accrual 100
+        ct = ContentType.objects.get_for_model(Endosso)
+        CommissionAccrual.objects.create(
+            company=self.company,
+            content_type=ct,
+            object_id=self.endosso.id,
+            amount=Decimal("100.00"),
+            status=CommissionAccrual.STATUS_PAYABLE
+        )
+
+        # Update endorsement commission to 80 (Delta -20)
+        self.endosso.valor_comissao = Decimal("80.00")
+        self.endosso.save()
+
+        event = {"data": {"endosso_id": self.endosso.id}}
+        apply_endorsement_delta(event, self.company)
+
+        delta_accrual = CommissionAccrual.objects.latest("created_at")
+        self.assertEqual(delta_accrual.amount, Decimal("-20.00"))
+
+    def test_create_commission_payout_batch(self):
+        from operational.services import create_commission_payout_batch
+        
+        # Create 2 payable accruals
+        CommissionAccrual.objects.create(
+            company=self.company,
+            content_type=ContentType.objects.get_for_model(Endosso),
+            object_id=self.endosso.id,
+            amount=Decimal("100.00"),
+            status=CommissionAccrual.STATUS_PAYABLE
+        )
+        CommissionAccrual.objects.create(
+            company=self.company,
+            content_type=ContentType.objects.get_for_model(Endosso),
+            object_id=self.endosso.id,
+            amount=Decimal("50.00"),
+            status=CommissionAccrual.STATUS_PAYABLE
+        )
+
+        today = date.today()
+        batch = create_commission_payout_batch(
+            self.company, 
+            period_from=today - timedelta(days=1), 
+            period_to=today + timedelta(days=1),
+            created_by=self.user_manager # Assuming user_manager exists in this context or mock
+        )
+
+        self.assertIsNotNone(batch)
+        self.assertEqual(batch.total_amount, Decimal("150.00"))
+        self.assertEqual(batch.items.count(), 2)
+        
+        # Ensure idempotency (items already in batch shouldn't be picked up again)
+        batch2 = create_commission_payout_batch(self.company, today, today, created_by=self.user_manager)
+        self.assertIsNone(batch2)
+
+
+class PayoutProcessTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.company = Company.objects.create(name="Payout Corp", tenant_code="payout", subdomain="payout")
+        self.maker = User.objects.create_user(username="maker", email="maker@payout.com")
+        self.checker = User.objects.create_user(username="checker", email="checker@payout.com")
+        self.producer = User.objects.create_user(username="producer", email="prod@payout.com")
+        self.employee = User.objects.create_user(username="employee", email="emp@payout.com")
+        
+        # Profiles
+        ParticipantProfile.objects.create(
+            company=self.company,
+            user=self.producer,
+            participant_type=ParticipantProfile.TYPE_INDEPENDENT
+        )
+        ParticipantProfile.objects.create(
+            company=self.company,
+            user=self.employee,
+            participant_type=ParticipantProfile.TYPE_EMPLOYEE
+        )
+        
+        # Create accrual
+        self.accrual = CommissionAccrual.objects.create(
+            company=self.company,
+            content_type=ContentType.objects.get_for_model(Company), # Dummy CT
+            object_id=self.company.id,
+            amount=Decimal("500.00"),
+            status=CommissionAccrual.STATUS_PAYABLE,
+            recipient=self.producer,
+            recipient_type=ParticipantProfile.TYPE_INDEPENDENT
+        )
+
+    def test_approve_batch_enforces_sod(self):
+        from operational.services import create_commission_payout_batch, approve_commission_payout_batch
+
+        today = date.today()
+        batch = create_commission_payout_batch(
+            self.company, today, today, created_by=self.maker
+        )
+
+        # Maker tries to approve own batch -> Fail
+        with self.assertRaises(PermissionDenied):
+            approve_commission_payout_batch(batch.id, self.maker, self.company)
+
+        # Checker approves -> Success
+        approve_commission_payout_batch(batch.id, self.checker, self.company)
+        batch.refresh_from_db()
+        self.assertEqual(batch.status, CommissionPayoutBatch.STATUS_APPROVED)
+        self.assertEqual(batch.approved_by, self.checker)
+
+    def test_generate_payables_creates_finance_records(self):
+        from operational.services import (
+            create_commission_payout_batch, 
+            approve_commission_payout_batch,
+            generate_payables_for_payout_batch,
+            confirm_commission_payout
+        )
+
+        today = date.today()
+        # Create another accrual for same producer to test aggregation
+        CommissionAccrual.objects.create(
+            company=self.company,
+            content_type=ContentType.objects.get_for_model(Company),
+            object_id=self.company.id,
+            amount=Decimal("250.00"),
+            status=CommissionAccrual.STATUS_PAYABLE,
+            recipient=self.producer
+        )
+
+        batch = create_commission_payout_batch(
+            self.company, today, today, created_by=self.maker
+        )
+        approve_commission_payout_batch(batch.id, self.checker, self.company)
+
+        generate_payables_for_payout_batch(batch.id, self.company)
+
+        batch.refresh_from_db()
+        self.assertEqual(batch.status, CommissionPayoutBatch.STATUS_PROCESSED)
+
+        # Check Payables
+        payables = Payable.objects.filter(company=self.company)
+        self.assertEqual(payables.count(), 1) # Aggregated by producer
+        payable = payables.first()
+        self.assertEqual(payable.amount, Decimal("750.00"))
+        self.assertEqual(payable.recipient, self.producer)
+        self.assertEqual(payable.source_ref, str(batch.id))
+
+        # Accruals should NOT be PAID yet
+        self.accrual.refresh_from_db()
+        self.assertEqual(self.accrual.status, CommissionAccrual.STATUS_PAYABLE)
+
+        # Confirm Payment
+        event = {"id": "evt_pay_1", "data": {"batch_id": batch.id}}
+        confirm_commission_payout(event, self.company)
+
+        batch.refresh_from_db()
+        self.assertEqual(batch.status, CommissionPayoutBatch.STATUS_PAID)
+        
+        self.accrual.refresh_from_db()
+        self.assertEqual(self.accrual.status, CommissionAccrual.STATUS_PAID)
+
+    def test_generate_payables_requires_approved_status(self):
+        from operational.services import create_commission_payout_batch, generate_payables_for_payout_batch
+        
+        batch = create_commission_payout_batch(self.company, date.today(), date.today(), created_by=self.maker)
+        with self.assertRaises(ValidationError):
+            generate_payables_for_payout_batch(batch.id, self.company)
+
+    def test_payout_batch_applies_retention_rule(self):
+        from operational.services import create_commission_payout_batch
+        
+        # Update producer profile with retention
+        profile = self.producer.commission_profile
+        profile.payout_rules = {"retention_percent": 10.0}
+        profile.save()
+        
+        today = date.today()
+        batch = create_commission_payout_batch(
+            self.company, today, today, created_by=self.maker
+        )
+        
+        self.assertEqual(batch.items.count(), 1)
+        item = batch.items.first()
+        # 500.00 - 10% = 450.00
+        self.assertEqual(item.amount, Decimal("450.00"))
+        self.assertEqual(batch.total_amount, Decimal("450.00"))
+
+    def test_payout_batch_filters_by_participant_type(self):
+        from operational.services import create_commission_payout_batch
+        
+        # Create employee accrual
+        CommissionAccrual.objects.create(
+            company=self.company,
+            content_type=ContentType.objects.get_for_model(Company),
+            object_id=self.company.id,
+            amount=Decimal("300.00"),
+            status=CommissionAccrual.STATUS_PAYABLE,
+            recipient=self.employee,
+            recipient_type=ParticipantProfile.TYPE_EMPLOYEE
+        )
+        
+        today = date.today()
+        
+        # Batch for Employees only
+        batch_emp = create_commission_payout_batch(
+            self.company, today, today, created_by=self.maker, participant_type=ParticipantProfile.TYPE_EMPLOYEE
+        )
+        self.assertEqual(batch_emp.items.count(), 1)
+        self.assertEqual(batch_emp.items.first().accrual.recipient, self.employee)
+        
+        # Batch for Independent only (should pick up the producer accrual from setUp)
+        batch_ind = create_commission_payout_batch(
+            self.company, today, today, created_by=self.maker, participant_type=ParticipantProfile.TYPE_INDEPENDENT
+        )
+        self.assertEqual(batch_ind.items.count(), 1)
+        self.assertEqual(batch_ind.items.first().accrual.recipient, self.producer)
+
+
+class InsurerSettlementTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.company = Company.objects.create(name="Insurer Corp", tenant_code="insurer", subdomain="insurer")
+        self.maker = User.objects.create_user(username="maker_ins", email="maker@insurer.com")
+        self.checker = User.objects.create_user(username="checker_ins", email="checker@insurer.com")
+        
+        # Create insurer payable
+        self.payable = InsurerPayableAccrual.objects.create(
+            company=self.company,
+            content_type=ContentType.objects.get_for_model(Company),
+            object_id=self.company.id,
+            amount=Decimal("1000.00"),
+            insurer_name="Seguradora Top",
+            status=InsurerPayableAccrual.STATUS_PENDING
+        )
+
+    def test_full_settlement_flow(self):
+        from operational.services import (
+            create_insurer_settlement_batch,
+            approve_insurer_settlement_batch,
+            generate_payables_for_insurer_settlement,
+            confirm_insurer_settlement
+        )
+
+        today = date.today()
+        
+        # 1. Create Batch
+        batch = create_insurer_settlement_batch(
+            self.company, "Seguradora Top", today, today, self.maker
+        )
+        self.assertIsNotNone(batch)
+        self.assertEqual(batch.total_amount, Decimal("1000.00"))
+
+        # 2. Approve Batch (SoD)
+        with self.assertRaises(PermissionDenied):
+            approve_insurer_settlement_batch(batch.id, self.maker, self.company)
+        
+        approve_insurer_settlement_batch(batch.id, self.checker, self.company)
+        batch.refresh_from_db()
+        self.assertEqual(batch.status, InsurerSettlementBatch.STATUS_APPROVED)
+
+        # 3. Generate Payables
+        generate_payables_for_insurer_settlement(batch.id, self.company)
+        
+        batch.refresh_from_db()
+        self.assertEqual(batch.status, InsurerSettlementBatch.STATUS_PROCESSED)
+        
+        # Not settled yet
+        self.payable.refresh_from_db()
+        self.assertEqual(self.payable.status, InsurerPayableAccrual.STATUS_PENDING)
+        
+        finance_payable = Payable.objects.get(company=self.company)
+        self.assertEqual(finance_payable.beneficiary_name, "Seguradora Top")
+        self.assertEqual(finance_payable.amount, Decimal("1000.00"))
+
+        # 4. Confirm Settlement
+        event = {"id": "evt_ins_pay_1", "data": {"batch_id": batch.id}}
+        confirm_insurer_settlement(event, self.company)
+
+        self.payable.refresh_from_db()
+        self.assertEqual(self.payable.status, InsurerPayableAccrual.STATUS_SETTLED)

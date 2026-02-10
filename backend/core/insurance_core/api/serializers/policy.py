@@ -287,3 +287,26 @@ class EndorsementSerializer(serializers.ModelSerializer):
     def get_policy(self, obj):
         return {"id": obj.policy_id, "policy_number": obj.policy.policy_number}
 
+
+class PolicyCreateSerializer(PolicySerializer):
+    pass
+
+
+class PolicyRenewSerializer(serializers.Serializer):
+    start_date = serializers.DateField(required=False)
+    end_date = serializers.DateField(required=False)
+    policy_number = serializers.CharField(required=False, max_length=80)
+    premium_total = serializers.DecimalField(max_digits=14, decimal_places=2, required=False)
+
+
+class EndorsementCreateSerializer(serializers.Serializer):
+    endorsement_type = serializers.CharField(max_length=50)
+    effective_date = serializers.DateField()
+    premium_delta = serializers.DecimalField(max_digits=14, decimal_places=2, required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+
+
+class EndorsementSimulationSerializer(serializers.Serializer):
+    endorsement_type = serializers.CharField(max_length=50)
+    effective_date = serializers.DateField()
+    premium_delta = serializers.DecimalField(max_digits=14, decimal_places=2, required=False)
