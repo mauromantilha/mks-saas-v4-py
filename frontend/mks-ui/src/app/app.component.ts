@@ -1,9 +1,11 @@
 import { CommonModule } from "@angular/common";
 import { Component, computed } from "@angular/core";
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
+import { MatSlideToggleChange, MatSlideToggleModule } from "@angular/material/slide-toggle";
 
 import { SessionService } from "./core/auth/session.service";
 import { PortalContextService } from "./core/portal/portal-context.service";
+import { ThemeService } from "./core/theme/theme.service";
 
 interface NavItem {
   label: string;
@@ -15,13 +17,14 @@ interface NavItem {
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, MatSlideToggleModule],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.scss",
 })
 export class AppComponent {
   readonly session = computed(() => this.sessionService.session());
   readonly isAuthenticated = computed(() => this.sessionService.isAuthenticated());
+  readonly isDarkMode = computed(() => this.themeService.isDarkMode());
   readonly hostname = this.portalContextService.hostname();
   readonly portalType = computed(() => {
     const hostPortal = this.portalContextService.portalType();
@@ -85,11 +88,16 @@ export class AppComponent {
   constructor(
     public readonly sessionService: SessionService,
     private readonly portalContextService: PortalContextService,
+    private readonly themeService: ThemeService,
     private readonly router: Router
   ) {}
 
   logout(): void {
     this.sessionService.clearSession();
     void this.router.navigate(["/login"]);
+  }
+
+  onThemeToggle(event: MatSlideToggleChange): void {
+    this.themeService.setDarkMode(event.checked);
   }
 }

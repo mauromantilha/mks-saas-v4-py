@@ -11,11 +11,23 @@
   color: var(--content-text);
 }
 
+:host-context(.dark-theme) {
+  --shell-bg: #0a0f1a;
+  --sidebar-bg: #0f172a;
+  --sidebar-gradient-to: #111b2f;
+  --sidebar-text: #e2e8f0;
+  --sidebar-muted: #94a3b8;
+  --sidebar-active: #38bdf8;
+  --content-text: #e5e7eb;
+  --border-color: #273447;
+}
+
 .shell {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 272px 1fr;
   background: radial-gradient(circle at 15% 20%, #ffffff, var(--shell-bg));
+  position: relative;
 }
 
 .shell.tenant-portal {
@@ -49,6 +61,18 @@
   overflow: hidden;
 }
 
+.theme-toggle-panel {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 1200;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--sidebar-bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+}
+
 .brand {
   display: flex;
   flex-direction: column;
@@ -74,6 +98,10 @@
   background: rgba(255, 255, 255, 0.68);
   backdrop-filter: blur(10px);
   font-size: 0.85rem;
+}
+
+:host-context(.dark-theme) .session-meta {
+  background: rgba(15, 23, 42, 0.74);
 }
 
 .session-meta p {
@@ -152,6 +180,14 @@
   background: #fff;
 }
 
+:host-context(.dark-theme) .logout-btn {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+:host-context(.dark-theme) .logout-btn:hover {
+  background: rgba(30, 41, 59, 0.95);
+}
+
 .content {
   min-width: 0;
 }
@@ -159,6 +195,12 @@
 @media (max-width: 960px) {
   .shell {
     grid-template-columns: 1fr;
+  }
+
+  .theme-toggle-panel {
+    top: 8px;
+    right: 8px;
+    padding: 6px 8px;
   }
 
   .sidebar {

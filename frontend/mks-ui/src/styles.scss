@@ -1,5 +1,46 @@
-:root {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+@use "@angular/material" as mat;
+
+@include mat.core();
+
+$mks-light-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$azure-palette,
+    tertiary: mat.$blue-palette,
+  ),
+  typography: (
+    brand-family: "Roboto, Segoe UI, sans-serif",
+    plain-family: "Roboto, Segoe UI, sans-serif",
+  ),
+  density: (
+    scale: 0,
+  ),
+));
+
+$mks-dark-theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$azure-palette,
+    tertiary: mat.$blue-palette,
+  ),
+  typography: (
+    brand-family: "Roboto, Segoe UI, sans-serif",
+    plain-family: "Roboto, Segoe UI, sans-serif",
+  ),
+  density: (
+    scale: 0,
+  ),
+));
+
+html {
+  color-scheme: light;
+  font-family: "Roboto", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  @include mat.all-component-themes($mks-light-theme);
+}
+
+html.dark-theme {
+  color-scheme: dark;
+  @include mat.all-component-colors($mks-dark-theme);
 }
 
 * {
@@ -10,4 +51,10 @@ body {
   margin: 0;
   background: #f6f7f9;
   color: #1f2937;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+html.dark-theme body {
+  background: #060b13;
+  color: #e5e7eb;
 }
