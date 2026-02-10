@@ -34,10 +34,11 @@ class CommissionEngineTests(TestCase):
             customer=self.customer,
             insurer=self.insurer,
             product=product,
-            branch=product.branch,
+            branch=self.branch_normal,
             policy_number="123",
             start_date=date(2026, 1, 1),
             end_date=date(2027, 1, 1),
+            status=Policy.STATUS_QUOTED,
             is_renewal=is_renewal
         )
         PolicyBillingConfig.objects.create(
