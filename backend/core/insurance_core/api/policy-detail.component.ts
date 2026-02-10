@@ -95,6 +95,17 @@ export class PolicyDetailComponent implements OnInit {
         // ou poderíamos atualizar o Observable localmente.
         window.location.reload(); // Maneira simples de garantir estado fresco após ação crítica
       });
+    this.policyService.issue(policy.id).subscribe({
+      next: () => {
+        this.isProcessing = false;
+        // Navega para a aba financeiro sem recarregar a página inteira
+        this.router.navigate(['billing'], { relativeTo: this.route });
+      },
+      error: (err) => {
+        this.isProcessing = false;
+        console.error('Erro ao emitir apólice:', err);
+        // Idealmente, chamar um ToastService aqui
+      }
     });
   }
 }
