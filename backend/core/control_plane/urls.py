@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from control_plane.views import ControlPanelCepLookupAPIView
 from control_plane.viewsets import (
+    ControlPanelAuditViewSet,
     ControlPanelContractViewSet,
     ControlPanelFeatureFlagViewSet,
     ControlPanelMonitoringViewSet,
@@ -16,6 +17,7 @@ router.register(r"plans", ControlPanelPlanViewSet, basename="control-panel-plans
 router.register(r"contracts", ControlPanelContractViewSet, basename="control-panel-contracts")
 router.register(r"monitoring", ControlPanelMonitoringViewSet, basename="control-panel-monitoring")
 router.register(r"features", ControlPanelFeatureFlagViewSet, basename="control-panel-features")
+router.register(r"audit", ControlPanelAuditViewSet, basename="control-panel-audit")
 
 urlpatterns = [
     path("utils/cep/<str:cep>/", ControlPanelCepLookupAPIView.as_view(), name="control-panel-cep"),

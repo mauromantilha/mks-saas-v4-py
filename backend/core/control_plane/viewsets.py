@@ -5,9 +5,11 @@ from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from control_plane.models import (
@@ -202,7 +204,13 @@ class ControlPanelTenantViewSet(viewsets.ViewSet):
                 Q(legal_name__icontains=search) | Q(cnpj__icontains=search)
             )
 
-        serializer = ControlPanelTenantSerializer(queryset, many=True)
+        paginator = PageNumberPagination()
+        paginator.page_size_query_param = "page_size"
+        paginator.page_size = 20
+        paginator.max_page_size = 200
+        page = paginator.paginate_queryset(queryset, request, view=self)
+
+        serializer = ControlPanelTenantSerializer(page if page is not None else queryset, many=True)
         _audit(
             request.user,
             None,
@@ -215,8 +223,11 @@ class ControlPanelTenantViewSet(viewsets.ViewSet):
                     "search": bool(search),
                 },
                 "result_count": len(serializer.data),
+                "paginated": page is not None,
             },
         )
+        if page is not None:
+            return paginator.get_paginated_response(serializer.data)
         return Response(serializer.data)
 
     def create(self, request):
@@ -1371,3 +1382,114 @@ class ControlPanelMonitoringViewSet(viewsets.ViewSet):
                 "alerts": TenantAlertEventSerializer(open_alerts[:200], many=True).data,
             }
         )
+
+    @action(detail=False, methods=["post"], url_path=r"alerts/(?P<alert_id>[^/.]+)/ack")
+    def acknowledge_alert(self, request, alert_id=None):
+        alert = get_object_or_404(
+            TenantAlertEvent.objects.select_related("tenant"),
+            pk=alert_id,
+        )
+
+        if alert.status != TenantAlertEvent.STATUS_RESOLVED:
+            alert.status = TenantAlertEvent.STATUS_RESOLVED
+            alert.resolved_at = timezone.now()
+            alert.save(update_fields=["status", "resolved_at", "last_seen_at"])
+
+        _audit(
+            request.user,
+            alert.tenant,
+            ControlPanelAuditLog.ACTION_UPDATE,
+            {
+                "resource": "monitoring_alert",
+                "tenant_id": alert.tenant_id,
+                "entity_id": alert.id,
+                "after": {"status": alert.status},
+                "correlation_id": getattr(request, "correlation_id", ""),
+            },
+        )
+        return Response(TenantAlertEventSerializer(alert).data)
+
+
+class ControlPanelAuditViewSet(viewsets.ViewSet):
+    permission_classes = [IsControlPanelAdmin]
+
+    def list(self, request):
+        queryset = (
+            AdminAuditEvent.objects.select_related("actor", "target_tenant")
+            .order_by("-created_at")
+        )
+
+        period_label, since_from_period = _parse_monitoring_period(
+            request.query_params.get("period")
+        )
+        if since_from_period is not None:
+            queryset = queryset.filter(created_at__gte=since_from_period)
+
+        date_from_raw = (request.query_params.get("date_from") or "").strip()
+        date_to_raw = (request.query_params.get("date_to") or "").strip()
+        date_from = parse_datetime(date_from_raw) if date_from_raw else None
+        date_to = parse_datetime(date_to_raw) if date_to_raw else None
+        if date_from is not None:
+            queryset = queryset.filter(created_at__gte=date_from)
+        if date_to is not None:
+            queryset = queryset.filter(created_at__lte=date_to)
+
+        actor_raw = (request.query_params.get("actor") or "").strip()
+        if actor_raw.isdigit():
+            queryset = queryset.filter(actor_id=int(actor_raw))
+
+        tenant_raw = (request.query_params.get("tenant_id") or "").strip()
+        if tenant_raw.isdigit():
+            queryset = queryset.filter(target_tenant_id=int(tenant_raw))
+
+        action_value = (request.query_params.get("action") or "").strip()
+        if action_value:
+            queryset = queryset.filter(action__iexact=action_value)
+
+        search = (request.query_params.get("search") or "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(action__icontains=search)
+                | Q(entity_type__icontains=search)
+                | Q(entity_id__icontains=search)
+                | Q(correlation_id__icontains=search)
+                | Q(actor__username__icontains=search)
+                | Q(target_tenant__legal_name__icontains=search)
+                | Q(target_tenant__slug__icontains=search)
+            )
+
+        paginator = PageNumberPagination()
+        paginator.page_size_query_param = "page_size"
+        paginator.page_size = 20
+        paginator.max_page_size = 200
+
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is None:
+            data = AdminAuditEventSerializer(queryset[:200], many=True).data
+            result_count = len(data)
+            _audit(
+                request.user,
+                None,
+                ControlPanelAuditLog.ACTION_LIST,
+                {
+                    "resource": "admin_audit_event",
+                    "period": period_label,
+                    "result_count": result_count,
+                    "correlation_id": getattr(request, "correlation_id", ""),
+                },
+            )
+            return Response(data)
+
+        serialized = AdminAuditEventSerializer(page, many=True).data
+        _audit(
+            request.user,
+            None,
+            ControlPanelAuditLog.ACTION_LIST,
+            {
+                "resource": "admin_audit_event",
+                "period": period_label,
+                "result_count": len(serialized),
+                "correlation_id": getattr(request, "correlation_id", ""),
+            },
+        )
+        return paginator.get_paginated_response(serialized)
