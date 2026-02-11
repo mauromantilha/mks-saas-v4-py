@@ -6,7 +6,7 @@ import { portalGuard } from "../../core/portal/portal.guard";
 import { authGuard } from "../../core/auth/auth.guard";
 import { ControlPanelAuditPageComponent } from "./control-panel-audit-page.component";
 import { ControlPanelContractsPageComponent } from "./control-panel-contracts-page.component";
-import { ControlPanelDashboardPageComponent } from "./control-panel-dashboard-page.component";
+import { ControlPanelDashboardSafePageComponent } from "./control-panel-dashboard-safe-page.component";
 import { ControlPanelLayoutComponent } from "./control-panel-layout.component";
 import { ControlPanelMonitoringGlobalPageComponent } from "./control-panel-monitoring-global-page.component";
 import { controlPanelPlansResolver } from "./control-panel-plans.resolver";
@@ -27,7 +27,7 @@ const routes: Routes = [
       { path: "", pathMatch: "full", redirectTo: "dashboard" },
       {
         path: "dashboard",
-        component: ControlPanelDashboardPageComponent,
+        component: ControlPanelDashboardSafePageComponent,
         canActivate: [permissionGuard],
         data: {
           permission: "control_panel.dashboard",

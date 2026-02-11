@@ -1,4 +1,6 @@
 .control-panel-shell {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
   height: 100vh;
   height: 100dvh;
   min-height: 100vh;
@@ -6,9 +8,19 @@
 }
 
 .sidebar {
-  width: 272px;
   border-right: 1px solid var(--mks-border);
   background: var(--mks-surface);
+  overflow: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.panel-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand {
@@ -28,23 +40,40 @@
   }
 }
 
-mat-nav-list {
-  padding: 0.25rem 0.5rem 1rem;
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.25rem 0;
 }
 
-a[mat-list-item] {
-  border-radius: 12px;
-  margin-bottom: 0.2rem;
+.menu a {
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--mks-text);
+  padding: 0.65rem 0.75rem;
+  border: 1px solid transparent;
+  font-weight: 600;
 }
 
-a[mat-list-item].active {
-  background: color-mix(in srgb, var(--mks-tonal) 70%, transparent);
+.menu a:hover {
+  background: color-mix(in srgb, var(--mks-tonal) 65%, transparent);
+  border-color: color-mix(in srgb, var(--mks-tonal) 50%, var(--mks-border));
+}
+
+.menu a.active {
+  background: color-mix(in srgb, var(--mks-tonal) 78%, transparent);
+  border-color: color-mix(in srgb, var(--mks-tonal) 60%, var(--mks-border));
 }
 
 .topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   border-bottom: 1px solid var(--mks-border);
-  padding-inline: 1rem;
+  padding: 0.85rem 1rem;
   min-height: 64px;
+  background: var(--mks-surface);
 }
 
 .topbar-left {
@@ -82,15 +111,41 @@ a[mat-list-item].active {
   font-weight: 500;
 }
 
+.logout-btn {
+  margin-top: auto;
+  border: 1px solid var(--mks-border);
+  background: var(--mks-surface-soft);
+  color: var(--mks-text);
+  border-radius: 10px;
+  min-height: 40px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .content {
-  min-height: calc(100vh - 64px);
-  min-height: calc(100dvh - 64px);
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1rem;
   overflow: auto;
 }
 
 @media (max-width: 960px) {
+  .control-panel-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
   .sidebar {
-    width: 240px;
+    border-right: 0;
+    border-bottom: 1px solid var(--mks-border);
+  }
+
+  .menu {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .logout-btn {
+    margin-top: 0.25rem;
   }
 }

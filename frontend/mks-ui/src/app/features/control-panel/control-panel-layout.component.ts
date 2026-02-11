@@ -1,11 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnDestroy, computed } from "@angular/core";
 import { ScrollingModule } from "@angular/cdk/scrolling";
-import { MatButtonModule } from "@angular/material/button";
-import { MatIconModule } from "@angular/material/icon";
-import { MatListModule } from "@angular/material/list";
-import { MatSidenavModule } from "@angular/material/sidenav";
-import { MatToolbarModule } from "@angular/material/toolbar";
 import {
   ActivatedRoute,
   NavigationEnd,
@@ -16,11 +11,12 @@ import {
 } from "@angular/router";
 import { filter, Subscription } from "rxjs";
 
+import { AuthService } from "../../core/api/auth.service";
+import { PermissionService } from "../../core/auth/permission.service";
 import { SessionService } from "../../core/auth/session.service";
 import { BreadcrumbService } from "../../core/ui/breadcrumb.service";
 
 interface ControlPanelNavItem {
-  icon: string;
   label: string;
   path: string;
   exact?: boolean;
@@ -34,11 +30,6 @@ interface ControlPanelNavItem {
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
-    MatSidenavModule,
-    MatToolbarModule,
-    MatListModule,
-    MatIconModule,
-    MatButtonModule,
     ScrollingModule,
   ],
   templateUrl: "./control-panel-layout.component.html",
@@ -51,17 +42,19 @@ export class ControlPanelLayoutComponent implements OnDestroy {
   readonly breadcrumbs = computed(() => this.breadcrumbService.breadcrumbs());
 
   readonly menuItems: ControlPanelNavItem[] = [
-    { icon: "dashboard", label: "Dashboard", path: "/control-panel/dashboard", exact: true },
-    { icon: "apartment", label: "Tenants", path: "/control-panel/tenants", exact: false },
-    { icon: "workspace_premium", label: "Plans", path: "/control-panel/plans", exact: true },
-    { icon: "description", label: "Contracts", path: "/control-panel/contracts", exact: true },
-    { icon: "monitoring", label: "Monitoring", path: "/control-panel/monitoring", exact: true },
-    { icon: "policy", label: "Audit", path: "/control-panel/audit", exact: true },
+    { label: "Dashboard", path: "/control-panel/dashboard", exact: true },
+    { label: "Tenants", path: "/control-panel/tenants", exact: false },
+    { label: "Plans", path: "/control-panel/plans", exact: true },
+    { label: "Contracts", path: "/control-panel/contracts", exact: true },
+    { label: "Monitoring", path: "/control-panel/monitoring", exact: true },
+    { label: "Audit", path: "/control-panel/audit", exact: true },
   ];
 
   constructor(
     private readonly router: Router,
     private readonly activatedRoute: ActivatedRoute,
+    private readonly authService: AuthService,
+    private readonly permissionService: PermissionService,
     private readonly sessionService: SessionService,
     private readonly breadcrumbService: BreadcrumbService
   ) {
@@ -75,6 +68,13 @@ export class ControlPanelLayoutComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+  }
+
+  logout(): void {
+    this.authService.clearAccessToken();
+    this.permissionService.clearPermissions();
+    this.sessionService.clearSession();
+    void this.router.navigate(["/login"]);
   }
 
   private updateBreadcrumbs(): void {
