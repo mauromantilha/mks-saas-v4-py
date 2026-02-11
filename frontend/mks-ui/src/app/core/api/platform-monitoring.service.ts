@@ -11,11 +11,11 @@ import {
 @Injectable({ providedIn: "root" })
 export class PlatformMonitoringService {
   private readonly monitoringUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/control-panel/monitoring/`
-    : "/control-panel/monitoring/";
+    ? `${environment.apiBaseUrl}/api/control-panel/monitoring/`
+    : "/api/control-panel/monitoring/";
   private readonly tenantMonitoringBaseUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/control-panel/tenants/`
-    : "/control-panel/tenants/";
+    ? `${environment.apiBaseUrl}/api/control-panel/tenants/`
+    : "/api/control-panel/tenants/";
 
   constructor(private readonly http: HttpClient) {}
 

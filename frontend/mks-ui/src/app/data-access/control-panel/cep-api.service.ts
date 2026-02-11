@@ -13,7 +13,7 @@ function onlyDigits(value: string): string {
 export class CepApi {
   private readonly http = inject(HttpClient);
   private readonly config = inject(API_CONFIG);
-  private readonly baseUrl = buildApiUrl(this.config, "/control-panel/utils/cep/");
+  private readonly baseUrl = buildApiUrl(this.config, "/api/control-panel/utils/cep/");
 
   lookupCep(cep: string): Observable<CepLookupResponseDto> {
     const normalizedCep = onlyDigits(cep);

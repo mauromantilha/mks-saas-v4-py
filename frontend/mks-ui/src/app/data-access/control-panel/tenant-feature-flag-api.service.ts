@@ -14,8 +14,8 @@ import {
 export class TenantFeatureFlagApi {
   private readonly http = inject(HttpClient);
   private readonly config = inject(API_CONFIG);
-  private readonly tenantsUrl = buildApiUrl(this.config, "/control-panel/tenants/");
-  private readonly featuresUrl = buildApiUrl(this.config, "/control-panel/features/");
+  private readonly tenantsUrl = buildApiUrl(this.config, "/api/control-panel/tenants/");
+  private readonly featuresUrl = buildApiUrl(this.config, "/api/control-panel/features/");
 
   listGlobalFeatureFlags(): Observable<FeatureFlagDto[] | PaginatedResponseDto<FeatureFlagDto>> {
     return this.http.get<FeatureFlagDto[] | PaginatedResponseDto<FeatureFlagDto>>(this.featuresUrl);

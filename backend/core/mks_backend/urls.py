@@ -111,6 +111,8 @@ urlpatterns = [
         name="platform-tenants-provision-execute",
     ),
     path("control-panel/", include("control_plane.urls")),
+    # Frontend reverse-proxy routes API traffic through /api/* in production.
+    path("api/control-panel/", include("control_plane.urls")),
     path(
         "platform/api/ledger/",
         PlatformLedgerEntryListAPIView.as_view(),

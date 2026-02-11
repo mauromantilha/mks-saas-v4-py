@@ -9,8 +9,8 @@ import { ContractDto, PaginatedResponseDto, SendContractDto } from "./control-pa
 export class ContractsApi {
   private readonly http = inject(HttpClient);
   private readonly config = inject(API_CONFIG);
-  private readonly tenantsUrl = buildApiUrl(this.config, "/control-panel/tenants/");
-  private readonly contractsUrl = buildApiUrl(this.config, "/control-panel/contracts/");
+  private readonly tenantsUrl = buildApiUrl(this.config, "/api/control-panel/tenants/");
+  private readonly contractsUrl = buildApiUrl(this.config, "/api/control-panel/contracts/");
 
   listContracts(tenantId: number): Observable<ContractDto[] | PaginatedResponseDto<ContractDto>> {
     return this.http.get<ContractDto[] | PaginatedResponseDto<ContractDto>>(

@@ -26,7 +26,7 @@ import { buildHttpParams } from "./query-params.util";
 export class TenantApi {
   private readonly http = inject(HttpClient);
   private readonly config = inject(API_CONFIG);
-  private readonly baseUrl = buildApiUrl(this.config, "/control-panel/tenants/");
+  private readonly baseUrl = buildApiUrl(this.config, "/api/control-panel/tenants/");
 
   listTenants(params?: TenantListParams): Observable<TenantListResponseDto> {
     const page = params?.page ?? 1;

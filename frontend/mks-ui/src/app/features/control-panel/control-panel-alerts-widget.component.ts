@@ -70,7 +70,7 @@ export class ControlPanelAlertsWidgetComponent {
     const maxHeartbeatGapMs = this.heartbeatThresholdMinutes * 60 * 1000;
 
     const risky: RiskTenantRow[] = [];
-    for (const tenant of data.tenants) {
+    for (const tenant of data.tenants ?? []) {
       const reasons: string[] = [];
       const alerts = (alertByTenant.get(tenant.tenant_id) ?? []).filter(
         (alert) => !alert.resolved_at
@@ -173,4 +173,3 @@ export class ControlPanelAlertsWidgetComponent {
     };
   }
 }
-

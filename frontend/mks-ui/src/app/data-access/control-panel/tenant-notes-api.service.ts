@@ -13,7 +13,7 @@ import {
 export class TenantNotesApi {
   private readonly http = inject(HttpClient);
   private readonly config = inject(API_CONFIG);
-  private readonly tenantsUrl = buildApiUrl(this.config, "/control-panel/tenants/");
+  private readonly tenantsUrl = buildApiUrl(this.config, "/api/control-panel/tenants/");
 
   listTenantNotes(
     tenantId: number

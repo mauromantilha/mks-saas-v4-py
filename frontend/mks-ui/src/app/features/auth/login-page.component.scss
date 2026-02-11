@@ -178,10 +178,26 @@ button[disabled] {
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
 }
 
+:host-context(.dark-theme) input {
+  background: var(--mks-input-bg);
+  border-color: var(--mks-border);
+  color: var(--mks-text);
+}
+
 :host-context(.dark-theme) .portal-badge {
   border: 1px solid var(--mks-border);
 }
 
 :host-context(.dark-theme) .portal-switch button.active {
   color: var(--mks-on-primary);
+}
+
+:host-context(.dark-theme) .login-wrap.control-plane .toggle-password {
+  background: var(--mks-input-bg);
+  color: var(--mks-text);
+  border-color: var(--mks-border);
+}
+
+:host-context(.dark-theme) .login-wrap.control-plane .toggle-password:hover {
+  background: color-mix(in srgb, var(--mks-input-bg) 70%, var(--mks-tonal));
 }

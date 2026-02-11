@@ -10,10 +10,10 @@ import { buildHttpParams } from "./query-params.util";
 export class AuditApi {
   private readonly http = inject(HttpClient);
   private readonly config = inject(API_CONFIG);
-  private readonly tenantsUrl = buildApiUrl(this.config, "/control-panel/tenants/");
-  // Global audit endpoint can be implemented as /control-panel/audit/ in backend.
+  private readonly tenantsUrl = buildApiUrl(this.config, "/api/control-panel/tenants/");
+  // Global audit endpoint can be implemented as /api/control-panel/audit/ in backend.
   // Kept configurable here to avoid frontend coupling to a temporary route.
-  private readonly globalAuditUrl = buildApiUrl(this.config, "/control-panel/audit/");
+  private readonly globalAuditUrl = buildApiUrl(this.config, "/api/control-panel/audit/");
 
   listAuditEvents(
     params?: AuditListParams

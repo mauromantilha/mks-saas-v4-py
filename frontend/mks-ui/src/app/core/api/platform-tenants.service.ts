@@ -26,14 +26,14 @@ import {
 @Injectable({ providedIn: "root" })
 export class PlatformTenantsService {
   private readonly baseUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/control-panel/tenants/`
-    : "/control-panel/tenants/";
+    ? `${environment.apiBaseUrl}/api/control-panel/tenants/`
+    : "/api/control-panel/tenants/";
   private readonly plansUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/control-panel/plans/`
-    : "/control-panel/plans/";
+    ? `${environment.apiBaseUrl}/api/control-panel/plans/`
+    : "/api/control-panel/plans/";
   private readonly controlPanelCepBaseUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/control-panel/utils/cep/`
-    : "/control-panel/utils/cep/";
+    ? `${environment.apiBaseUrl}/api/control-panel/utils/cep/`
+    : "/api/control-panel/utils/cep/";
 
   constructor(private readonly http: HttpClient) {}
 
@@ -139,8 +139,8 @@ export class PlatformTenantsService {
 
   getContract(contractId: number): Observable<TenantContractRecord> {
     const contractsUrl = environment.apiBaseUrl
-      ? `${environment.apiBaseUrl}/control-panel/contracts/`
-      : "/control-panel/contracts/";
+      ? `${environment.apiBaseUrl}/api/control-panel/contracts/`
+      : "/api/control-panel/contracts/";
     return this.http.get<TenantContractRecord>(`${contractsUrl}${contractId}/`);
   }
 
@@ -149,8 +149,8 @@ export class PlatformTenantsService {
     payload: { to_email: string; force_send?: boolean }
   ): Observable<TenantContractRecord & { email_log: ContractEmailLogRecord }> {
     const contractsUrl = environment.apiBaseUrl
-      ? `${environment.apiBaseUrl}/control-panel/contracts/`
-      : "/control-panel/contracts/";
+      ? `${environment.apiBaseUrl}/api/control-panel/contracts/`
+      : "/api/control-panel/contracts/";
     return this.http.post<TenantContractRecord & { email_log: ContractEmailLogRecord }>(
       `${contractsUrl}${contractId}/send/`,
       payload
@@ -199,8 +199,8 @@ export class PlatformTenantsService {
   listFeatureFlags(): Observable<FeatureFlagRecord[]> {
     return this.http.get<FeatureFlagRecord[]>(
       environment.apiBaseUrl
-        ? `${environment.apiBaseUrl}/control-panel/features/`
-        : "/control-panel/features/"
+        ? `${environment.apiBaseUrl}/api/control-panel/features/`
+        : "/api/control-panel/features/"
     );
   }
 

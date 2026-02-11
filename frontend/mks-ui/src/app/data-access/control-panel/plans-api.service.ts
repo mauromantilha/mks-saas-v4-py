@@ -9,8 +9,8 @@ import { PlanDto, TenantDto, TenantSubscriptionUpdateDto } from "./control-panel
 export class PlansApi {
   private readonly http = inject(HttpClient);
   private readonly config = inject(API_CONFIG);
-  private readonly plansUrl = buildApiUrl(this.config, "/control-panel/plans/");
-  private readonly tenantsUrl = buildApiUrl(this.config, "/control-panel/tenants/");
+  private readonly plansUrl = buildApiUrl(this.config, "/api/control-panel/plans/");
+  private readonly tenantsUrl = buildApiUrl(this.config, "/api/control-panel/tenants/");
 
   listPlans(): Observable<PlanDto[]> {
     return this.http.get<PlanDto[]>(this.plansUrl);

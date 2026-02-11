@@ -100,13 +100,16 @@ export class ControlPanelDashboardPageComponent implements OnInit {
   readonly summary = computed<DashboardSummary>(() => {
     const monitoring = this.monitoring();
     const summary = monitoring?.summary;
+    const monitoringServices = Array.isArray(monitoring?.services) ? monitoring.services : [];
+    const monitoringTenants = Array.isArray(monitoring?.tenants) ? monitoring.tenants : [];
+    const monitoringAlerts = Array.isArray(monitoring?.alerts) ? monitoring.alerts : [];
     const totals = this.tenantTotals();
     const plans = this.plans();
     return {
-      totalServices: summary?.total_services ?? monitoring?.services?.length ?? 0,
-      monitoredTenants: summary?.total_tenants ?? monitoring?.tenants?.length ?? totals.all,
+      totalServices: summary?.total_services ?? monitoringServices.length ?? 0,
+      monitoredTenants: summary?.total_tenants ?? monitoringTenants.length ?? totals.all,
       riskyTenants: this.riskyCount(),
-      openAlerts: summary?.open_alerts ?? monitoring?.alerts?.length ?? 0,
+      openAlerts: summary?.open_alerts ?? monitoringAlerts.length ?? 0,
       registeredTenants: summary?.registered_tenants ?? totals.all,
       activeTenants: summary?.active_tenants ?? totals.active,
       suspendedTenants: summary?.suspended_tenants ?? totals.suspended,
@@ -233,13 +236,14 @@ export class ControlPanelDashboardPageComponent implements OnInit {
 
   riskyCount(): number {
     const data = this.monitoring();
-    if (!data) {
+    const tenants = Array.isArray(data?.tenants) ? data.tenants : [];
+    if (!data || tenants.length === 0) {
       return this.tenantTotals().suspended;
     }
     const nowMs = Date.now();
     const maxAgeMs = this.heartbeatThresholdMinutes() * 60 * 1000;
     const maxError = this.errorThresholdPercent();
-    return data.tenants.filter((tenant) => {
+    return tenants.filter((tenant) => {
       const stale =
         !tenant.last_seen_at || nowMs - new Date(tenant.last_seen_at).getTime() > maxAgeMs;
       const highError = (tenant.error_rate ?? 0) * 100 > maxError;
