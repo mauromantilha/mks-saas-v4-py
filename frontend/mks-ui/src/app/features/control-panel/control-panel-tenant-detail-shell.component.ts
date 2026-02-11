@@ -15,12 +15,13 @@ import { TenantApi } from "../../data-access/control-panel/tenant-api.service";
 import { ConfirmDialogComponent, ConfirmDialogData } from "../../shared/ui/dialogs/confirm-dialog.component";
 import { ControlPanelContractsTabComponent } from "./control-panel-contracts-tab.component";
 import { ControlPanelFeaturesTabComponent } from "./control-panel-features-tab.component";
+import { ControlPanelGovernanceTabComponent } from "./control-panel-governance-tab.component";
 import { ControlPanelMonitoringTenantTabComponent } from "./control-panel-monitoring-tenant-tab.component";
 import { ControlPanelNotesTabComponent } from "./control-panel-notes-tab.component";
 import { ControlPanelSubscriptionTabComponent } from "./control-panel-subscription-tab.component";
 import { ControlPanelTenantAuditTabComponent } from "./control-panel-tenant-audit-tab.component";
 
-type DetailTab = "overview" | "subscription" | "contracts" | "monitoring" | "features" | "notes" | "audit";
+type DetailTab = "overview" | "subscription" | "contracts" | "monitoring" | "governance" | "features" | "notes" | "audit";
 
 @Component({
   selector: "app-control-panel-tenant-detail-shell",
@@ -35,6 +36,7 @@ type DetailTab = "overview" | "subscription" | "contracts" | "monitoring" | "fea
     MatIconModule,
     ControlPanelContractsTabComponent,
     ControlPanelFeaturesTabComponent,
+    ControlPanelGovernanceTabComponent,
     ControlPanelMonitoringTenantTabComponent,
     ControlPanelNotesTabComponent,
     ControlPanelSubscriptionTabComponent,
@@ -49,6 +51,7 @@ export class ControlPanelTenantDetailShellComponent implements OnInit {
     "subscription",
     "contracts",
     "monitoring",
+    "governance",
     "features",
     "notes",
     "audit",

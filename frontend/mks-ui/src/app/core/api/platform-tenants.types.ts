@@ -180,7 +180,7 @@ export interface TenantOperationalSettingsRecord {
 export interface TenantIntegrationSecretRefRecord {
   id: number;
   tenant: number;
-  provider: "RESEND" | "WHATSAPP" | "VERTEX_AI" | "CUSTOM";
+  provider: "SMTP" | "WHATSAPP" | "VERTEX_AI" | "CUSTOM";
   alias: string;
   secret_manager_ref: string;
   metadata_json: Record<string, unknown>;

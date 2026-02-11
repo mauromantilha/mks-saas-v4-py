@@ -170,6 +170,81 @@ export interface TenantFeatureFlagUpdateDto {
   enabled: boolean;
 }
 
+export type TenantIntegrationProvider = "SMTP" | "WHATSAPP" | "VERTEX_AI" | "CUSTOM";
+
+export interface TenantOperationalSettingsDto {
+  tenant: number;
+  requests_per_minute: number;
+  storage_limit_gb: string;
+  docs_storage_limit_gb: string;
+  module_limits_json: Record<string, unknown>;
+  current_storage_gb: string;
+  current_docs_storage_gb: string;
+  last_storage_sync_at: string | null;
+  updated_by: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantOperationalSettingsUpdateDto {
+  requests_per_minute?: number;
+  storage_limit_gb?: string;
+  docs_storage_limit_gb?: string;
+  module_limits_json?: Record<string, unknown>;
+  current_storage_gb?: string;
+  current_docs_storage_gb?: string;
+  last_storage_sync_at?: string | null;
+}
+
+export interface TenantIntegrationSecretRefDto {
+  id: number;
+  tenant: number;
+  provider: TenantIntegrationProvider;
+  alias: string;
+  secret_manager_ref: string;
+  metadata_json: Record<string, unknown>;
+  is_active: boolean;
+  created_by: number | null;
+  created_by_username: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantIntegrationSecretRefUpsertDto {
+  provider: TenantIntegrationProvider;
+  alias: string;
+  secret_manager_ref: string;
+  metadata_json?: Record<string, unknown>;
+  is_active?: boolean;
+}
+
+export interface TenantReleaseRecordDto {
+  id: number;
+  tenant: number;
+  backend_version: string;
+  frontend_version: string;
+  git_sha: string;
+  source: string;
+  changelog: string;
+  changelog_json: unknown;
+  is_current: boolean;
+  created_by: number | null;
+  created_by_username: string | null;
+  deployed_at: string;
+  created_at: string;
+}
+
+export interface TenantReleaseRecordCreateDto {
+  backend_version: string;
+  frontend_version?: string;
+  git_sha?: string;
+  source?: string;
+  changelog?: string;
+  changelog_json?: unknown;
+  deployed_at?: string;
+  is_current?: boolean;
+}
+
 export interface TenantInternalNoteDto {
   id: number;
   tenant: number;

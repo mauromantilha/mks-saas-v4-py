@@ -1,0 +1,303 @@
+<section class="governance-wrap">
+  <app-loading-state *ngIf="loading()" message="Carregando governança..."></app-loading-state>
+  <app-error-state *ngIf="!loading() && error()" [message]="error()" retryLabel="Recarregar" (retry)="reload()"></app-error-state>
+
+  <ng-container *ngIf="!loading() && !error()">
+    <mat-card class="section-card" *ngIf="limits() as currentLimits">
+      <div class="section-head">
+        <h3>Rate limits e armazenamento</h3>
+        <button *appCan="'cp.tenants.manage'" mat-flat-button color="primary" type="button" (click)="saveLimits()" [disabled]="actionLoading()">
+          Salvar limites
+        </button>
+      </div>
+
+      <div class="grid-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Requests/min</mat-label>
+          <input
+            matInput
+            type="number"
+            min="1"
+            [ngModel]="currentLimits.requests_per_minute"
+            (ngModelChange)="updateLimitsField('requests_per_minute', +$event || 1)"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Storage total (GB)</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            step="0.01"
+            [ngModel]="currentLimits.storage_limit_gb"
+            (ngModelChange)="updateLimitsField('storage_limit_gb', $event)"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Storage docs (GB)</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            step="0.01"
+            [ngModel]="currentLimits.docs_storage_limit_gb"
+            (ngModelChange)="updateLimitsField('docs_storage_limit_gb', $event)"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Uso total atual (GB)</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            step="0.01"
+            [ngModel]="currentLimits.current_storage_gb"
+            (ngModelChange)="updateLimitsField('current_storage_gb', $event)"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Uso docs atual (GB)</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            step="0.01"
+            [ngModel]="currentLimits.current_docs_storage_gb"
+            (ngModelChange)="updateLimitsField('current_docs_storage_gb', $event)"
+          />
+        </mat-form-field>
+      </div>
+    </mat-card>
+
+    <mat-card class="section-card">
+      <div class="section-head">
+        <h3>Integrações do tenant</h3>
+        <button *appCan="'cp.tenants.manage'" mat-stroked-button type="button" (click)="upsertIntegration()" [disabled]="actionLoading()">
+          Salvar integração
+        </button>
+      </div>
+
+      <div class="grid-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Provider</mat-label>
+          <mat-select [ngModel]="integrationForm().provider" (ngModelChange)="patchIntegrationForm('provider', $event)">
+            <mat-option *ngFor="let option of providers" [value]="option.value">{{ option.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Alias</mat-label>
+          <input matInput [ngModel]="integrationForm().alias" (ngModelChange)="patchIntegrationForm('alias', $event || '')" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-col">
+          <mat-label>Secret Manager Ref</mat-label>
+          <input
+            matInput
+            [ngModel]="integrationForm().secret_manager_ref"
+            (ngModelChange)="patchIntegrationForm('secret_manager_ref', $event || '')"
+            placeholder="projects/<project>/secrets/<name>"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-col">
+          <mat-label>Metadata JSON</mat-label>
+          <textarea
+            matInput
+            rows="3"
+            [ngModel]="integrationForm().metadata_json"
+            (ngModelChange)="patchIntegrationForm('metadata_json', $event || '{}')"
+          ></textarea>
+        </mat-form-field>
+      </div>
+
+      <app-empty-state
+        *ngIf="integrations().length === 0"
+        icon="key"
+        title="Sem integrações cadastradas"
+        description="Cadastre SMTP/WhatsApp/Vertex AI com referência no Secret Manager."
+      ></app-empty-state>
+
+      <div class="table-wrap" *ngIf="integrations().length > 0">
+        <table mat-table [dataSource]="integrations()">
+          <ng-container matColumnDef="provider">
+            <th mat-header-cell *matHeaderCellDef>Provider</th>
+            <td mat-cell *matCellDef="let row">{{ row.provider }}</td>
+          </ng-container>
+          <ng-container matColumnDef="alias">
+            <th mat-header-cell *matHeaderCellDef>Alias</th>
+            <td mat-cell *matCellDef="let row">{{ row.alias }}</td>
+          </ng-container>
+          <ng-container matColumnDef="secret">
+            <th mat-header-cell *matHeaderCellDef>Secret Ref</th>
+            <td mat-cell *matCellDef="let row">{{ row.secret_manager_ref }}</td>
+          </ng-container>
+          <ng-container matColumnDef="active">
+            <th mat-header-cell *matHeaderCellDef>Ativo</th>
+            <td mat-cell *matCellDef="let row">{{ row.is_active ? "Sim" : "Não" }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="integrationColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: integrationColumns"></tr>
+        </table>
+      </div>
+    </mat-card>
+
+    <mat-card class="section-card">
+      <div class="section-head">
+        <h3>Changelog / versão por tenant</h3>
+        <button *appCan="'cp.tenants.manage'" mat-stroked-button type="button" (click)="createRelease()" [disabled]="actionLoading()">
+          Registrar release
+        </button>
+      </div>
+
+      <div class="grid-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Backend version</mat-label>
+          <input matInput [ngModel]="releaseForm().backend_version" (ngModelChange)="patchReleaseForm('backend_version', $event || '')" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Frontend version</mat-label>
+          <input matInput [ngModel]="releaseForm().frontend_version" (ngModelChange)="patchReleaseForm('frontend_version', $event || '')" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Git SHA</mat-label>
+          <input matInput [ngModel]="releaseForm().git_sha" (ngModelChange)="patchReleaseForm('git_sha', $event || '')" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Source</mat-label>
+          <input matInput [ngModel]="releaseForm().source" (ngModelChange)="patchReleaseForm('source', $event || '')" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-col">
+          <mat-label>Changelog</mat-label>
+          <textarea matInput rows="3" [ngModel]="releaseForm().changelog" (ngModelChange)="patchReleaseForm('changelog', $event || '')"></textarea>
+        </mat-form-field>
+      </div>
+
+      <app-empty-state
+        *ngIf="releases().length === 0"
+        icon="new_releases"
+        title="Sem releases registradas"
+        description="Registre a versão para rastreabilidade por tenant."
+      ></app-empty-state>
+
+      <div class="table-wrap" *ngIf="releases().length > 0">
+        <table mat-table [dataSource]="releases()">
+          <ng-container matColumnDef="backend">
+            <th mat-header-cell *matHeaderCellDef>Backend</th>
+            <td mat-cell *matCellDef="let row">{{ row.backend_version }}</td>
+          </ng-container>
+          <ng-container matColumnDef="frontend">
+            <th mat-header-cell *matHeaderCellDef>Frontend</th>
+            <td mat-cell *matCellDef="let row">{{ row.frontend_version || "-" }}</td>
+          </ng-container>
+          <ng-container matColumnDef="source">
+            <th mat-header-cell *matHeaderCellDef>Source</th>
+            <td mat-cell *matCellDef="let row">{{ row.source }}</td>
+          </ng-container>
+          <ng-container matColumnDef="deployed">
+            <th mat-header-cell *matHeaderCellDef>Deploy</th>
+            <td mat-cell *matCellDef="let row">{{ row.deployed_at | date : "dd/MM/yyyy HH:mm" }}</td>
+          </ng-container>
+          <ng-container matColumnDef="current">
+            <th mat-header-cell *matHeaderCellDef>Atual</th>
+            <td mat-cell *matCellDef="let row">{{ row.is_current ? "Sim" : "Não" }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="releaseColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: releaseColumns"></tr>
+        </table>
+      </div>
+    </mat-card>
+
+    <mat-card class="section-card">
+      <div class="section-head">
+        <h3>Alertas</h3>
+        <div class="actions-inline">
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select [ngModel]="alertsFilter()" (ngModelChange)="onAlertsFilterChange($event)">
+              <mat-option value="OPEN">OPEN</mat-option>
+              <mat-option value="RESOLVED">RESOLVED</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <app-empty-state
+        *ngIf="alerts().length === 0"
+        icon="notification_important"
+        title="Sem alertas para o filtro atual"
+        description="O tenant está sem eventos críticos abertos neste recorte."
+      ></app-empty-state>
+
+      <div class="table-wrap" *ngIf="alerts().length > 0">
+        <table mat-table [dataSource]="alerts()">
+          <ng-container matColumnDef="type">
+            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <td mat-cell *matCellDef="let row">{{ row.alert_type }}</td>
+          </ng-container>
+          <ng-container matColumnDef="severity">
+            <th mat-header-cell *matHeaderCellDef>Severidade</th>
+            <td mat-cell *matCellDef="let row">{{ row.severity }}</td>
+          </ng-container>
+          <ng-container matColumnDef="message">
+            <th mat-header-cell *matHeaderCellDef>Mensagem</th>
+            <td mat-cell *matCellDef="let row">{{ row.message }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">{{ row.status }}</td>
+          </ng-container>
+          <ng-container matColumnDef="last_seen">
+            <th mat-header-cell *matHeaderCellDef>Última ocorrência</th>
+            <td mat-cell *matCellDef="let row">{{ row.last_seen_at | date : "dd/MM/yyyy HH:mm:ss" }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Ações</th>
+            <td mat-cell *matCellDef="let row">
+              <button
+                *appCan="'cp.monitoring.manage'"
+                mat-button
+                type="button"
+                color="primary"
+                (click)="resolveAlert(row.id)"
+                [disabled]="row.status !== 'OPEN' || actionLoading()"
+              >
+                Resolver
+              </button>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="alertColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: alertColumns"></tr>
+        </table>
+      </div>
+    </mat-card>
+
+    <mat-card class="section-card">
+      <div class="section-head">
+        <h3>Ações operacionais</h3>
+      </div>
+      <div class="actions-inline">
+        <button mat-stroked-button type="button" (click)="exportTenantData()" [disabled]="actionLoading()">
+          Exportar dados do tenant
+        </button>
+      </div>
+
+      <div class="grid-form top-gap">
+        <mat-form-field appearance="outline">
+          <mat-label>Motivo impersonação</mat-label>
+          <input matInput [ngModel]="impersonationReason()" (ngModelChange)="impersonationReason.set($event || '')" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Duração (min)</mat-label>
+          <input matInput type="number" min="5" max="240" [ngModel]="impersonationMinutes()" (ngModelChange)="impersonationMinutes.set(+$event || 30)" />
+        </mat-form-field>
+      </div>
+      <div class="actions-inline">
+        <button *appCan="'cp.tenants.manage'" mat-stroked-button type="button" (click)="startImpersonation()" [disabled]="actionLoading()">
+          Iniciar impersonação
+        </button>
+        <button *appCan="'cp.tenants.manage'" mat-stroked-button type="button" (click)="stopImpersonation()" [disabled]="actionLoading()">
+          Encerrar impersonação
+        </button>
+      </div>
+    </mat-card>
+  </ng-container>
+</section>

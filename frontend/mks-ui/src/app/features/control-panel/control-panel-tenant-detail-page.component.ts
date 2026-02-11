@@ -73,7 +73,7 @@ export class ControlPanelTenantDetailPageComponent implements OnInit {
 
   readonly contractEmail = signal("");
   readonly noteDraft = signal("");
-  readonly integrationProvider = signal("RESEND");
+  readonly integrationProvider = signal("SMTP");
   readonly integrationAlias = signal("default");
   readonly integrationSecretRef = signal("");
   readonly integrationMetadata = signal("{}");

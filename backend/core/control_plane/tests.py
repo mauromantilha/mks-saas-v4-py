@@ -1043,9 +1043,9 @@ class ControlPanelEnterpriseResourcesApiTests(TestCase):
         create_response = self.client.post(
             f"/control-panel/tenants/{self.tenant.id}/integrations/",
             data={
-                "provider": "RESEND",
+                "provider": "SMTP",
                 "alias": "default",
-                "secret_manager_ref": "projects/mks/secrets/resend-api",
+                "secret_manager_ref": "projects/mks/secrets/tenant-smtp",
                 "metadata_json": {"from_email": "no-reply@test.com"},
                 "is_active": True,
             },
@@ -1055,7 +1055,7 @@ class ControlPanelEnterpriseResourcesApiTests(TestCase):
         self.assertTrue(
             TenantIntegrationSecretRef.objects.filter(
                 tenant=self.tenant,
-                provider="RESEND",
+                provider="SMTP",
                 alias="default",
             ).exists()
         )

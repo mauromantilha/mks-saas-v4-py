@@ -613,12 +613,12 @@ class TenantOperationalSettings(models.Model):
 
 
 class TenantIntegrationSecretRef(models.Model):
-    PROVIDER_RESEND = "RESEND"
+    PROVIDER_SMTP = "SMTP"
     PROVIDER_WHATSAPP = "WHATSAPP"
     PROVIDER_VERTEX_AI = "VERTEX_AI"
     PROVIDER_CUSTOM = "CUSTOM"
     PROVIDER_CHOICES = [
-        (PROVIDER_RESEND, "Resend"),
+        (PROVIDER_SMTP, "SMTP"),
         (PROVIDER_WHATSAPP, "WhatsApp"),
         (PROVIDER_VERTEX_AI, "Vertex AI"),
         (PROVIDER_CUSTOM, "Custom"),
