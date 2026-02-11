@@ -204,11 +204,18 @@ class ControlPanelTenantViewSet(viewsets.ViewSet):
                 Q(legal_name__icontains=search) | Q(cnpj__icontains=search)
             )
 
-        paginator = PageNumberPagination()
-        paginator.page_size_query_param = "page_size"
-        paginator.page_size = 20
-        paginator.max_page_size = 200
-        page = paginator.paginate_queryset(queryset, request, view=self)
+        paginate_requested = any(
+            request.query_params.get(key)
+            for key in ("page", "page_size")
+        )
+
+        page = None
+        if paginate_requested:
+            paginator = PageNumberPagination()
+            paginator.page_size_query_param = "page_size"
+            paginator.page_size = 20
+            paginator.max_page_size = 200
+            page = paginator.paginate_queryset(queryset, request, view=self)
 
         serializer = ControlPanelTenantSerializer(page if page is not None else queryset, many=True)
         _audit(
