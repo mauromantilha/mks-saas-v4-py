@@ -8,7 +8,12 @@
     <div class="header-actions">
       <mat-form-field appearance="outline">
         <mat-label>Período</mat-label>
-        <mat-select [ngModel]="selectedPeriod()" (ngModelChange)="onPeriodChange($event)">
+        <mat-select
+          id="cp-dashboard-period"
+          aria-label="Período"
+          [ngModel]="selectedPeriod()"
+          (ngModelChange)="onPeriodChange($event)"
+        >
           <mat-option *ngFor="let option of periodOptions" [value]="option.value">
             {{ option.label }}
           </mat-option>

@@ -5,6 +5,8 @@ type MatFormFieldLike = {
   _control?: unknown;
   _elementRef?: { nativeElement?: HTMLElement };
   _assertFormFieldControl?: () => void;
+  _initializeControl?: () => void;
+  ngAfterContentChecked?: () => void;
   ngOnDestroy?: () => void;
   __mksFallbackControl?: FallbackFormFieldControl;
 };
@@ -69,28 +71,49 @@ export function installMatFormFieldRuntimeGuard(): void {
   proto.__mksPatched = true;
 
   const originalAssert = proto._assertFormFieldControl;
+  const originalInitialize = proto._initializeControl;
+  const originalAfterContentChecked = proto.ngAfterContentChecked;
   const originalDestroy = proto.ngOnDestroy;
 
-  proto._assertFormFieldControl = function patchedAssert(this: MatFormFieldLike): void {
-    if (!this._control) {
-      if (!this.__mksFallbackControl) {
-        const host = this._elementRef?.nativeElement;
-        const label = host?.querySelector("mat-label")?.textContent?.trim() || "unknown";
-        this.__mksFallbackControl = createFallbackControl(label);
-        // No PII in this log: only field label and route pathname.
-        // Helps locate template issues in production without blank-screen crash.
-        const routePath =
-          typeof window !== "undefined" ? window.location.pathname : "server";
-        console.warn("[MKS] MatFormField fallback applied", {
-          label,
-          route: routePath,
-        });
-      }
-      this._control = this.__mksFallbackControl;
+  const ensureControl = (ctx: MatFormFieldLike): void => {
+    if (ctx._control) {
+      return;
     }
 
+    if (!ctx.__mksFallbackControl) {
+      const host = ctx._elementRef?.nativeElement;
+      const label = host?.querySelector("mat-label")?.textContent?.trim() || "unknown";
+      ctx.__mksFallbackControl = createFallbackControl(label);
+      // No PII in this log: only field label and route pathname.
+      // Helps locate template issues in production without blank-screen crash.
+      const routePath =
+        typeof window !== "undefined" ? window.location.pathname : "server";
+      console.warn("[MKS] MatFormField fallback applied", {
+        label,
+        route: routePath,
+      });
+    }
+    ctx._control = ctx.__mksFallbackControl;
+  };
+
+  proto._assertFormFieldControl = function patchedAssert(this: MatFormFieldLike): void {
+    ensureControl(this);
     if (typeof originalAssert === "function") {
       originalAssert.apply(this);
+    }
+  };
+
+  proto._initializeControl = function patchedInitialize(this: MatFormFieldLike): void {
+    ensureControl(this);
+    if (typeof originalInitialize === "function") {
+      originalInitialize.apply(this);
+    }
+  };
+
+  proto.ngAfterContentChecked = function patchedAfterContentChecked(this: MatFormFieldLike): void {
+    ensureControl(this);
+    if (typeof originalAfterContentChecked === "function") {
+      originalAfterContentChecked.apply(this);
     }
   };
 

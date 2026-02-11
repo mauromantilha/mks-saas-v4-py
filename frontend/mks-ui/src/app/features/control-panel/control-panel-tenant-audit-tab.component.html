@@ -2,7 +2,7 @@
   <form class="filters" [formGroup]="filtersForm">
     <mat-form-field appearance="outline">
       <mat-label>Período</mat-label>
-      <mat-select formControlName="period">
+      <mat-select id="cp-tenant-audit-period" aria-label="Período" formControlName="period">
         <mat-option *ngFor="let option of periodOptions" [value]="option.value">
           {{ option.label }}
         </mat-option>
