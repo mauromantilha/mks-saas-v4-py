@@ -4,7 +4,7 @@
   [class.control-plane]="portalType() === 'CONTROL_PLANE'"
   [class.tenant-portal]="portalType() === 'TENANT'"
 >
-  <aside class="sidebar" *ngIf="isAuthenticated() && !isControlPlanePortal()">
+  <aside class="sidebar" *ngIf="shouldShowLegacySidebar()">
     <div class="brand">
       <strong>{{ brandTitle() }}</strong>
       <span>{{ portalTitle() }}</span>

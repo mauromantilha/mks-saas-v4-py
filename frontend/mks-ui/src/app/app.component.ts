@@ -36,6 +36,7 @@ export class AppComponent {
     return hostPortal;
   });
   readonly isControlPlanePortal = computed(() => this.portalType() === "CONTROL_PLANE");
+  readonly isControlPanelRoute = computed(() => this.router.url.startsWith("/control-panel"));
 
   private readonly controlPlaneMenu: NavItem[] = [
     { label: "Dashboard", path: "/control-panel/dashboard", accent: "#f97316" },
@@ -99,6 +100,10 @@ export class AppComponent {
   ) {
     // Keep theme service initialized at app bootstrap for auto system sync.
     void this.themeService.mode();
+  }
+
+  shouldShowLegacySidebar(): boolean {
+    return this.isAuthenticated() && !this.isControlPlanePortal() && !this.isControlPanelRoute();
   }
 
   logout(): void {
