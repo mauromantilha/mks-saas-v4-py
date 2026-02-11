@@ -5,19 +5,24 @@ import { ActivatedRoute } from "@angular/router";
 export class BreadcrumbService {
   readonly breadcrumbs = signal<string[]>([]);
 
-  buildFromRoute(rootRoute: ActivatedRoute, rootLabel = "Control Panel"): void {
+  buildFromRoute(rootRoute: ActivatedRoute | null | undefined, rootLabel = "Control Panel"): void {
     const crumbs = [rootLabel];
-    let route: ActivatedRoute | null = rootRoute.firstChild;
+    if (!rootRoute) {
+      this.breadcrumbs.set(crumbs);
+      return;
+    }
 
-    while (route) {
-      const title = route.snapshot.data["title"] as string | undefined;
+    let route: ActivatedRoute | null | undefined = rootRoute.firstChild;
+    let guard = 0;
+    while (route && guard < 25) {
+      const title = route.snapshot?.data?.["title"] as string | undefined;
       if (title) {
         crumbs.push(title);
       }
       route = route.firstChild;
+      guard += 1;
     }
 
     this.breadcrumbs.set(crumbs);
   }
 }
-

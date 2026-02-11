@@ -54,7 +54,9 @@ export class PermissionService {
       return new Set<string>();
     }
 
-    if (!session.platformAdmin || session.portalType !== "CONTROL_PLANE") {
+    // Portal host is already enforced by portalGuard. Keep permissions resilient
+    // even if a stale session has an old portalType value.
+    if (!session.platformAdmin) {
       return new Set<string>();
     }
 
