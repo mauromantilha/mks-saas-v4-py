@@ -160,7 +160,7 @@ html.dark-theme .customer-preview {
   border-color: var(--mks-border) !important;
 }
 
-.content button,
+.content button:not(.mat-mdc-button-base),
 .content .ghost {
   border-radius: 999px;
   border: 1px solid transparent;
@@ -172,19 +172,19 @@ html.dark-theme .customer-preview {
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
-.content button {
+.content button:not(.mat-mdc-button-base) {
   background: var(--mks-primary);
   color: var(--mks-on-primary);
   border-color: color-mix(in srgb, var(--mks-primary) 78%, #00000000);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
 }
 
-.content button:hover {
+.content button:not(.mat-mdc-button-base):hover {
   box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
   filter: saturate(1.04);
 }
 
-.content button.secondary,
+.content button.secondary:not(.mat-mdc-button-base),
 .content .ghost {
   background: var(--mks-tonal);
   color: var(--mks-on-tonal);
@@ -192,18 +192,38 @@ html.dark-theme .customer-preview {
   box-shadow: none;
 }
 
-.content button.secondary:hover,
+.content button.secondary:not(.mat-mdc-button-base):hover,
 .content .ghost:hover {
   background: color-mix(in srgb, var(--mks-tonal) 88%, var(--mks-surface));
 }
 
-html.dark-theme .content button {
+html.dark-theme .content button:not(.mat-mdc-button-base) {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-html.dark-theme .content button.secondary,
+html.dark-theme .content button.secondary:not(.mat-mdc-button-base),
 html.dark-theme .content .ghost {
   border-color: var(--mks-border);
+}
+
+/* Keep Angular Material buttons readable and prevent truncation in dense layouts. */
+.content .mat-mdc-button-base {
+  min-height: 40px;
+  border-radius: 999px;
+}
+
+.content .mat-mdc-button-base .mdc-button__label {
+  color: inherit !important;
+  white-space: nowrap;
+}
+
+.content .mat-mdc-unelevated-button.mat-primary,
+.content .mat-mdc-raised-button.mat-primary {
+  color: var(--mks-on-primary) !important;
+}
+
+.content .mat-mdc-stroked-button {
+  border-color: var(--mks-border) !important;
 }
 
 html.dark-theme .pill.warn {

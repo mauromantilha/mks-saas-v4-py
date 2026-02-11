@@ -3,6 +3,7 @@ import { Component, OnInit, signal } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { catchError, forkJoin, map, of } from "rxjs";
 
+import { PlanDto, TenantDto } from "../../data-access/control-panel/control-panel.dto";
 import { MonitoringApi } from "../../data-access/control-panel/monitoring-api.service";
 import { PlansApi } from "../../data-access/control-panel/plans-api.service";
 import { TenantApi } from "../../data-access/control-panel/tenant-api.service";
@@ -13,6 +14,11 @@ type DashboardSafeStats = {
   plans: number;
   monitoringServices: number;
   monitoringTenants: number;
+  cloudRunStatus: string;
+  databaseStatus: string;
+  storageStatus: string;
+  requestTraffic: number;
+  loggedInUsers: number;
 };
 
 @Component({
@@ -51,6 +57,26 @@ type DashboardSafeStats = {
           <span>Tenants monitorados</span>
           <strong>{{ stats().monitoringTenants }}</strong>
         </article>
+        <article class="card">
+          <span>Cloud Run</span>
+          <strong>{{ stats().cloudRunStatus }}</strong>
+        </article>
+        <article class="card">
+          <span>Database</span>
+          <strong>{{ stats().databaseStatus }}</strong>
+        </article>
+        <article class="card">
+          <span>Storage</span>
+          <strong>{{ stats().storageStatus }}</strong>
+        </article>
+        <article class="card">
+          <span>Tráfego (req/s)</span>
+          <strong>{{ stats().requestTraffic }}</strong>
+        </article>
+        <article class="card">
+          <span>Usuários logados</span>
+          <strong>{{ stats().loggedInUsers }}</strong>
+        </article>
       </div>
 
       <ng-template #loadingTpl>
@@ -64,6 +90,54 @@ type DashboardSafeStats = {
         <a routerLink="/control-panel/monitoring">Ir para Monitoring</a>
         <a routerLink="/control-panel/audit">Ir para Audit</a>
       </nav>
+
+      <section class="tables" *ngIf="!loading()">
+        <article class="card">
+          <h3>Planos cadastrados</h3>
+          <div *ngIf="plans().length === 0">Nenhum plano retornado.</div>
+          <table *ngIf="plans().length > 0">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Tier</th>
+                <th>Mensal</th>
+                <th>Instalação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let plan of plans()">
+                <td>{{ plan.name }}</td>
+                <td>{{ plan.tier }}</td>
+                <td>{{ plan.price?.monthly_price || "-" }}</td>
+                <td>{{ plan.price?.setup_fee || "-" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="card">
+          <h3>Tenants recentes</h3>
+          <div *ngIf="tenantsPreview().length === 0">Nenhum tenant retornado.</div>
+          <table *ngIf="tenantsPreview().length > 0">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Slug</th>
+                <th>Status</th>
+                <th>Plano</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tenant of tenantsPreview()">
+                <td>{{ tenant.legal_name }}</td>
+                <td>{{ tenant.slug }}</td>
+                <td>{{ tenant.status }}</td>
+                <td>{{ tenant.plan_name || tenant.subscription?.plan?.name || "-" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
     </section>
   `,
   styles: [
@@ -120,6 +194,25 @@ type DashboardSafeStats = {
         color: var(--mks-text);
         background: var(--mks-surface);
       }
+
+      .tables {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 0.8rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 0.45rem 0.25rem;
+        border-bottom: 1px solid var(--mks-border);
+        font-size: 0.92rem;
+      }
     `,
   ],
 })
@@ -132,7 +225,14 @@ export class ControlPanelDashboardSafePageComponent implements OnInit {
     plans: 0,
     monitoringServices: 0,
     monitoringTenants: 0,
+    cloudRunStatus: "-",
+    databaseStatus: "-",
+    storageStatus: "-",
+    requestTraffic: 0,
+    loggedInUsers: 0,
   });
+  readonly plans = signal<PlanDto[]>([]);
+  readonly tenantsPreview = signal<TenantDto[]>([]);
 
   constructor(
     private readonly tenantApi: TenantApi,
@@ -148,6 +248,9 @@ export class ControlPanelDashboardSafePageComponent implements OnInit {
       activeTenants: this.tenantApi
         .listTenants({ status: "ACTIVE", page: 1, page_size: 1 })
         .pipe(catchError(() => of(null))),
+      preview: this.tenantApi
+        .listTenants({ page: 1, page_size: 8 })
+        .pipe(catchError(() => of({ items: [] as TenantDto[], total: 0, page: 1, page_size: 8 }))),
       plans: this.plansApi.listPlans().pipe(catchError(() => of([]))),
       monitoring: this.monitoringApi
         .getGlobalHealth({ period: "24h", page_size: 20 })
@@ -159,10 +262,30 @@ export class ControlPanelDashboardSafePageComponent implements OnInit {
         plans: Array.isArray(data.plans) ? data.plans.length : 0,
         monitoringServices: Array.isArray(data.monitoring?.services) ? data.monitoring.services.length : 0,
         monitoringTenants: Array.isArray(data.monitoring?.tenants) ? data.monitoring.tenants.length : 0,
+        cloudRunStatus: data.monitoring?.summary?.cloud_run_status || "-",
+        databaseStatus: data.monitoring?.summary?.database_status || "-",
+        storageStatus: data.monitoring?.summary?.storage_status || "-",
+        requestTraffic: data.monitoring?.summary?.request_traffic ?? 0,
+        loggedInUsers: data.monitoring?.summary?.logged_in_users ?? 0,
+        plansList: Array.isArray(data.plans) ? data.plans : [],
+        tenantsPreview: data.preview?.items || [],
       })))
       .subscribe({
         next: (stats) => {
-          this.stats.set(stats);
+          this.stats.set({
+            tenants: stats.tenants,
+            activeTenants: stats.activeTenants,
+            plans: stats.plans,
+            monitoringServices: stats.monitoringServices,
+            monitoringTenants: stats.monitoringTenants,
+            cloudRunStatus: stats.cloudRunStatus,
+            databaseStatus: stats.databaseStatus,
+            storageStatus: stats.storageStatus,
+            requestTraffic: stats.requestTraffic,
+            loggedInUsers: stats.loggedInUsers,
+          });
+          this.plans.set(stats.plansList);
+          this.tenantsPreview.set(stats.tenantsPreview);
           this.loading.set(false);
         },
         error: () => {
@@ -172,4 +295,3 @@ export class ControlPanelDashboardSafePageComponent implements OnInit {
       });
   }
 }
-
