@@ -45,7 +45,7 @@ export class ControlPanelSubscriptionTabComponent implements OnChanges {
   readonly form = new FormGroup({
     plan_id: new FormControl<number | null>(null, [Validators.required]),
     is_trial: new FormControl<boolean>(false, { nonNullable: true }),
-    trial_days: new FormControl<number | null>(null, [Validators.min(1), Validators.max(90)]),
+    trial_days: new FormControl<number | null>(null, [Validators.min(30), Validators.max(60)]),
     is_courtesy: new FormControl<boolean>(false, { nonNullable: true }),
     setup_fee_override: new FormControl<string>("", { nonNullable: true }),
   });
@@ -62,7 +62,7 @@ export class ControlPanelSubscriptionTabComponent implements OnChanges {
       if (isTrial) {
         this.form.controls.trial_days.addValidators([Validators.required]);
         if (!this.form.controls.trial_days.value) {
-          this.form.controls.trial_days.setValue(7);
+          this.form.controls.trial_days.setValue(30);
         }
       } else {
         this.form.controls.trial_days.removeValidators([Validators.required]);
@@ -81,7 +81,9 @@ export class ControlPanelSubscriptionTabComponent implements OnChanges {
         {
           plan_id: this.currentPlanId,
           is_trial: this.tenant.subscription?.is_trial ?? false,
-          trial_days: this.tenant.subscription?.is_trial ? 7 : null,
+          trial_days: this.tenant.subscription?.is_trial
+            ? this.resolveTrialDays(this.tenant.subscription?.start_date, this.tenant.subscription?.trial_ends_at)
+            : null,
           is_courtesy: this.tenant.subscription?.is_courtesy ?? false,
           setup_fee_override: this.normalizeSetupFee(
             this.tenant.subscription?.setup_fee_override ??
@@ -125,7 +127,7 @@ export class ControlPanelSubscriptionTabComponent implements OnChanges {
         .updateTenantSubscription(this.tenant.id, {
           plan_id: raw.plan_id!,
           is_trial: raw.is_trial ?? false,
-          trial_days: raw.is_trial ? Number(raw.trial_days || 7) : undefined,
+          trial_days: raw.is_trial ? this.normalizeTrialDays(raw.trial_days) : undefined,
           is_courtesy: raw.is_courtesy ?? false,
           setup_fee_override: raw.setup_fee_override ? raw.setup_fee_override : null,
         })
@@ -212,5 +214,22 @@ export class ControlPanelSubscriptionTabComponent implements OnChanges {
       return "150";
     }
     return "";
+  }
+
+  private normalizeTrialDays(value: number | null): number {
+    if (value === 60) {
+      return 60;
+    }
+    return 30;
+  }
+
+  private resolveTrialDays(startDate?: string | null, trialEndsAt?: string | null): number {
+    if (!startDate || !trialEndsAt) {
+      return 30;
+    }
+    const start = new Date(startDate);
+    const end = new Date(trialEndsAt);
+    const diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays >= 60 ? 60 : 30;
   }
 }

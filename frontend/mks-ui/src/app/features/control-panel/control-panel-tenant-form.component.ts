@@ -218,7 +218,7 @@ export class ControlPanelTenantFormComponent implements OnInit, OnChanges {
     plan_id: new FormControl<number | null>(null, [Validators.required]),
     setup_fee_override: new FormControl("", { nonNullable: true, validators: [setupFeeValidator] }),
     is_trial: new FormControl(false, { nonNullable: true }),
-    trial_days: new FormControl<number | null>(null, [Validators.min(1), Validators.max(90)]),
+    trial_days: new FormControl<number | null>(null, [Validators.min(30), Validators.max(60)]),
     is_courtesy: new FormControl(false, { nonNullable: true }),
     status: new FormControl<TenantStatus>("ACTIVE", { nonNullable: true, validators: [Validators.required] }),
   });
@@ -367,7 +367,7 @@ export class ControlPanelTenantFormComponent implements OnInit, OnChanges {
                   ? String(tenant.subscription.setup_fee_override)
                   : this.form.controls.setup_fee_override.value,
               is_trial: tenant.subscription?.is_trial ?? false,
-              trial_days: tenant.subscription?.is_trial ? 7 : null,
+              trial_days: tenant.subscription?.is_trial ? 30 : null,
               is_courtesy: tenant.subscription?.is_courtesy ?? false,
               status: tenant.status,
             },
@@ -464,7 +464,7 @@ export class ControlPanelTenantFormComponent implements OnInit, OnChanges {
       .subscribe((isTrial) => {
         if (isTrial) {
           if (!this.form.controls.trial_days.value) {
-            this.form.controls.trial_days.setValue(7);
+            this.form.controls.trial_days.setValue(30);
           }
           this.form.controls.trial_days.addValidators([Validators.required]);
           this.form.controls.trial_days.updateValueAndValidity({ emitEvent: false });
@@ -524,7 +524,7 @@ export class ControlPanelTenantFormComponent implements OnInit, OnChanges {
       plan_id: planId,
       is_trial: this.form.controls.is_trial.value,
       trial_days: this.form.controls.is_trial.value
-        ? Number(this.form.controls.trial_days.value || 7)
+        ? this.normalizeTrialDays(this.form.controls.trial_days.value)
         : undefined,
       is_courtesy: this.form.controls.is_courtesy.value,
       setup_fee_override: setupFee ? setupFee : null,
@@ -618,5 +618,12 @@ export class ControlPanelTenantFormComponent implements OnInit, OnChanges {
 
   private findPlanById(planId: number): PlanDto | undefined {
     return this.plans().find((plan) => plan.id === planId);
+  }
+
+  private normalizeTrialDays(value: number | null): number {
+    if (value === 60) {
+      return 60;
+    }
+    return 30;
   }
 }

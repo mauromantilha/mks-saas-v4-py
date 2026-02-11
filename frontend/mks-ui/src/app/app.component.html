@@ -4,16 +4,6 @@
   [class.control-plane]="portalType() === 'CONTROL_PLANE'"
   [class.tenant-portal]="portalType() === 'TENANT'"
 >
-  <div class="theme-toggle-panel" *ngIf="!isControlPlanePortal()">
-    <mat-slide-toggle
-      [checked]="isDarkMode()"
-      color="primary"
-      (change)="onThemeToggle($event)"
-    >
-      Dark mode
-    </mat-slide-toggle>
-  </div>
-
   <aside class="sidebar" *ngIf="isAuthenticated() && !isControlPlanePortal()">
     <div class="brand">
       <strong>{{ brandTitle() }}</strong>

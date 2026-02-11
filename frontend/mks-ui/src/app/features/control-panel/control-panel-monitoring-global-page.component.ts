@@ -107,6 +107,18 @@ export class ControlPanelMonitoringGlobalPageComponent implements OnInit {
       return cls === "status-bad";
     });
   });
+  readonly mostAccessedPages = computed(() => {
+    const pages = this.payload()?.summary?.most_accessed_pages ?? [];
+    return pages.map((row) => {
+      if (typeof row === "string") {
+        return { page: row, hits: null as number | null };
+      }
+      return {
+        page: row.path || "-",
+        hits: typeof row.count === "number" ? row.count : null,
+      };
+    });
+  });
   readonly filteredTenants = computed(() => {
     const data = this.payload();
     if (!data) {

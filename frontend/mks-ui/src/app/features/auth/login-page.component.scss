@@ -15,8 +15,8 @@
 
 .login-card {
   width: min(460px, 100%);
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--mks-surface);
+  border: 1px solid var(--mks-border);
   border-radius: 12px;
   padding: 1.2rem;
   display: grid;
@@ -59,9 +59,9 @@
 
 .portal-switch button {
   margin-top: 0;
-  background: #e5e7eb;
-  color: #1f2937;
-  border: 1px solid #d1d5db;
+  background: var(--mks-tonal);
+  color: var(--mks-on-tonal);
+  border: 1px solid var(--mks-border);
 }
 
 .portal-switch button.active {
@@ -102,14 +102,14 @@ input {
   margin-top: 0;
   padding: 0.55rem 0.7rem;
   border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background: #f8fafc;
-  color: #1f2937;
+  border: 1px solid var(--mks-border);
+  background: var(--mks-input-bg);
+  color: var(--mks-text);
   font-weight: 700;
 }
 
 .toggle-password:hover {
-  background: #eef2f7;
+  background: color-mix(in srgb, var(--mks-input-bg) 75%, var(--mks-tonal));
 }
 
 .login-wrap.control-plane .toggle-password {
@@ -145,7 +145,7 @@ button[disabled] {
 .forgot-link {
   margin-top: 0.15rem;
   font-size: 0.95rem;
-  color: #0f172a;
+  color: var(--mks-text);
   font-weight: 700;
   text-decoration: none;
 }
@@ -161,5 +161,27 @@ button[disabled] {
 .hint {
   margin: 0;
   font-size: 0.9rem;
-  color: #475467;
+  color: var(--mks-muted);
+}
+
+:host-context(.dark-theme) .login-wrap.tenant-portal {
+  background: radial-gradient(circle at 15% 20%, #0b1a2a, #09131f);
+}
+
+:host-context(.dark-theme) .login-wrap.control-plane {
+  background: radial-gradient(circle at 15% 20%, #2a1308, #1d0e07);
+}
+
+:host-context(.dark-theme) .login-card {
+  background: var(--mks-surface);
+  border-color: var(--mks-border);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+}
+
+:host-context(.dark-theme) .portal-badge {
+  border: 1px solid var(--mks-border);
+}
+
+:host-context(.dark-theme) .portal-switch button.active {
+  color: var(--mks-on-primary);
 }

@@ -241,6 +241,19 @@ export interface GlobalMonitoringDto {
     total_tenants: number;
     degraded_tenants: number;
     open_alerts?: number;
+    registered_tenants?: number;
+    active_tenants?: number;
+    suspended_tenants?: number;
+    deleted_tenants?: number;
+    request_traffic?: number;
+    logged_in_users?: number;
+    cloud_run_status?: string;
+    cloud_run_services?: number;
+    database_status?: string;
+    database_count?: number;
+    storage_status?: string;
+    storage_buckets?: number;
+    most_accessed_pages?: Array<string | { path?: string; count?: number }>;
   };
 }
 

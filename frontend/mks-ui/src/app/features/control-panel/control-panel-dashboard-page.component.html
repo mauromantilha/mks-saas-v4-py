@@ -2,7 +2,7 @@
   <header class="page-header">
     <div>
       <h1>Dashboard</h1>
-      <p>Visão geral operacional do Control Panel com foco em risco dos tenants.</p>
+      <p>Visão geral do portal na primeira tela: operação, tenants, planos e monitoramento.</p>
     </div>
 
     <div class="header-actions">
@@ -61,33 +61,183 @@
     (retry)="reload()"
   ></app-error-state>
 
-  <ng-container *ngIf="!loading() && !error() && monitoring() as data">
+  <ng-container *ngIf="!loading() && !error()">
+    <mat-card class="meta-card">
+      <div>
+        <strong>Última atualização:</strong>
+        <span>{{ lastUpdatedAt() ? (lastUpdatedAt() | date : "dd/MM/yyyy HH:mm:ss") : "-" }}</span>
+      </div>
+      <div>
+        <strong>Período:</strong>
+        <span>{{ selectedPeriod() }}</span>
+      </div>
+    </mat-card>
+
     <div class="summary-grid">
       <mat-card>
         <span class="label">Serviços monitorados</span>
-        <strong>{{ data.summary.total_services }}</strong>
+        <strong>{{ summary().totalServices }}</strong>
       </mat-card>
       <mat-card>
         <span class="label">Tenants monitorados</span>
-        <strong>{{ data.summary.total_tenants }}</strong>
+        <strong>{{ summary().monitoredTenants }}</strong>
       </mat-card>
       <mat-card>
         <span class="label">Tenants em risco</span>
-        <strong>{{ riskyCount() }}</strong>
+        <strong>{{ summary().riskyTenants }}</strong>
       </mat-card>
       <mat-card>
         <span class="label">Alertas abertos</span>
-        <strong>{{ data.summary.open_alerts ?? 0 }}</strong>
+        <strong>{{ summary().openAlerts }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Tenants registrados</span>
+        <strong>{{ summary().registeredTenants }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Tenants ativos</span>
+        <strong>{{ summary().activeTenants }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Tenants suspensos</span>
+        <strong>{{ summary().suspendedTenants }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Tenants em trial</span>
+        <strong>{{ summary().trialTenants }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Planos ativos</span>
+        <strong>{{ summary().activePlans }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Status Cloud Run</span>
+        <strong>{{ summary().cloudRunStatus }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Status Banco</span>
+        <strong>{{ summary().databaseStatus }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Status Storage</span>
+        <strong>{{ summary().storageStatus }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Tráfego (req/s)</span>
+        <strong>{{ summary().requestTraffic }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Usuários logados</span>
+        <strong>{{ summary().loggedInUsers }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Bancos monitorados</span>
+        <strong>{{ summary().databaseCount }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Serviços Cloud Run</span>
+        <strong>{{ summary().cloudRunServices }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Buckets monitorados</span>
+        <strong>{{ summary().storageBuckets }}</strong>
       </mat-card>
     </div>
 
+    <div class="insight-grid">
+      <mat-card class="panel-card">
+        <h3>Planos Disponíveis</h3>
+        <app-empty-state
+          *ngIf="plans().length === 0"
+          icon="sell"
+          title="Sem planos disponíveis"
+          description="Cadastre os planos para liberar assinatura no control panel."
+        ></app-empty-state>
+        <table class="compact-table" *ngIf="plans().length > 0">
+          <thead>
+            <tr>
+              <th>Plano</th>
+              <th>Mensal</th>
+              <th>Instalação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let plan of plans()">
+              <td>{{ plan.name }}</td>
+              <td>{{ plan.price?.monthly_price || "-" }}</td>
+              <td>{{ plan.price?.setup_fee || "-" }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </mat-card>
+
+      <mat-card class="panel-card">
+        <h3>Tenants Recentes</h3>
+        <app-empty-state
+          *ngIf="tenantsPreview().length === 0"
+          icon="apartment"
+          title="Sem tenants cadastrados"
+          description="Crie um tenant para iniciar o onboarding."
+        ></app-empty-state>
+        <table mat-table [dataSource]="tenantsPreview()" *ngIf="tenantsPreview().length > 0">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Nome</th>
+            <td mat-cell *matCellDef="let row">{{ row.legal_name }}</td>
+          </ng-container>
+          <ng-container matColumnDef="slug">
+            <th mat-header-cell *matHeaderCellDef>Slug</th>
+            <td mat-cell *matCellDef="let row">{{ row.slug }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class]="statusBadgeClass(row.status)">{{ row.status }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="plan">
+            <th mat-header-cell *matHeaderCellDef>Plano</th>
+            <td mat-cell *matCellDef="let row">{{ row.plan_name || row.subscription?.plan?.name || "-" }}</td>
+          </ng-container>
+          <ng-container matColumnDef="trial">
+            <th mat-header-cell *matHeaderCellDef>Trial</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.trial_ends_at || row.subscription?.trial_ends_at || "-" }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="tenantColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: tenantColumns"></tr>
+        </table>
+      </mat-card>
+    </div>
+
+    <mat-card class="thresholds-card">
+      <h3>Páginas Mais Acessadas</h3>
+      <div *ngIf="mostAccessedPages().length === 0" class="muted">
+        Sem telemetria de páginas para o período selecionado.
+      </div>
+      <div class="thresholds-grid" *ngIf="mostAccessedPages().length > 0">
+        <div *ngFor="let page of mostAccessedPages()" class="kpi">
+          <span class="label">{{ page.label }}</span>
+          <strong>{{ page.hits === null ? "-" : page.hits }}</strong>
+        </div>
+      </div>
+    </mat-card>
+
     <app-control-panel-alerts-widget
+      *ngIf="hasMonitoringPayload() && monitoring() as data"
       [monitoring]="data"
       [heartbeatThresholdMinutes]="heartbeatThresholdMinutes()"
       [errorRateThresholdPercent]="errorThresholdPercent()"
       (openTenant)="onOpenTenant($event)"
       (refreshRequested)="reload()"
     ></app-control-panel-alerts-widget>
+
+    <app-empty-state
+      *ngIf="!hasMonitoringPayload()"
+      icon="monitor_heart"
+      title="Sem snapshots de monitoramento"
+      description="As informações gerais do portal já estão visíveis acima. A telemetria detalhada aparecerá quando os heartbeats forem recebidos."
+    ></app-empty-state>
   </ng-container>
 </section>
-

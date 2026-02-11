@@ -650,6 +650,32 @@ class ControlPanelTenantManagementApiTests(TestCase):
         response = self.client.get("/control-panel/plans/")
         self.assertEqual(response.status_code, 403)
 
+    def test_baseline_plan_catalog_is_auto_seeded(self):
+        self.client.force_login(self.superadmin)
+        response = self.client.get("/control-panel/plans/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        plan_names = {row["name"] for row in payload}
+        self.assertTrue({"Básico", "Intermediário", "Premium"}.issubset(plan_names))
+
+        basic = next(row for row in payload if row["name"] == "Básico")
+        self.assertEqual(str(basic["price"]["monthly_price"]), "150.00")
+        self.assertEqual(str(basic["price"]["setup_fee"]), "150.00")
+
+    def test_companies_without_control_tenant_are_backfilled_in_tenant_list(self):
+        Company.objects.create(
+            name="Acme Legacy",
+            tenant_code="acme",
+            subdomain="acme",
+            is_active=True,
+        )
+        self.client.force_login(self.superadmin)
+        response = self.client.get("/control-panel/tenants/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(any(row["slug"] == "acme" for row in payload))
+        self.assertTrue(Tenant.objects.filter(slug="acme").exists())
+
 
 class ControlPanelCepLookupApiTests(TestCase):
     def setUp(self):

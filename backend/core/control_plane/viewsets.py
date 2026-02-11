@@ -65,6 +65,7 @@ from control_plane.serializers import (
     TenantSubscriptionChangeSerializer,
 )
 from control_plane.services.contracts import ContractServiceError, generate_contract, send_contract_email
+from control_plane.services.bootstrap_defaults import ensure_control_panel_baseline_data
 from customers.models import Company
 
 
@@ -177,6 +178,7 @@ class ControlPanelTenantViewSet(viewsets.ViewSet):
     permission_classes = [IsControlPanelAdmin]
 
     def get_queryset(self):
+        ensure_control_panel_baseline_data()
         return Tenant.objects.select_related("company").prefetch_related(
             "subscriptions__plan",
             "subscriptions__plan__price",
@@ -1024,6 +1026,7 @@ class ControlPanelPlanViewSet(viewsets.ViewSet):
     permission_classes = [IsControlPanelAdmin]
 
     def list(self, request):
+        ensure_control_panel_baseline_data()
         plans = Plan.objects.select_related("price").order_by("name")
         data = PlanSerializer(plans, many=True).data
         _audit(request.user, None, ControlPanelAuditLog.ACTION_LIST, {"resource": "plan", "result_count": len(data)})
@@ -1206,6 +1209,7 @@ class ControlPanelMonitoringViewSet(viewsets.ViewSet):
     permission_classes = [IsControlPanelAdmin]
 
     def list(self, request):
+        ensure_control_panel_baseline_data()
         period_label, since = _parse_monitoring_period(request.query_params.get("period"))
         heartbeat_threshold_minutes = max(
             1,
@@ -1238,11 +1242,59 @@ class ControlPanelMonitoringViewSet(viewsets.ViewSet):
 
         latest_tenant_rows = list(tenant_latest.values())
         stale_before = timezone.now() - timedelta(minutes=heartbeat_threshold_minutes)
+        total_registered_tenants = Tenant.objects.count()
+        total_active_tenants = Tenant.objects.filter(status=Tenant.STATUS_ACTIVE).count()
+        total_suspended_tenants = Tenant.objects.filter(status=Tenant.STATUS_SUSPENDED).count()
+        total_deleted_tenants = Tenant.objects.filter(status=Tenant.STATUS_DELETED).count()
+        total_request_traffic = sum(float(row.request_rate or 0) for row in latest_tenant_rows)
         degraded_count = sum(
             1
             for row in latest_tenant_rows
             if row.error_rate > 0 or row.p95_latency > 1200 or row.jobs_pending > 20
         )
+
+        def _service_snapshot(*candidates: str):
+            normalized = tuple(candidate.strip().lower() for candidate in candidates if candidate)
+            for name, snapshot in latest_by_service.items():
+                current = (name or "").strip().lower()
+                if current in normalized:
+                    return snapshot
+                if any(candidate in current for candidate in normalized):
+                    return snapshot
+            return None
+
+        db_snapshot = _service_snapshot("db", "database", "postgres", "cloudsql")
+        storage_snapshot = _service_snapshot("storage", "cloud_storage", "bucket")
+        cloud_run_snapshot = _service_snapshot("cloud_run", "backend", "api")
+
+        infra_db_count = 1 if getattr(settings, "DJANGO_TENANTS_ENABLED", False) else total_registered_tenants
+        infra_cloud_run_services = 1
+        logged_in_users = 0
+        most_accessed_pages: list[dict] | list[str] = []
+
+        if cloud_run_snapshot is not None and isinstance(cloud_run_snapshot.metadata_json, dict):
+            cloud_meta = cloud_run_snapshot.metadata_json
+            try:
+                logged_in_users = int(cloud_meta.get("logged_in_users", 0) or 0)
+            except (TypeError, ValueError):
+                logged_in_users = 0
+            raw_pages = cloud_meta.get("most_accessed_pages", [])
+            if isinstance(raw_pages, (list, tuple)):
+                most_accessed_pages = list(raw_pages)[:10]
+            raw_services_count = cloud_meta.get("cloud_run_services")
+            try:
+                if raw_services_count is not None:
+                    infra_cloud_run_services = max(1, int(raw_services_count))
+            except (TypeError, ValueError):
+                infra_cloud_run_services = 1
+
+        if db_snapshot is not None and isinstance(db_snapshot.metadata_json, dict):
+            raw_db_count = db_snapshot.metadata_json.get("db_count")
+            try:
+                if raw_db_count is not None:
+                    infra_db_count = max(1, int(raw_db_count))
+            except (TypeError, ValueError):
+                pass
 
         for row in latest_tenant_rows:
             if row.last_seen_at is None or row.last_seen_at < stale_before:
@@ -1302,6 +1354,19 @@ class ControlPanelMonitoringViewSet(viewsets.ViewSet):
                     "total_tenants": len(latest_tenant_rows),
                     "degraded_tenants": degraded_count,
                     "open_alerts": open_alerts.count(),
+                    "registered_tenants": total_registered_tenants,
+                    "active_tenants": total_active_tenants,
+                    "suspended_tenants": total_suspended_tenants,
+                    "deleted_tenants": total_deleted_tenants,
+                    "request_traffic": round(total_request_traffic, 2),
+                    "logged_in_users": logged_in_users,
+                    "cloud_run_status": cloud_run_snapshot.status if cloud_run_snapshot else "UNKNOWN",
+                    "cloud_run_services": infra_cloud_run_services,
+                    "database_status": db_snapshot.status if db_snapshot else "UNKNOWN",
+                    "database_count": infra_db_count,
+                    "storage_status": storage_snapshot.status if storage_snapshot else "UNKNOWN",
+                    "storage_buckets": 1 if storage_snapshot else 0,
+                    "most_accessed_pages": most_accessed_pages,
                 },
                 "alerts": TenantAlertEventSerializer(open_alerts[:200], many=True).data,
             }
