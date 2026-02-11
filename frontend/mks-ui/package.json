@@ -6,6 +6,7 @@
     "ng": "ng",
     "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
+    "debug:errors": "node ./scripts/check-frontend-errors.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
