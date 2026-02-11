@@ -14,7 +14,11 @@ function isApiRequest(url: string): boolean {
 }
 
 function isTenantScopedApiRequest(url: string): boolean {
-  return url.includes("/api/") && !url.includes("/platform/api/");
+  return (
+    url.includes("/api/") &&
+    !url.includes("/platform/api/") &&
+    !url.includes("/api/control-panel/")
+  );
 }
 
 export const authTenantInterceptor: HttpInterceptorFn = (req, next) => {

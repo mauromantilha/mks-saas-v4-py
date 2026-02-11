@@ -360,8 +360,16 @@ class TenantContextMiddleware:
                 status=403,
             )
 
+        if request.path.startswith("/api/control-panel/") and is_tenant_host:
+            return JsonResponse(
+                {"detail": "Control Panel API is not available on tenant hosts."},
+                status=403,
+            )
+
         if request.path.startswith("/api/") and is_control_plane_host:
             if request.path.startswith(self.exempt_path_prefixes):
+                return None
+            if request.path.startswith("/api/control-panel/"):
                 return None
             return JsonResponse(
                 {"detail": "Tenant API is not available on the Control Plane host."},
@@ -373,6 +381,9 @@ class TenantContextMiddleware:
     def _resolve_company(self, request) -> TenantResolutionResult:
         if getattr(settings, "DJANGO_TENANTS_ENABLED", False):
             return self._resolve_company_from_django_tenants(request)
+
+        if request.path.startswith("/platform/api/") or request.path.startswith("/api/control-panel/"):
+            return TenantResolutionResult(company=None)
 
         if request.path.startswith(self.exempt_path_prefixes):
             return TenantResolutionResult(company=None)
@@ -465,6 +476,9 @@ class TenantContextMiddleware:
         - Public schema: `request.tenant` may be missing; tenant-required endpoints must 400.
         - If `X-Tenant-ID` header is present, enforce it matches the resolved tenant.
         """
+
+        if request.path.startswith("/platform/api/") or request.path.startswith("/api/control-panel/"):
+            return TenantResolutionResult(company=None)
 
         if request.path.startswith(self.exempt_path_prefixes):
             return TenantResolutionResult(company=None)
