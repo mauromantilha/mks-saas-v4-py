@@ -1,0 +1,10 @@
+# Ignore local/dev artifacts and accidental SDK dumps during source deployments.
+.git
+.gitignore
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.ruff_cache/
+reports/
+gcloud components install alpha beta skaffold minikube kubectl gke-gcloud-auth-plugin/

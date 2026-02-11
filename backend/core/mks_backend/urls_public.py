@@ -47,6 +47,8 @@ urlpatterns = [
         name="platform-tenants-provision-execute",
     ),
     path("control-panel/", include("control_plane.urls")),
+    # Frontend reverse-proxy routes API traffic through /api/* in production.
+    path("api/control-panel/", include("control_plane.urls")),
     # Auth endpoints (shared auth/public schema).
     path("api/auth/token/", obtain_auth_token, name="api-token-auth"),
     path("api/auth/me/", AuthenticatedUserAPIView.as_view(), name="auth-me"),
