@@ -1,6 +1,7 @@
 <div
   class="shell"
   [class.no-session]="!isAuthenticated()"
+  [class.no-legacy-sidebar]="!shouldShowLegacySidebar()"
   [class.control-plane]="portalType() === 'CONTROL_PLANE'"
   [class.tenant-portal]="portalType() === 'TENANT'"
 >

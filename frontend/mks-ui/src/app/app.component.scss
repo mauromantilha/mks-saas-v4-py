@@ -70,6 +70,10 @@
   grid-template-columns: 1fr;
 }
 
+.shell.no-legacy-sidebar {
+  grid-template-columns: 1fr;
+}
+
 .sidebar {
   background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-gradient-to) 100%);
   color: var(--sidebar-text);
