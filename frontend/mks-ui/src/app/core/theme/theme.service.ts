@@ -6,7 +6,6 @@ type ThemeMode = "light" | "dark";
 @Injectable({ providedIn: "root" })
 export class ThemeService {
   private readonly modeSignal = signal<ThemeMode>("light");
-  private mediaQuery: MediaQueryList | null = null;
 
   readonly mode = computed(() => this.modeSignal());
   readonly isDarkMode = computed(() => this.modeSignal() === "dark");
@@ -15,52 +14,21 @@ export class ThemeService {
     this.initialize();
   }
 
-  setDarkMode(enabled: boolean): void {
-    const mode: ThemeMode = enabled ? "dark" : "light";
+  setDarkMode(_enabled: boolean): void {
+    // Project decision: keep UI in light mode until final stabilization.
+    const mode: ThemeMode = "light";
     this.modeSignal.set(mode);
     this.applyThemeClass(mode);
   }
 
   toggle(): void {
-    this.setDarkMode(!this.isDarkMode());
+    this.setDarkMode(false);
   }
 
   private initialize(): void {
-    const mode = this.prefersDarkMode() ? "dark" : "light";
+    const mode: ThemeMode = "light";
     this.modeSignal.set(mode);
     this.applyThemeClass(mode);
-    this.listenSystemThemeChanges();
-  }
-
-  private prefersDarkMode(): boolean {
-    try {
-      return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false;
-    } catch {
-      return false;
-    }
-  }
-
-  private listenSystemThemeChanges(): void {
-    try {
-      this.mediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
-      if (!this.mediaQuery) {
-        return;
-      }
-
-      const handler = (event: MediaQueryListEvent) => {
-        const mode: ThemeMode = event.matches ? "dark" : "light";
-        this.modeSignal.set(mode);
-        this.applyThemeClass(mode);
-      };
-
-      if (typeof this.mediaQuery.addEventListener === "function") {
-        this.mediaQuery.addEventListener("change", handler);
-      } else if (typeof this.mediaQuery.addListener === "function") {
-        this.mediaQuery.addListener(handler);
-      }
-    } catch {
-      // Ignore unsupported environments.
-    }
   }
 
   private applyThemeClass(mode: ThemeMode): void {

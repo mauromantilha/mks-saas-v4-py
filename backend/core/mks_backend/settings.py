@@ -263,6 +263,7 @@ database_host = (
     else env("DATABASE_HOST", default="127.0.0.1")
 )
 database_port = "" if cloud_sql_instance else env("DATABASE_PORT", default="5432")
+database_conn_max_age_default = 0 if cloud_sql_instance else 60
 
 database_engine = DATABASE_ENGINE
 if database_engine == "django.db.backends.sqlite3":
@@ -281,7 +282,10 @@ else:
             "PASSWORD": database_password,
             "HOST": database_host,
             "PORT": database_port,
-            "CONN_MAX_AGE": env.int("DATABASE_CONN_MAX_AGE", default=60),
+            # On Cloud Run + Cloud SQL, keep short-lived connections by default
+            # to reduce slot exhaustion under burst traffic.
+            "CONN_MAX_AGE": env.int("DATABASE_CONN_MAX_AGE", default=database_conn_max_age_default),
+            "CONN_HEALTH_CHECKS": True,
             "OPTIONS": (
                 {}
                 if cloud_sql_instance
