@@ -1,17 +1,19 @@
 .tenants-list-wrap {
-  display: grid;
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .page-header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 
   h1 {
-    margin: 0 0 4px;
-    font-size: 1.2rem;
+    margin: 0 0 2px;
+    font-size: 1.35rem;
   }
 
   p {
@@ -20,91 +22,109 @@
   }
 }
 
-.create-btn {
-  text-decoration: none;
-  border: 1px solid var(--mks-border);
-  border-radius: 10px;
-  padding: 8px 12px;
-  background: color-mix(in srgb, var(--mks-accent) 12%, var(--mks-surface));
-  color: inherit;
+.filters-card,
+.table-card {
+  border-radius: 14px;
 }
 
 .filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
-  border: 1px solid var(--mks-border);
-  border-radius: 12px;
-  background: var(--mks-surface);
-  padding: 12px;
-
-  label {
-    display: grid;
-    gap: 4px;
-    font-size: 0.85rem;
-  }
-
-  .search {
-    grid-column: span 2;
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
 }
 
-input,
-select {
-  border: 1px solid var(--mks-border);
-  border-radius: 8px;
-  padding: 8px;
+.filters mat-form-field {
+  flex: 1 1 200px;
+  min-width: 200px;
+}
+
+.filters .search-field {
+  flex: 2 1 280px;
 }
 
 .actions {
   display: flex;
-  align-items: end;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-
-  button {
-    border: 1px solid var(--mks-border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
-  }
-
-  .secondary {
-    background: transparent;
-  }
-
-  a {
-    text-decoration: none;
-    border: 1px solid var(--mks-border);
-    border-radius: 8px;
-    padding: 6px 10px;
-    color: inherit;
-    background: var(--mks-surface);
-  }
+  min-height: 56px;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid var(--mks-border);
+.state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
   border-radius: 12px;
-  overflow: hidden;
-  background: var(--mks-surface);
-
-  th,
-  td {
-    text-align: left;
-    vertical-align: top;
-    padding: 10px;
-    border-bottom: 1px solid var(--mks-border);
-  }
+  border: 1px dashed var(--mks-border);
+  background: color-mix(in srgb, var(--mks-surface) 94%, transparent);
 }
 
-.error {
-  color: #b42318;
+.state.error {
+  border-color: color-mix(in srgb, #f04438 42%, var(--mks-border));
+  color: #f04438;
+}
+
+.state.empty {
+  color: var(--mks-text-muted);
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table[mat-table] {
+  width: 100%;
+}
+
+.tenant-name {
+  font-weight: 600;
+  color: var(--mks-text);
+}
+
+.tenant-meta {
+  color: var(--mks-text-muted);
+  font-size: 0.78rem;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.status-chip {
+  font-size: 0.72rem;
+  border-radius: 999px;
+}
+
+.status-active {
+  background: color-mix(in srgb, #12b76a 22%, transparent);
+}
+
+.status-suspended {
+  background: color-mix(in srgb, #f79009 26%, transparent);
+}
+
+.status-cancelled,
+.status-deleted {
+  background: color-mix(in srgb, #f04438 20%, transparent);
+}
+
+mat-paginator {
+  border-top: 1px solid var(--mks-border);
 }
 
 @media (max-width: 860px) {
-  .filters .search {
-    grid-column: span 1;
+  .filters {
+    flex-direction: column;
+  }
+
+  .filters mat-form-field,
+  .filters .search-field {
+    width: 100%;
+    min-width: 100%;
   }
 }

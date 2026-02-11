@@ -1,0 +1,78 @@
+<section class="notes-tab">
+  <mat-card class="composer-card" *appCan="'cp.tenants.notes.manage'">
+    <header class="card-header">
+      <h3>Nova nota interna</h3>
+      <button mat-stroked-button type="button" (click)="reload()" [disabled]="loading() || saving()">
+        <mat-icon>refresh</mat-icon>
+        Atualizar
+      </button>
+    </header>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nota</mat-label>
+      <textarea
+        matInput
+        rows="4"
+        maxlength="4000"
+        placeholder="Registre contexto interno deste tenant"
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event || '')"
+      ></textarea>
+    </mat-form-field>
+
+    <div class="composer-actions">
+      <button mat-flat-button color="primary" type="button" (click)="createNote()" [disabled]="saving()">
+        <mat-icon>save</mat-icon>
+        {{ saving() ? "Salvando..." : "Salvar nota" }}
+      </button>
+    </div>
+  </mat-card>
+
+  <mat-card class="list-card">
+    <header class="card-header">
+      <h3>Histórico de notas</h3>
+      <button
+        *ngIf="!loading()"
+        mat-stroked-button
+        type="button"
+        (click)="reload()"
+        [disabled]="saving()"
+      >
+        <mat-icon>refresh</mat-icon>
+        Recarregar
+      </button>
+    </header>
+
+    <app-loading-state
+      *ngIf="loading()"
+      [compact]="true"
+      message="Carregando notas..."
+      [diameter]="24"
+    ></app-loading-state>
+
+    <app-error-state
+      *ngIf="hasError()"
+      [compact]="true"
+      [message]="error()"
+      retryLabel="Tentar novamente"
+      (retry)="reload()"
+    ></app-error-state>
+
+    <app-empty-state
+      *ngIf="hasEmpty()"
+      [compact]="true"
+      icon="notes"
+      title="Sem notas internas"
+      description="Adicione notas para registrar decisões e histórico do tenant."
+    ></app-empty-state>
+
+    <ul class="notes-list" *ngIf="!loading() && !error() && notes().length > 0">
+      <li *ngFor="let note of notes()">
+        <p class="note-text">{{ note.note }}</p>
+        <small class="meta">
+          {{ note.created_by_username || "-" }} • {{ note.created_at | date : "dd/MM/yyyy HH:mm" }}
+        </small>
+      </li>
+    </ul>
+  </mat-card>
+</section>

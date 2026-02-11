@@ -1,0 +1,62 @@
+<section class="contracts-page">
+  <header class="page-header">
+    <div>
+      <h1>Contracts</h1>
+      <p>Gestão de contratos por tenant com criação de draft e envio por e-mail.</p>
+    </div>
+
+    <div class="header-actions">
+      <mat-form-field appearance="outline">
+        <mat-label>Tenant</mat-label>
+        <mat-select [ngModel]="selectedTenantId()" (ngModelChange)="onTenantChange($event)">
+          <mat-option *ngFor="let tenant of tenants()" [value]="tenant.id">
+            {{ tenant.legal_name }} ({{ tenant.slug }})
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button type="button" (click)="reload()" [disabled]="loading()">
+        <mat-icon>refresh</mat-icon>
+        Atualizar
+      </button>
+
+      <a
+        *ngIf="selectedTenant() as tenant"
+        mat-stroked-button
+        [routerLink]="['/control-panel/tenants', tenant.id]"
+      >
+        <mat-icon>open_in_new</mat-icon>
+        Abrir tenant
+      </a>
+    </div>
+  </header>
+
+  <app-loading-state *ngIf="loading()" message="Carregando tenants..."></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading() && error()"
+    [message]="error()"
+    retryLabel="Tentar novamente"
+    (retry)="reload()"
+  ></app-error-state>
+
+  <app-empty-state
+    *ngIf="!loading() && !error() && tenants().length === 0"
+    icon="apartment"
+    title="Nenhum tenant disponível"
+    description="Cadastre um tenant para começar a gerir contratos."
+  ></app-empty-state>
+
+  <app-empty-state
+    *ngIf="!loading() && !error() && tenants().length > 0 && !selectedTenantId()"
+    icon="description"
+    title="Selecione um tenant"
+    description="Escolha um tenant no topo para listar e enviar contratos."
+  ></app-empty-state>
+
+  <app-control-panel-contracts-tab
+    *ngIf="!loading() && !error() && selectedTenant() as tenant"
+    [tenantId]="tenant.id"
+    [tenantEmail]="tenant.contact_email || ''"
+  ></app-control-panel-contracts-tab>
+</section>

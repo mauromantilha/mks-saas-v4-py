@@ -13,7 +13,7 @@ $mks-light-theme: mat.define-theme((
     plain-family: "Roboto, Segoe UI, sans-serif",
   ),
   density: (
-    scale: 0,
+    scale: -2,
   ),
 ));
 
@@ -28,7 +28,7 @@ $mks-dark-theme: mat.define-theme((
     plain-family: "Roboto, Segoe UI, sans-serif",
   ),
   density: (
-    scale: 0,
+    scale: -2,
   ),
 ));
 
@@ -211,4 +211,24 @@ html.dark-theme .pill.ok {
 html.dark-theme .pill.inactive {
   background: #1e293b !important;
   color: #cbd5e1 !important;
+}
+
+.mks-toast-success .mdc-snackbar__surface {
+  background: #0f766e !important;
+  color: #e6fffa !important;
+}
+
+.mks-toast-info .mdc-snackbar__surface {
+  background: #1d4ed8 !important;
+  color: #eff6ff !important;
+}
+
+.mks-toast-warning .mdc-snackbar__surface {
+  background: #92400e !important;
+  color: #fff7ed !important;
+}
+
+.mks-toast-error .mdc-snackbar__surface {
+  background: #991b1b !important;
+  color: #fef2f2 !important;
 }

@@ -1,0 +1,90 @@
+.features-tab {
+  display: grid;
+  gap: 16px;
+}
+
+.features-card,
+.history-card {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.history-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr)) auto;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.search-field {
+  min-width: 240px;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+}
+
+.table-wrap {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+}
+
+mat-paginator {
+  margin-top: 8px;
+}
+
+.feature-key {
+  font-weight: 600;
+}
+
+.status-chip {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+}
+
+.status-chip.active,
+.status-chip.enabled {
+  background: color-mix(in srgb, var(--mat-sys-primary) 16%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.status-chip.inactive,
+.status-chip.disabled {
+  background: color-mix(in srgb, var(--mat-sys-error) 16%, transparent);
+  color: var(--mat-sys-error);
+}
+
+.mono {
+  font-family: "Roboto Mono", monospace;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 1200px) {
+  .history-filters {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+
+  .filter-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}

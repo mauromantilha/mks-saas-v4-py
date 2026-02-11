@@ -1,0 +1,115 @@
+<mat-card class="tenant-monitoring-card">
+  <div class="toolbar">
+    <mat-form-field appearance="outline">
+      <mat-label>Período</mat-label>
+      <mat-select [ngModel]="selectedPeriod()" (ngModelChange)="onPeriodChange($event)">
+        <mat-option *ngFor="let option of periodOptions" [value]="option.value">
+          {{ option.label }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <app-loading-state *ngIf="loading()" message="Carregando monitoramento do tenant..."></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading() && error()"
+    [message]="error()"
+    retryLabel="Tentar novamente"
+    (retry)="reload()"
+  ></app-error-state>
+
+  <app-empty-state
+    *ngIf="!loading() && !error() && hasEmptyData()"
+    icon="monitor_heart"
+    title="Sem telemetria para o tenant"
+    description="Não há dados disponíveis para o período selecionado."
+  ></app-empty-state>
+
+  <ng-container *ngIf="!loading() && !error() && payload() as monitoring">
+    <div class="summary-grid" *ngIf="latest() as latest">
+      <mat-card>
+        <span class="label">Last seen</span>
+        <strong>{{ latest.last_seen_at ? (latest.last_seen_at | date : "dd/MM/yyyy HH:mm:ss") : "-" }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Request rate</span>
+        <strong>{{ latest.request_rate | number : "1.0-2" }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Error rate</span>
+        <strong>{{ (latest.error_rate * 100) | number : "1.0-2" }}%</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">P95</span>
+        <strong>{{ latest.p95_latency | number : "1.0-2" }} ms</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Jobs pendentes</span>
+        <strong>{{ latest.jobs_pending }}</strong>
+      </mat-card>
+    </div>
+
+    <mat-card class="table-card">
+      <h3>Histórico</h3>
+      <table mat-table [dataSource]="monitoring.history">
+        <ng-container matColumnDef="captured_at">
+          <th mat-header-cell *matHeaderCellDef>Capturado em</th>
+          <td mat-cell *matCellDef="let row">{{ row.captured_at | date : "dd/MM/yyyy HH:mm:ss" }}</td>
+        </ng-container>
+        <ng-container matColumnDef="request_rate">
+          <th mat-header-cell *matHeaderCellDef>Request rate</th>
+          <td mat-cell *matCellDef="let row">{{ row.request_rate | number : "1.0-2" }}</td>
+        </ng-container>
+        <ng-container matColumnDef="error_rate">
+          <th mat-header-cell *matHeaderCellDef>Error rate</th>
+          <td mat-cell *matCellDef="let row">{{ (row.error_rate * 100) | number : "1.0-2" }}%</td>
+        </ng-container>
+        <ng-container matColumnDef="p95_latency">
+          <th mat-header-cell *matHeaderCellDef>P95</th>
+          <td mat-cell *matCellDef="let row">{{ row.p95_latency | number : "1.0-2" }} ms</td>
+        </ng-container>
+        <ng-container matColumnDef="jobs_pending">
+          <th mat-header-cell *matHeaderCellDef>Jobs pendentes</th>
+          <td mat-cell *matCellDef="let row">{{ row.jobs_pending }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: historyColumns"></tr>
+      </table>
+    </mat-card>
+
+    <mat-card class="table-card">
+      <h3>Incidentes recentes</h3>
+      <table mat-table [dataSource]="incidents()" *ngIf="incidents().length > 0; else incidentsPlaceholder">
+        <ng-container matColumnDef="severity">
+          <th mat-header-cell *matHeaderCellDef>Severidade</th>
+          <td mat-cell *matCellDef="let row">{{ row.severity }}</td>
+        </ng-container>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">{{ row.status }}</td>
+        </ng-container>
+        <ng-container matColumnDef="message">
+          <th mat-header-cell *matHeaderCellDef>Mensagem</th>
+          <td mat-cell *matCellDef="let row">{{ row.message }}</td>
+        </ng-container>
+        <ng-container matColumnDef="last_seen_at">
+          <th mat-header-cell *matHeaderCellDef>Última ocorrência</th>
+          <td mat-cell *matCellDef="let row">{{ row.last_seen_at | date : "dd/MM/yyyy HH:mm:ss" }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="incidentsColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: incidentsColumns"></tr>
+      </table>
+      <ng-template #incidentsPlaceholder>
+        <app-empty-state
+          [compact]="true"
+          icon="report_gmailerrorred"
+          title="Sem incidentes no período"
+          description="API de incidentes indisponível ou sem dados."
+        ></app-empty-state>
+      </ng-template>
+    </mat-card>
+  </ng-container>
+</mat-card>

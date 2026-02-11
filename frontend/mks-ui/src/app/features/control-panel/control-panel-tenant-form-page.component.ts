@@ -12,7 +12,10 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Subject, debounceTime, distinctUntilChanged, filter, takeUntil } from "rxjs";
 
 import { PlatformTenantsService } from "../../core/api/platform-tenants.service";
+import { ApiErrorNormalized } from "../../core/http/api-error.util";
+import { ToastService } from "../../core/ui/toast.service";
 import { PlanRecord, TenantStatus } from "../../core/api/platform-tenants.types";
+import { applyApiValidationErrorsToForm } from "../../shared/forms/api-form-errors.util";
 
 function onlyDigits(value: string | null | undefined): string {
   return (value || "").replace(/\D/g, "");
@@ -110,7 +113,8 @@ export class ControlPanelTenantFormPageComponent implements OnInit, OnDestroy {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly tenantsService: PlatformTenantsService
+    private readonly tenantsService: PlatformTenantsService,
+    private readonly toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -260,13 +264,26 @@ export class ControlPanelTenantFormPageComponent implements OnInit, OnDestroy {
 
     request$.subscribe({
       next: () => {
+        this.toastService.success(
+          this.isEdit() ? "Tenant atualizado com sucesso." : "Tenant criado com sucesso."
+        );
         this.success.set(this.isEdit() ? "Tenant atualizado com sucesso." : "Tenant criado com sucesso.");
         this.saving.set(false);
         void this.router.navigate(["/control-panel/tenants"]);
       },
       error: (err) => {
-        const detail = err?.error?.detail;
-        this.error.set(detail ? JSON.stringify(detail) : "Falha ao salvar tenant.");
+        const normalized = err?.normalizedError as ApiErrorNormalized | undefined;
+        if (normalized?.validation) {
+          const formLevelMessages = applyApiValidationErrorsToForm(this.form, normalized.validation);
+          if (formLevelMessages.length > 0) {
+            this.error.set(formLevelMessages.join(" | "));
+          } else {
+            this.error.set(normalized.message || "Falha ao salvar tenant.");
+          }
+        } else {
+          this.error.set("Falha ao salvar tenant.");
+        }
+        this.toastService.error(this.error());
         this.saving.set(false);
       },
     });
@@ -285,6 +302,7 @@ export class ControlPanelTenantFormPageComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.error.set("CEP não encontrado. Preencha o endereço manualmente.");
+        this.toastService.warning(this.error());
       },
     });
   }

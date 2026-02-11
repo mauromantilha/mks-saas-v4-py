@@ -1,0 +1,18 @@
+<section class="tenant-page-wrap">
+  <header class="page-header">
+    <div>
+      <h1>Novo Tenant</h1>
+      <p>Crie tenant com cadastro, endereço por CEP e configuração de plano/assinatura.</p>
+    </div>
+    <a mat-stroked-button routerLink="/control-panel/tenants">
+      <mat-icon>arrow_back</mat-icon>
+      Voltar
+    </a>
+  </header>
+
+  <app-control-panel-tenant-form
+    mode="create"
+    (saved)="onSaved($event)"
+    (cancelled)="onCancelled()"
+  ></app-control-panel-tenant-form>
+</section>

@@ -1,0 +1,89 @@
+.tenant-detail-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  h1 {
+    margin: 0 0 2px;
+    font-size: 1.35rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--mks-text-muted);
+  }
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab-card {
+  margin-top: 10px;
+  border-radius: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin: 0;
+
+  div {
+    border: 1px solid var(--mks-border);
+    border-radius: 10px;
+    padding: 10px;
+  }
+
+  dt {
+    font-size: 0.75rem;
+    color: var(--mks-text-muted);
+    margin-bottom: 2px;
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 600;
+    color: var(--mks-text);
+  }
+}
+
+.subscription-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.contracts-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+
+  th,
+  td {
+    border-bottom: 1px solid var(--mks-border);
+    text-align: left;
+    padding: 8px;
+  }
+}
+
+.placeholder-card p {
+  color: var(--mks-text-muted);
+}

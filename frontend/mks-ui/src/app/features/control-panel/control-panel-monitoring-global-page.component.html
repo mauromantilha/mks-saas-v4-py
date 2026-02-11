@@ -1,0 +1,206 @@
+<section class="monitoring-wrap">
+  <header class="page-header">
+    <div>
+      <h1>Monitoring Global</h1>
+      <p>Saúde dos serviços e telemetria agregada por tenant.</p>
+    </div>
+
+    <div class="actions">
+      <mat-form-field appearance="outline">
+        <mat-label>Período</mat-label>
+        <mat-select [ngModel]="selectedPeriod()" (ngModelChange)="onPeriodChange($event)">
+          <mat-option *ngFor="let option of periodOptions" [value]="option.value">
+            {{ option.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Buscar tenant</mat-label>
+        <input
+          matInput
+          [ngModel]="tenantSearch()"
+          (ngModelChange)="onTenantSearchChange($event)"
+          placeholder="Nome, slug ou ID"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Filtro serviços</mat-label>
+        <mat-select
+          [ngModel]="serviceStatusFilter()"
+          (ngModelChange)="onServiceStatusFilterChange($event)"
+        >
+          <mat-option *ngFor="let option of serviceStatusOptions" [value]="option.value">
+            {{ option.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Filtro tenants</mat-label>
+        <mat-select
+          [ngModel]="tenantHealthFilter()"
+          (ngModelChange)="onTenantHealthFilterChange($event)"
+        >
+          <mat-option *ngFor="let option of tenantHealthOptions" [value]="option.value">
+            {{ option.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button type="button" (click)="reload()" [disabled]="loading()">
+        <mat-icon>refresh</mat-icon>
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <app-loading-state *ngIf="loading()" message="Carregando monitoramento..."></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading() && error()"
+    [message]="error()"
+    retryLabel="Tentar novamente"
+    (retry)="reload()"
+  ></app-error-state>
+
+  <app-empty-state
+    *ngIf="!loading() && !error() && hasEmptyData()"
+    icon="monitor_heart"
+    title="Sem dados de monitoramento"
+    description="Não há telemetria disponível para o período selecionado."
+  ></app-empty-state>
+
+  <ng-container *ngIf="!loading() && !error() && payload() as monitoring">
+    <div class="summary-grid">
+      <mat-card>
+        <span class="label">Serviços</span>
+        <strong>{{ monitoring.summary.total_services }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Tenants monitorados</span>
+        <strong>{{ monitoring.summary.total_tenants }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Tenants degradados</span>
+        <strong>{{ monitoring.summary.degraded_tenants }}</strong>
+      </mat-card>
+      <mat-card>
+        <span class="label">Alertas abertos</span>
+        <strong>{{ monitoring.summary.open_alerts ?? 0 }}</strong>
+      </mat-card>
+    </div>
+
+    <mat-card class="table-card">
+      <h2>Serviços</h2>
+      <table mat-table [dataSource]="pagedServices()">
+        <ng-container matColumnDef="service_name">
+          <th mat-header-cell *matHeaderCellDef>Serviço</th>
+          <td mat-cell *matCellDef="let row">{{ row.service_name }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="status-pill" [ngClass]="statusClass(row)">{{ row.status }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="latency_ms">
+          <th mat-header-cell *matHeaderCellDef>Latência (ms)</th>
+          <td mat-cell *matCellDef="let row">{{ row.latency_ms | number : "1.0-2" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="error_rate">
+          <th mat-header-cell *matHeaderCellDef>Erro (%)</th>
+          <td mat-cell *matCellDef="let row">{{ (row.error_rate * 100) | number : "1.0-2" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="captured_at">
+          <th mat-header-cell *matHeaderCellDef>Capturado em</th>
+          <td mat-cell *matCellDef="let row">{{ row.captured_at | date : "dd/MM/yyyy HH:mm:ss" }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedServiceColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedServiceColumns"></tr>
+      </table>
+
+      <mat-paginator
+        [length]="filteredServices().length"
+        [pageIndex]="servicesPageIndex()"
+        [pageSize]="servicesPageSize()"
+        [pageSizeOptions]="[10, 25, 50]"
+        showFirstLastButtons
+        (page)="onServicesPageChanged($event)"
+      ></mat-paginator>
+    </mat-card>
+
+    <mat-card class="table-card">
+      <h2>Tenants</h2>
+      <table mat-table [dataSource]="pagedTenants()">
+        <ng-container matColumnDef="tenant_name">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let row">{{ row.tenant_name }} ({{ row.tenant_slug }})</td>
+        </ng-container>
+
+        <ng-container matColumnDef="request_rate">
+          <th mat-header-cell *matHeaderCellDef>Request rate</th>
+          <td mat-cell *matCellDef="let row">{{ row.request_rate | number : "1.0-2" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="error_rate">
+          <th mat-header-cell *matHeaderCellDef>Error rate</th>
+          <td mat-cell *matCellDef="let row">{{ (row.error_rate * 100) | number : "1.0-2" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="p95_latency">
+          <th mat-header-cell *matHeaderCellDef>P95 (ms)</th>
+          <td mat-cell *matCellDef="let row">{{ row.p95_latency | number : "1.0-2" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="jobs_pending">
+          <th mat-header-cell *matHeaderCellDef>Jobs pendentes</th>
+          <td mat-cell *matCellDef="let row">{{ row.jobs_pending }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="last_seen_at">
+          <th mat-header-cell *matHeaderCellDef>Last seen</th>
+          <td mat-cell *matCellDef="let row">
+            {{ row.last_seen_at ? (row.last_seen_at | date : "dd/MM/yyyy HH:mm:ss") : "-" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Ações</th>
+          <td mat-cell *matCellDef="let row">
+            <button mat-stroked-button type="button" (click)="openTenant(row.tenant_id)">
+              Abrir tenant
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedTenantColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedTenantColumns"></tr>
+      </table>
+
+      <mat-paginator
+        *ngIf="filteredTenants().length > 0"
+        [length]="filteredTenants().length"
+        [pageIndex]="tenantsPageIndex()"
+        [pageSize]="tenantsPageSize()"
+        [pageSizeOptions]="[10, 25, 50]"
+        showFirstLastButtons
+        (page)="onTenantsPageChanged($event)"
+      ></mat-paginator>
+
+      <app-empty-state
+        *ngIf="filteredTenants().length === 0"
+        [compact]="true"
+        icon="search_off"
+        title="Nenhum tenant encontrado"
+        description="Ajuste o termo de busca para localizar tenants."
+      ></app-empty-state>
+    </mat-card>
+  </ng-container>
+</section>

@@ -1,0 +1,66 @@
+<mat-card class="subscription-card">
+  <div class="meta-row">
+    <span class="meta-item"><strong>Plano atual:</strong> {{ tenant.subscription?.plan?.name || "-" }}</span>
+    <span class="meta-item"><strong>Status:</strong> {{ tenant.subscription?.status || "-" }}</span>
+    <span class="meta-item" *ngIf="effectiveFrom()">
+      <strong>Effective from:</strong> {{ effectiveFrom() | date : "dd/MM/yyyy" }}
+    </span>
+  </div>
+
+  <div class="readonly-banner" *ngIf="!canManagePlans()">
+    Somente leitura. É necessário `cp.plans.manage` para alterar assinatura.
+  </div>
+
+  <form class="form-grid" [formGroup]="form">
+    <mat-form-field appearance="outline">
+      <mat-label>Plano</mat-label>
+      <mat-select formControlName="plan_id">
+        <mat-option [value]="null">Selecione</mat-option>
+        <mat-option *ngFor="let plan of plans" [value]="plan.id">
+          {{ plan.name }} ({{ plan.tier }}) • R$ {{ plan.price?.monthly_price || "-" }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="form.controls.plan_id.touched && form.controls.plan_id.hasError('required')">
+        Selecione um plano.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Setup fee (0 ou 150)</mat-label>
+      <mat-select formControlName="setup_fee_override">
+        <mat-option value="">Padrão do plano</mat-option>
+        <mat-option value="0">0</mat-option>
+        <mat-option value="150">150</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="toggles">
+      <mat-checkbox formControlName="is_trial">Trial</mat-checkbox>
+      <mat-checkbox formControlName="is_courtesy">Cortesia</mat-checkbox>
+    </div>
+
+    <mat-form-field appearance="outline" *ngIf="form.controls.is_trial.value">
+      <mat-label>Trial days</mat-label>
+      <input matInput type="number" min="1" max="90" formControlName="trial_days" />
+      <mat-error *ngIf="form.controls.trial_days.touched && form.controls.trial_days.hasError('required')">
+        Informe os dias do trial.
+      </mat-error>
+      <mat-error *ngIf="form.controls.trial_days.touched && (form.controls.trial_days.hasError('min') || form.controls.trial_days.hasError('max'))">
+        Valor entre 1 e 90.
+      </mat-error>
+    </mat-form-field>
+  </form>
+
+  <div class="actions">
+    <button
+      *appCan="'cp.plans.manage'"
+      mat-flat-button
+      color="primary"
+      type="button"
+      (click)="save()"
+      [disabled]="saving.value || !canManagePlans()"
+    >
+      {{ saving.value ? "Salvando..." : "Salvar assinatura" }}
+    </button>
+  </div>
+</mat-card>

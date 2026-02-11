@@ -1,0 +1,90 @@
+<section class="tenant-detail-wrap" *ngIf="tenant() as current">
+  <header class="page-header">
+    <div>
+      <h1>{{ current.legal_name }}</h1>
+      <p>{{ current.slug }}.{{ current.subdomain }} • {{ current.status }}</p>
+    </div>
+
+    <div class="header-actions">
+      <button mat-stroked-button type="button" (click)="refreshTenant()" [disabled]="loading() || actionLoading()">
+        <mat-icon>refresh</mat-icon>
+        Atualizar
+      </button>
+      <button
+        *appCan="'cp.tenants.manage'"
+        mat-stroked-button
+        type="button"
+        (click)="suspendOrUnsuspend()"
+        [disabled]="actionLoading()"
+      >
+        <mat-icon>{{ current.status === "SUSPENDED" ? "play_arrow" : "pause" }}</mat-icon>
+        {{ current.status === "SUSPENDED" ? "Reativar" : "Suspender" }}
+      </button>
+      <button
+        *appCan="'cp.tenants.delete'"
+        mat-flat-button
+        color="warn"
+        type="button"
+        (click)="softDelete()"
+        [disabled]="actionLoading() || current.status === 'DELETED'"
+      >
+        <mat-icon>delete</mat-icon>
+        Excluir
+      </button>
+      <a mat-button routerLink="/control-panel/tenants">
+        <mat-icon>arrow_back</mat-icon>
+        Voltar
+      </a>
+    </div>
+  </header>
+
+  <mat-tab-group (selectedTabChange)="onTabChange($event.index)">
+    <mat-tab label="Overview">
+      <mat-card class="tab-card">
+        <dl class="detail-grid">
+          <div><dt>Tenant</dt><dd>{{ current.legal_name }}</dd></div>
+          <div><dt>Slug</dt><dd>{{ current.slug }}</dd></div>
+          <div><dt>Status</dt><dd>{{ current.status }}</dd></div>
+          <div><dt>CNPJ</dt><dd>{{ current.cnpj || "-" }}</dd></div>
+          <div><dt>Email</dt><dd>{{ current.contact_email || "-" }}</dd></div>
+          <div><dt>Plano</dt><dd>{{ current.subscription?.plan?.name || "-" }}</dd></div>
+          <div><dt>Trial</dt><dd>{{ current.subscription?.is_trial ? "Sim" : "Não" }}</dd></div>
+          <div><dt>Trial até</dt><dd>{{ current.subscription?.trial_ends_at || "-" }}</dd></div>
+          <div><dt>Setup fee</dt><dd>{{ current.subscription?.setup_fee_override || "-" }}</dd></div>
+          <div><dt>Criado em</dt><dd>{{ current.created_at | date: "dd/MM/yyyy HH:mm" }}</dd></div>
+        </dl>
+      </mat-card>
+    </mat-tab>
+
+    <mat-tab label="Subscription">
+      <app-control-panel-subscription-tab
+        [tenant]="current"
+        [plans]="plans()"
+        (updated)="onSubscriptionUpdated($event)"
+      ></app-control-panel-subscription-tab>
+    </mat-tab>
+
+    <mat-tab label="Contracts">
+      <app-control-panel-contracts-tab
+        [tenantId]="current.id"
+        [tenantEmail]="current.contact_email || ''"
+      ></app-control-panel-contracts-tab>
+    </mat-tab>
+
+    <mat-tab label="Monitoring">
+      <app-control-panel-monitoring-tenant-tab [tenantId]="current.id"></app-control-panel-monitoring-tenant-tab>
+    </mat-tab>
+
+    <mat-tab label="Features">
+      <app-control-panel-features-tab [tenantId]="current.id"></app-control-panel-features-tab>
+    </mat-tab>
+
+    <mat-tab label="Notes">
+      <app-control-panel-notes-tab [tenantId]="current.id"></app-control-panel-notes-tab>
+    </mat-tab>
+
+    <mat-tab label="Audit">
+      <app-control-panel-tenant-audit-tab [tenantId]="current.id"></app-control-panel-tenant-audit-tab>
+    </mat-tab>
+  </mat-tab-group>
+</section>

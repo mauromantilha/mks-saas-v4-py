@@ -1,0 +1,55 @@
+.notes-tab {
+  display: grid;
+  gap: 16px;
+}
+
+.composer-card,
+.list-card {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.notes-list li {
+  padding: 12px;
+  border: 1px solid var(--mks-border);
+  border-radius: 12px;
+  background: var(--mks-surface);
+}
+
+.note-text {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+}
+
+.meta {
+  color: var(--mks-text-muted);
+}

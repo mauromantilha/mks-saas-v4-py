@@ -1,0 +1,58 @@
+.audit-page-wrap {
+  display: grid;
+  gap: 16px;
+}
+
+.page-header h1 {
+  margin: 0 0 4px;
+}
+
+.page-header p {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.search-field {
+  grid-column: span 2;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 4px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.correlation {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  .search-field {
+    grid-column: span 2;
+  }
+}
+

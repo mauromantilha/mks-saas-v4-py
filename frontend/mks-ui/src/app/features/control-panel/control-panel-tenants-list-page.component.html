@@ -2,90 +2,161 @@
   <header class="page-header">
     <div>
       <h1>Tenants</h1>
-      <p>Gestão e filtros avançados de tenants do SaaS.</p>
+      <p>Gestão de tenants com filtros, paginação server-side e ações administrativas.</p>
     </div>
-    <a class="create-btn" routerLink="/control-panel/tenants/new">Novo Tenant</a>
+    <a *appCan="'cp.tenants.manage'" mat-flat-button color="primary" routerLink="/control-panel/tenants/new">
+      <mat-icon>add</mat-icon>
+      Novo Tenant
+    </a>
   </header>
 
-  <form class="filters" [formGroup]="filtersForm" (ngSubmit)="loadTenants()">
-    <label>
-      Status
-      <select formControlName="status">
-        <option value="">Todos</option>
-        <option value="ACTIVE">ACTIVE</option>
-        <option value="SUSPENDED">SUSPENDED</option>
-        <option value="CANCELLED">CANCELLED</option>
-        <option value="DELETED">DELETED</option>
-      </select>
-    </label>
+  <mat-card class="filters-card">
+    <form class="filters" [formGroup]="filtersForm">
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="">Todos</mat-option>
+          <mat-option value="ACTIVE">ACTIVE</mat-option>
+          <mat-option value="SUSPENDED">SUSPENDED</mat-option>
+          <mat-option value="CANCELLED">CANCELLED</mat-option>
+          <mat-option value="DELETED">DELETED</mat-option>
+        </mat-select>
+      </mat-form-field>
 
-    <label>
-      Plano
-      <select formControlName="planId">
-        <option [ngValue]="null">Todos</option>
-        <option *ngFor="let plan of plans()" [ngValue]="plan.id">
-          {{ plan.name }} ({{ plan.tier }})
-        </option>
-      </select>
-    </label>
+      <mat-form-field appearance="outline">
+        <mat-label>Plano</mat-label>
+        <mat-select formControlName="planId">
+          <mat-option value="">Todos</mat-option>
+          <mat-option *ngFor="let plan of plans()" [value]="plan.id">
+            {{ plan.name }} ({{ plan.tier }})
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
 
-    <label>
-      Trial
-      <select formControlName="trial">
-        <option value="">Todos</option>
-        <option value="true">Sim</option>
-        <option value="false">Não</option>
-      </select>
-    </label>
+      <mat-form-field appearance="outline">
+        <mat-label>Trial</mat-label>
+        <mat-select formControlName="trial">
+          <mat-option value="">Todos</mat-option>
+          <mat-option value="true">Sim</mat-option>
+          <mat-option value="false">Não</mat-option>
+        </mat-select>
+      </mat-form-field>
 
-    <label class="search">
-      Buscar
-      <input type="text" formControlName="search" placeholder="Nome/CNPJ/slug" />
-    </label>
+      <mat-form-field class="search-field" appearance="outline">
+        <mat-label>Busca</mat-label>
+        <input matInput type="text" formControlName="search" placeholder="Nome, CNPJ ou slug" />
+      </mat-form-field>
 
-    <div class="actions">
-      <button type="submit" [disabled]="loading()">Filtrar</button>
-      <button type="button" class="secondary" (click)="clearFilters()" [disabled]="loading()">
+      <div class="actions">
+        <button mat-stroked-button type="button" (click)="reload()" [disabled]="loading()">
+          <mat-icon>refresh</mat-icon>
+          Atualizar
+        </button>
+        <button mat-stroked-button type="button" (click)="clearFilters()" [disabled]="loading()">
+          <mat-icon>filter_alt_off</mat-icon>
         Limpar
-      </button>
+        </button>
+      </div>
+    </form>
+  </mat-card>
+
+  <app-loading-state *ngIf="hasLoading()" message="Carregando tenants..."></app-loading-state>
+
+  <app-error-state
+    *ngIf="hasErrorState()"
+    [message]="errorMessage()"
+    retryLabel="Tentar novamente"
+    (retry)="reload()"
+  ></app-error-state>
+
+  <app-empty-state
+    *ngIf="hasEmptyState()"
+    icon="search_off"
+    title="Nenhum tenant encontrado"
+    description="Ajuste os filtros e tente novamente."
+    actionLabel="Limpar filtros"
+    (action)="clearFilters()"
+  ></app-empty-state>
+
+  <mat-card class="table-card" *ngIf="hasDataState()">
+    <div class="table-wrap">
+      <table mat-table [dataSource]="tenants()">
+        <ng-container matColumnDef="legal_name">
+          <th mat-header-cell *matHeaderCellDef>Nome</th>
+          <td mat-cell *matCellDef="let tenant">
+            <div class="tenant-name">{{ tenant.legal_name }}</div>
+            <div class="tenant-meta">{{ tenant.cnpj || "-" }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="slug">
+          <th mat-header-cell *matHeaderCellDef>Slug</th>
+          <td mat-cell *matCellDef="let tenant">{{ tenant.slug }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let tenant">
+            <mat-chip-set>
+              <mat-chip [ngClass]="'status-chip status-' + tenant.status.toLowerCase()">
+                {{ tenant.status }}
+              </mat-chip>
+            </mat-chip-set>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="plan">
+          <th mat-header-cell *matHeaderCellDef>Plano</th>
+          <td mat-cell *matCellDef="let tenant">{{ tenantPlan(tenant) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="trial_ends_at">
+          <th mat-header-cell *matHeaderCellDef>Trial</th>
+          <td mat-cell *matCellDef="let tenant">
+            <ng-container *ngIf="isTrial(tenant); else noTrial">
+              {{ tenantTrialEndsAt(tenant) ? (tenantTrialEndsAt(tenant) | date : "dd/MM/yyyy") : "-" }}
+            </ng-container>
+            <ng-template #noTrial>Sem trial</ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="created_at">
+          <th mat-header-cell *matHeaderCellDef>Criado em</th>
+          <td mat-cell *matCellDef="let tenant">{{ tenant.created_at | date : "dd/MM/yyyy HH:mm" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Ações</th>
+          <td mat-cell *matCellDef="let tenant">
+            <div class="row-actions">
+              <button *appCan="'cp.tenants.view'" mat-button type="button" (click)="openDetails(tenant)">
+                <mat-icon>visibility</mat-icon>
+                Detalhes
+              </button>
+              <button *appCan="'cp.tenants.manage'" mat-button type="button" (click)="toggleSuspension(tenant)">
+                <mat-icon>{{ tenant.status === "SUSPENDED" ? "play_arrow" : "pause" }}</mat-icon>
+                {{ tenant.status === "SUSPENDED" ? "Reativar" : "Suspender" }}
+              </button>
+              <button *appCan="'cp.tenants.delete'" mat-button color="warn" type="button" (click)="deleteTenant(tenant)">
+                <mat-icon>delete</mat-icon>
+                Excluir
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
     </div>
-  </form>
 
-  <p class="error" *ngIf="error()">{{ error() }}</p>
-  <p *ngIf="loading()">Carregando...</p>
-
-  <table class="table" *ngIf="!loading()">
-    <thead>
-      <tr>
-        <th>Tenant</th>
-        <th>Status</th>
-        <th>Plano</th>
-        <th>Trial</th>
-        <th>Contato</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let tenant of tenants()">
-        <td>
-          <strong>{{ tenant.legal_name }}</strong><br />
-          <small>{{ tenant.slug }}.{{ tenant.subdomain }}</small><br />
-          <small>{{ tenant.cnpj || "-" }}</small>
-        </td>
-        <td>{{ tenant.status }}</td>
-        <td>{{ tenant.subscription?.plan?.name || "-" }}</td>
-        <td>{{ tenant.subscription?.is_trial ? "Sim" : "Não" }}</td>
-        <td>{{ tenant.contact_email || "-" }}</td>
-        <td>
-          <div class="actions">
-            <a [routerLink]="['/control-panel/tenants', tenant.id]">Detalhes</a>
-            <a [routerLink]="['/control-panel/tenants', tenant.id, 'edit']">Editar</a>
-          </div>
-        </td>
-      </tr>
-      <tr *ngIf="tenants().length === 0">
-        <td colspan="6">Nenhum tenant encontrado com os filtros aplicados.</td>
-      </tr>
-    </tbody>
-  </table>
+    <mat-paginator
+      [length]="totalRows()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[10, 25, 50, 100]"
+      showFirstLastButtons
+      (page)="onPageChanged($event)"
+    ></mat-paginator>
+  </mat-card>
 </section>

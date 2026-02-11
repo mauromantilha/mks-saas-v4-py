@@ -1,8 +1,9 @@
 import { HttpClient, HttpHeaders } from "@angular/common/http";
-import { Injectable } from "@angular/core";
+import { inject, Injectable, signal } from "@angular/core";
 import { Observable } from "rxjs";
 
-import { environment } from "../../../environments/environment";
+import { API_CONFIG, buildApiUrl } from "../config/api-config";
+import { SessionService } from "../auth/session.service";
 import {
   AuthenticatedUserResponse,
   PasswordResetConfirmResponse,
@@ -14,26 +15,42 @@ import {
 
 @Injectable({ providedIn: "root" })
 export class AuthService {
-  private readonly tokenUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/api/auth/token/`
-    : "/api/auth/token/";
-  private readonly tenantMeUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/api/auth/tenant-me/`
-    : "/api/auth/tenant-me/";
-  private readonly capabilitiesUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/api/auth/capabilities/`
-    : "/api/auth/capabilities/";
-  private readonly meUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/api/auth/me/`
-    : "/api/auth/me/";
-  private readonly passwordResetRequestUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/api/auth/password-reset/request/`
-    : "/api/auth/password-reset/request/";
-  private readonly passwordResetConfirmUrl = environment.apiBaseUrl
-    ? `${environment.apiBaseUrl}/api/auth/password-reset/confirm/`
-    : "/api/auth/password-reset/confirm/";
+  private readonly config = inject(API_CONFIG);
+  private readonly sessionService = inject(SessionService);
+
+  private readonly tokenUrl = buildApiUrl(this.config, "/api/auth/token/");
+  private readonly tenantMeUrl = buildApiUrl(this.config, "/api/auth/tenant-me/");
+  private readonly capabilitiesUrl = buildApiUrl(this.config, "/api/auth/capabilities/");
+  private readonly meUrl = buildApiUrl(this.config, "/api/auth/me/");
+  private readonly passwordResetRequestUrl = buildApiUrl(
+    this.config,
+    "/api/auth/password-reset/request/"
+  );
+  private readonly passwordResetConfirmUrl = buildApiUrl(
+    this.config,
+    "/api/auth/password-reset/confirm/"
+  );
+  private readonly accessTokenState = signal<string | null>(
+    this.sessionService.session()?.token ?? null
+  );
 
   constructor(private readonly http: HttpClient) {}
+
+  getAccessToken(): string | null {
+    const sessionToken = this.sessionService.session()?.token ?? null;
+    if (sessionToken !== this.accessTokenState()) {
+      this.accessTokenState.set(sessionToken);
+    }
+    return this.accessTokenState();
+  }
+
+  setAccessToken(token: string | null): void {
+    this.accessTokenState.set(token);
+  }
+
+  clearAccessToken(): void {
+    this.accessTokenState.set(null);
+  }
 
   obtainToken(username: string, password: string): Observable<TokenResponse> {
     return this.http.post<TokenResponse>(this.tokenUrl, {
@@ -85,7 +102,7 @@ export class AuthService {
   private buildHeaders(tenantCode: string, token: string): HttpHeaders {
     return new HttpHeaders({
       Authorization: `Token ${token}`,
-      [environment.tenantIdHeader]: tenantCode,
+      [this.config.tenantIdHeader]: tenantCode,
     });
   }
 }

@@ -1,0 +1,78 @@
+<mat-card class="alerts-widget">
+  <header class="widget-header">
+    <div>
+      <h3>Tenants em Risco</h3>
+      <p>Critérios: heartbeat > {{ heartbeatThresholdMinutes }} min ou erro > {{ errorRateThresholdPercent }}%</p>
+    </div>
+  </header>
+
+  <app-empty-state
+    *ngIf="!hasRiskRows()"
+    [compact]="true"
+    icon="verified"
+    title="Nenhum tenant em risco"
+    description="Todos os tenants estão dentro dos limites definidos."
+  ></app-empty-state>
+
+  <div class="table-wrap" *ngIf="hasRiskRows()">
+    <table mat-table [dataSource]="riskRows()">
+      <ng-container matColumnDef="tenant">
+        <th mat-header-cell *matHeaderCellDef>Tenant</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="tenant-name">{{ row.tenantName }}</div>
+          <small>{{ row.tenantSlug }}</small>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="heartbeat">
+        <th mat-header-cell *matHeaderCellDef>Last heartbeat</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.lastSeenAt ? (row.lastSeenAt | date : "dd/MM/yyyy HH:mm:ss") : "-" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="error_rate">
+        <th mat-header-cell *matHeaderCellDef>Error rate</th>
+        <td mat-cell *matCellDef="let row">{{ row.errorRatePercent | number : "1.0-2" }}%</td>
+      </ng-container>
+
+      <ng-container matColumnDef="reasons">
+        <th mat-header-cell *matHeaderCellDef>Motivos</th>
+        <td mat-cell *matCellDef="let row">{{ rowReasonLabel(row) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Ações</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="actions">
+            <button
+              *appCan="'cp.tenants.view'"
+              mat-stroked-button
+              type="button"
+              (click)="openTenantDetail(row.tenantId)"
+            >
+              <mat-icon>open_in_new</mat-icon>
+              Abrir tenant
+            </button>
+
+            <button
+              *appCan="'cp.monitoring.manage'"
+              mat-flat-button
+              color="primary"
+              type="button"
+              [disabled]="!hasAckableAlert(row) || isAlertLoading(row.alerts[0].id)"
+              (click)="acknowledgeFirstAlert(row)"
+            >
+              <mat-icon>done_all</mat-icon>
+              ACK
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+</mat-card>
+

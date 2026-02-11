@@ -19,6 +19,7 @@ import {
   TenantOperationalSettingsRecord,
   TenantReleaseRecord,
 } from "../../core/api/platform-tenants.types";
+import { PermissionDirective } from "../../core/auth/permission.directive";
 import { PermissionService } from "../../core/auth/permission.service";
 import { SessionService } from "../../core/auth/session.service";
 
@@ -35,7 +36,7 @@ type TenantDetailTab =
 @Component({
   selector: "app-control-panel-tenant-detail-page",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, PermissionDirective],
   templateUrl: "./control-panel-tenant-detail-page.component.html",
   styleUrl: "./control-panel-tenant-detail-page.component.scss",
 })

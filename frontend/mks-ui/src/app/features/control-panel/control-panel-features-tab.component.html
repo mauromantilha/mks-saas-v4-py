@@ -1,0 +1,197 @@
+<section class="features-tab">
+  <mat-card class="features-card">
+    <header class="card-header">
+      <h3>Feature Flags</h3>
+      <button mat-stroked-button type="button" (click)="reload()" [disabled]="featuresLoading() || auditLoading()">
+        <mat-icon>refresh</mat-icon>
+        Atualizar
+      </button>
+    </header>
+
+    <app-loading-state
+      *ngIf="featuresLoading()"
+      [compact]="true"
+      message="Carregando feature flags..."
+      [diameter]="24"
+    ></app-loading-state>
+
+    <app-error-state
+      *ngIf="hasFeatureError()"
+      [compact]="true"
+      [message]="featuresError()"
+      retryLabel="Tentar novamente"
+      (retry)="reload()"
+    ></app-error-state>
+
+    <app-empty-state
+      *ngIf="hasFeatureEmpty()"
+      [compact]="true"
+      icon="tune"
+      title="Nenhuma feature encontrada"
+      description="Configure flags no backend para este tenant."
+    ></app-empty-state>
+
+    <div class="table-wrap" *ngIf="hasFeatures()">
+      <table mat-table [dataSource]="features()">
+        <ng-container matColumnDef="feature">
+          <th mat-header-cell *matHeaderCellDef>Feature</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="feature-key">{{ row.feature.key }}</div>
+            <small>{{ row.feature.name }}</small>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Descrição</th>
+          <td mat-cell *matCellDef="let row">{{ row.feature.description || "-" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="global_status">
+          <th mat-header-cell *matHeaderCellDef>Global</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="status-chip" [class.active]="row.feature.is_active" [class.inactive]="!row.feature.is_active">
+              {{ row.feature.is_active ? "Ativa" : "Inativa" }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="tenant_status">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="status-chip" [class.enabled]="row.enabled" [class.disabled]="!row.enabled">
+              {{ row.enabled ? "Habilitada" : "Desabilitada" }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="updated_at">
+          <th mat-header-cell *matHeaderCellDef>Atualizada em</th>
+          <td mat-cell *matCellDef="let row">
+            {{ row.updated_at ? (row.updated_at | date : "dd/MM/yyyy HH:mm:ss") : "-" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Ações</th>
+          <td mat-cell *matCellDef="let row">
+            <button
+              *appCan="'cp.tenants.manage'"
+              mat-stroked-button
+              type="button"
+              [disabled]="!row.feature.is_active || isToggleLoading(row.feature.key)"
+              (click)="toggleFeature(row)"
+            >
+              {{ row.enabled ? "Desabilitar" : "Habilitar" }}
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="featureColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: featureColumns"></tr>
+      </table>
+    </div>
+  </mat-card>
+
+  <mat-card class="history-card">
+    <header class="card-header">
+      <h3>Histórico de Alterações</h3>
+    </header>
+
+    <form class="history-filters" [formGroup]="filtersForm">
+      <mat-form-field appearance="outline">
+        <mat-label>Período</mat-label>
+        <mat-select formControlName="period">
+          <mat-option *ngFor="let option of periodOptions" [value]="option.value">
+            {{ option.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Actor (ID)</mat-label>
+        <input matInput type="number" min="1" formControlName="actor" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Ação</mat-label>
+        <input matInput type="text" formControlName="action" placeholder="Ex: tenant_feature_flag.update" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Busca</mat-label>
+        <input matInput type="text" formControlName="search" placeholder="action, entity ou correlation id" />
+      </mat-form-field>
+
+      <div class="filter-actions">
+        <button mat-stroked-button type="button" (click)="clearHistoryFilters()" [disabled]="auditLoading()">
+          <mat-icon>filter_alt_off</mat-icon>
+          Limpar
+        </button>
+      </div>
+    </form>
+
+    <app-loading-state
+      *ngIf="auditLoading()"
+      [compact]="true"
+      message="Carregando histórico..."
+      [diameter]="24"
+    ></app-loading-state>
+
+    <app-error-state
+      *ngIf="hasAuditError()"
+      [compact]="true"
+      [message]="auditError()"
+      retryLabel="Tentar novamente"
+      (retry)="reload()"
+    ></app-error-state>
+
+    <app-empty-state
+      *ngIf="hasAuditEmpty()"
+      [compact]="true"
+      icon="history"
+      title="Sem alterações recentes"
+      description="Nenhum evento de feature flag encontrado."
+    ></app-empty-state>
+
+    <div class="table-wrap" *ngIf="!auditLoading() && !auditError() && filteredAuditEvents().length > 0">
+      <table mat-table [dataSource]="pagedAuditEvents()">
+        <ng-container matColumnDef="created_at">
+          <th mat-header-cell *matHeaderCellDef>Data</th>
+          <td mat-cell *matCellDef="let event">{{ event.created_at | date : "dd/MM/yyyy HH:mm:ss" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef>Ação</th>
+          <td mat-cell *matCellDef="let event">{{ event.action }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actor">
+          <th mat-header-cell *matHeaderCellDef>Usuário</th>
+          <td mat-cell *matCellDef="let event">{{ event.actor_username || "-" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="entity">
+          <th mat-header-cell *matHeaderCellDef>Entidade</th>
+          <td mat-cell *matCellDef="let event">{{ event.entity_type }} #{{ event.entity_id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="correlation_id">
+          <th mat-header-cell *matHeaderCellDef>Correlation ID</th>
+          <td mat-cell *matCellDef="let event" class="mono">{{ event.correlation_id || "-" }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: historyColumns"></tr>
+      </table>
+
+      <mat-paginator
+        [length]="filteredAuditEvents().length"
+        [pageIndex]="historyPageIndex()"
+        [pageSize]="historyPageSize()"
+        [pageSizeOptions]="[10, 25, 50]"
+        showFirstLastButtons
+        (page)="onHistoryPageChanged($event)"
+      ></mat-paginator>
+    </div>
+  </mat-card>
+</section>

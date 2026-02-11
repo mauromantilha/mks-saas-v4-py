@@ -5,6 +5,7 @@ import { Router, RouterLink } from "@angular/router";
 import { map, of, switchMap, throwError } from "rxjs";
 
 import { AuthService } from "../../core/api/auth.service";
+import { PermissionService } from "../../core/auth/permission.service";
 import { SessionService } from "../../core/auth/session.service";
 import { SessionPortalType } from "../../core/auth/session.types";
 import { PortalContextService } from "../../core/portal/portal-context.service";
@@ -38,6 +39,7 @@ export class LoginPageComponent {
 
   constructor(
     private readonly authService: AuthService,
+    private readonly permissionService: PermissionService,
     private readonly sessionService: SessionService,
     private readonly portalContextService: PortalContextService,
     private readonly router: Router
@@ -150,6 +152,7 @@ export class LoginPageComponent {
       )
       .subscribe({
         next: ({ token, tenantMe, authenticatedUser, resolvedTenantCode }) => {
+          this.authService.setAccessToken(token);
           const fallbackRole =
             authenticatedUser.memberships.find(
               (membership) => membership.tenant_code === resolvedTenantCode
@@ -165,12 +168,14 @@ export class LoginPageComponent {
             isSuperuser: authenticatedUser.is_superuser,
             portalType: isControlPlaneLogin ? "CONTROL_PLANE" : "TENANT",
           });
+          this.permissionService.loadPermissions(true).subscribe();
           this.loading.set(false);
           void this.router.navigate(
             isControlPlaneLogin ? ["/control-panel/dashboard"] : ["/tenant/dashboard"]
           );
         },
         error: (err) => {
+          this.authService.clearAccessToken();
           const errorMessage =
             err instanceof Error
               ? err.message

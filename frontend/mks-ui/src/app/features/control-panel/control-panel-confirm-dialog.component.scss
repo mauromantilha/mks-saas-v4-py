@@ -1,0 +1,10 @@
+.message {
+  margin: 0 0 10px;
+}
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: min(560px, 90vw);
+}

@@ -1,0 +1,77 @@
+.dashboard-wrap {
+  display: grid;
+  gap: 16px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.page-header h1 {
+  margin: 0 0 4px;
+}
+
+.page-header p {
+  margin: 0;
+  color: var(--mks-text-muted);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.thresholds-card {
+  display: grid;
+  gap: 10px;
+}
+
+.thresholds-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.thresholds-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 280px));
+  gap: 12px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.summary-grid mat-card {
+  display: grid;
+  gap: 4px;
+}
+
+.label {
+  font-size: 0.8rem;
+  color: var(--mks-text-muted);
+}
+
+.summary-grid strong {
+  font-size: 1.4rem;
+}
+
+@media (max-width: 1024px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .thresholds-grid,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

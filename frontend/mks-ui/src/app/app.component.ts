@@ -3,6 +3,8 @@ import { Component, computed } from "@angular/core";
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { MatSlideToggleChange, MatSlideToggleModule } from "@angular/material/slide-toggle";
 
+import { AuthService } from "./core/api/auth.service";
+import { PermissionService } from "./core/auth/permission.service";
 import { SessionService } from "./core/auth/session.service";
 import { PortalContextService } from "./core/portal/portal-context.service";
 import { ThemeService } from "./core/theme/theme.service";
@@ -35,6 +37,7 @@ export class AppComponent {
     }
     return hostPortal;
   });
+  readonly isControlPlanePortal = computed(() => this.portalType() === "CONTROL_PLANE");
 
   private readonly controlPlaneMenu: NavItem[] = [
     { label: "Dashboard", path: "/control-panel/dashboard", accent: "#f97316" },
@@ -90,12 +93,16 @@ export class AppComponent {
 
   constructor(
     public readonly sessionService: SessionService,
+    private readonly authService: AuthService,
+    private readonly permissionService: PermissionService,
     private readonly portalContextService: PortalContextService,
     private readonly themeService: ThemeService,
     private readonly router: Router
   ) {}
 
   logout(): void {
+    this.authService.clearAccessToken();
+    this.permissionService.clearPermissions();
     this.sessionService.clearSession();
     void this.router.navigate(["/login"]);
   }

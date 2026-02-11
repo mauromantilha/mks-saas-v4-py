@@ -75,7 +75,13 @@
       <article class="card actions-card">
         <h3>Ações administrativas</h3>
         <div class="actions">
-          <button type="button" class="warn" (click)="suspendTenant()" [disabled]="actionLoading() || current.status !== 'ACTIVE'">
+          <button
+            *appCan="'cp.tenants.manage'"
+            type="button"
+            class="warn"
+            (click)="suspendTenant()"
+            [disabled]="actionLoading() || current.status !== 'ACTIVE'"
+          >
             Suspender
           </button>
           <button
@@ -86,7 +92,13 @@
           >
             Reativar
           </button>
-          <button type="button" class="danger" (click)="softDeleteTenant()" [disabled]="actionLoading() || current.status === 'DELETED'">
+          <button
+            *appCan="'cp.tenants.delete'"
+            type="button"
+            class="danger"
+            (click)="softDeleteTenant()"
+            [disabled]="actionLoading() || current.status === 'DELETED'"
+          >
             Excluir (soft)
           </button>
           <button type="button" class="secondary" (click)="exportTenantData()" [disabled]="actionLoading()">

@@ -1,0 +1,46 @@
+.contracts-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 12px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.toolbar mat-form-field {
+  min-width: 320px;
+  flex: 1 1 320px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filters mat-form-field {
+  min-width: 220px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+table[mat-table] {
+  width: 100%;
+}
+
+mat-paginator {
+  margin-top: 8px;
+}
+
+.state {
+  color: var(--mks-text-muted);
+}

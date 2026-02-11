@@ -1,0 +1,29 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: min(760px, 92vw);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.logs-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    border-bottom: 1px solid var(--mks-border);
+    text-align: left;
+    padding: 8px;
+    vertical-align: top;
+  }
+}
+
+.muted {
+  color: var(--mks-text-muted);
+}

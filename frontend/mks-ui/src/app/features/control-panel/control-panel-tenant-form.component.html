@@ -1,0 +1,180 @@
+<mat-card class="tenant-form-card">
+  <form class="tenant-form" [formGroup]="form" (ngSubmit)="save()">
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Nome</mat-label>
+        <input matInput formControlName="legal_name" placeholder="Razão social / nome do tenant" />
+        <mat-error *ngIf="form.controls.legal_name.touched && form.controls.legal_name.hasError('required')">
+          Nome é obrigatório.
+        </mat-error>
+        <mat-error *ngIf="form.controls.legal_name.touched && form.controls.legal_name.hasError('minlength')">
+          Mínimo de 3 caracteres.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Slug</mat-label>
+        <input matInput formControlName="slug" placeholder="ex.: acme-seguros" />
+        <mat-error *ngIf="form.controls.slug.touched && form.controls.slug.hasError('required')">
+          Slug é obrigatório.
+        </mat-error>
+        <mat-error *ngIf="form.controls.slug.touched && form.controls.slug.hasError('pattern')">
+          Use apenas letras minúsculas, números e hífen.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Subdomínio</mat-label>
+        <input matInput formControlName="subdomain" placeholder="ex.: acme" />
+        <mat-error *ngIf="form.controls.subdomain.touched && form.controls.subdomain.hasError('required')">
+          Subdomínio é obrigatório.
+        </mat-error>
+        <mat-error *ngIf="form.controls.subdomain.touched && form.controls.subdomain.hasError('pattern')">
+          Use apenas letras minúsculas, números e hífen.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>CNPJ</mat-label>
+        <input matInput formControlName="cnpj" placeholder="00.000.000/0000-00" />
+        <mat-error *ngIf="form.controls.cnpj.touched && form.controls.cnpj.hasError('cnpjInvalid')">
+          CNPJ inválido.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email de contato</mat-label>
+        <input matInput type="email" formControlName="contact_email" placeholder="contato@empresa.com" />
+        <mat-error *ngIf="form.controls.contact_email.touched && form.controls.contact_email.hasError('email')">
+          Email inválido.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Telefone (opcional)</mat-label>
+        <input matInput formControlName="contact_phone" placeholder="(11) 99999-9999" />
+        <mat-error *ngIf="form.controls.contact_phone.touched && form.controls.contact_phone.hasError('phoneInvalid')">
+          Telefone inválido.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>CEP</mat-label>
+        <input matInput formControlName="cep" maxlength="9" placeholder="00000-000" />
+        <mat-icon matSuffix *ngIf="!cepLoading()">location_on</mat-icon>
+        <mat-progress-spinner
+          *ngIf="cepLoading()"
+          matSuffix
+          mode="indeterminate"
+          diameter="18"
+          strokeWidth="3"
+        ></mat-progress-spinner>
+        <mat-error *ngIf="form.controls.cep.touched && form.controls.cep.hasError('cepInvalid')">
+          CEP deve ter 8 dígitos.
+        </mat-error>
+        <mat-error *ngIf="form.controls.cep.touched && form.controls.cep.hasError('lookupFailed')">
+          CEP não encontrado.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Logradouro</mat-label>
+        <input matInput formControlName="street" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Número</mat-label>
+        <input matInput formControlName="number" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Complemento</mat-label>
+        <input matInput formControlName="complement" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Bairro</mat-label>
+        <input matInput formControlName="district" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Cidade</mat-label>
+        <input matInput formControlName="city" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>UF</mat-label>
+        <input matInput formControlName="state" maxlength="2" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Plano</mat-label>
+        <mat-select formControlName="plan_id">
+          <mat-option [value]="null">Selecione um plano</mat-option>
+          <mat-option *ngFor="let plan of plans()" [value]="plan.id">
+            {{ planLabel(plan) }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="form.controls.plan_id.touched && form.controls.plan_id.hasError('required')">
+          Selecione um plano.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Taxa de instalação</mat-label>
+        <mat-select formControlName="setup_fee_override">
+          <mat-option value="">Padrão do plano</mat-option>
+          <mat-option value="0">R$ 0 (cortesia)</mat-option>
+          <mat-option value="150">R$ 150</mat-option>
+        </mat-select>
+        <mat-error *ngIf="form.controls.setup_fee_override.touched && form.controls.setup_fee_override.hasError('setupFeeInvalid')">
+          Valores permitidos: 0 ou 150.
+        </mat-error>
+      </mat-form-field>
+
+      <div class="toggle-row">
+        <mat-checkbox formControlName="is_trial">Trial</mat-checkbox>
+        <mat-checkbox formControlName="is_courtesy">Cortesia</mat-checkbox>
+      </div>
+
+      <mat-form-field appearance="outline" *ngIf="form.controls.is_trial.value">
+        <mat-label>Dias de trial</mat-label>
+        <input matInput type="number" formControlName="trial_days" min="1" max="90" />
+        <mat-error *ngIf="form.controls.trial_days.touched && form.controls.trial_days.hasError('required')">
+          Informe os dias de trial.
+        </mat-error>
+        <mat-error *ngIf="form.controls.trial_days.touched && (form.controls.trial_days.hasError('min') || form.controls.trial_days.hasError('max'))">
+          O intervalo permitido é de 1 a 90 dias.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" *ngIf="mode === 'edit' && canEditStatus()">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="ACTIVE">ACTIVE</mat-option>
+          <mat-option value="SUSPENDED">SUSPENDED</mat-option>
+          <mat-option value="CANCELLED">CANCELLED</mat-option>
+          <mat-option value="DELETED">DELETED</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="form-error" *ngIf="error()">{{ error() }}</div>
+
+    <div class="form-actions">
+      <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="saving()">
+        Cancelar
+      </button>
+      <button
+        *appCan="'cp.tenants.manage'"
+        mat-flat-button
+        color="primary"
+        type="submit"
+        [disabled]="saving() || loading() || form.invalid"
+      >
+        <mat-icon *ngIf="!saving()">save</mat-icon>
+        {{ saving() ? "Salvando..." : mode === "edit" ? "Salvar alterações" : "Criar tenant" }}
+      </button>
+    </div>
+  </form>
+</mat-card>

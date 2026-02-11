@@ -1,0 +1,32 @@
+.alerts-widget {
+  display: grid;
+  gap: 12px;
+}
+
+.widget-header h3 {
+  margin: 0 0 4px;
+}
+
+.widget-header p {
+  margin: 0;
+  color: var(--mks-text-muted);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table[mat-table] {
+  width: 100%;
+}
+
+.tenant-name {
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+

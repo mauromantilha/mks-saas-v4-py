@@ -1,0 +1,124 @@
+<section class="audit-page-wrap">
+  <header class="page-header">
+    <div>
+      <h1>Audit</h1>
+      <p>Trilha de auditoria administrativa com filtros e paginação server-side.</p>
+    </div>
+  </header>
+
+  <mat-card class="filters-card">
+    <form class="filters" [formGroup]="filtersForm">
+      <mat-form-field appearance="outline">
+        <mat-label>Período</mat-label>
+        <mat-select formControlName="period">
+          <mat-option *ngFor="let option of periodOptions" [value]="option.value">
+            {{ option.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Actor (ID)</mat-label>
+        <input matInput type="number" min="1" formControlName="actor" placeholder="Ex: 12" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Ação</mat-label>
+        <input matInput type="text" formControlName="action" placeholder="Ex: tenant.suspend" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Tenant ID</mat-label>
+        <input matInput type="number" min="1" formControlName="tenantId" placeholder="Ex: 5" />
+      </mat-form-field>
+
+      <mat-form-field class="search-field" appearance="outline">
+        <mat-label>Busca</mat-label>
+        <input matInput type="text" formControlName="search" placeholder="Entity, slug, correlation id" />
+      </mat-form-field>
+
+      <div class="actions">
+        <button mat-stroked-button type="button" (click)="reload()" [disabled]="loading()">
+          <mat-icon>refresh</mat-icon>
+          Atualizar
+        </button>
+        <button mat-stroked-button type="button" (click)="clearFilters()" [disabled]="loading()">
+          <mat-icon>filter_alt_off</mat-icon>
+          Limpar
+        </button>
+      </div>
+    </form>
+  </mat-card>
+
+  <app-loading-state *ngIf="loading()" message="Carregando auditoria..."></app-loading-state>
+
+  <app-error-state
+    *ngIf="!loading() && error()"
+    [message]="error()"
+    retryLabel="Tentar novamente"
+    (retry)="reload()"
+  ></app-error-state>
+
+  <app-empty-state
+    *ngIf="!loading() && !error() && events().length === 0"
+    icon="search_off"
+    title="Nenhum evento encontrado"
+    description="Ajuste os filtros e tente novamente."
+    actionLabel="Limpar filtros"
+    (action)="clearFilters()"
+  ></app-empty-state>
+
+  <mat-card class="table-card" *ngIf="!loading() && !error() && events().length > 0">
+    <div class="table-wrap">
+      <table mat-table [dataSource]="events()">
+        <ng-container matColumnDef="created_at">
+          <th mat-header-cell *matHeaderCellDef>Data</th>
+          <td mat-cell *matCellDef="let event">{{ event.created_at | date : "dd/MM/yyyy HH:mm:ss" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actor">
+          <th mat-header-cell *matHeaderCellDef>Actor</th>
+          <td mat-cell *matCellDef="let event">
+            <div>{{ event.actor_username || "-" }}</div>
+            <small>ID: {{ event.actor || "-" }}</small>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef>Ação</th>
+          <td mat-cell *matCellDef="let event">{{ event.action }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="tenant">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let event">
+            <div>{{ event.target_tenant_slug || "-" }}</div>
+            <small>ID: {{ event.target_tenant || "-" }}</small>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="entity">
+          <th mat-header-cell *matHeaderCellDef>Entidade</th>
+          <td mat-cell *matCellDef="let event">{{ event.entity_type }} #{{ event.entity_id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="correlation_id">
+          <th mat-header-cell *matHeaderCellDef>Correlation ID</th>
+          <td mat-cell *matCellDef="let event" class="correlation">{{ event.correlation_id || "-" }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="totalRows()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[10, 25, 50, 100]"
+      showFirstLastButtons
+      (page)="onPageChanged($event)"
+    ></mat-paginator>
+  </mat-card>
+</section>

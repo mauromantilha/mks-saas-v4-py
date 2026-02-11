@@ -1,0 +1,36 @@
+<h2 mat-dialog-title>Contrato #{{ contract.id }}</h2>
+
+<mat-dialog-content class="content">
+  <div class="meta">
+    <div><strong>Status:</strong> {{ contract.status }}</div>
+    <div><strong>Versão:</strong> {{ contract.contract_version }}</div>
+    <div><strong>Criado em:</strong> {{ contract.created_at | date : "dd/MM/yyyy HH:mm" }}</div>
+  </div>
+
+  <h3>Logs de envio</h3>
+  <table class="logs-table" *ngIf="contract.email_logs?.length; else noLogs">
+    <thead>
+      <tr>
+        <th>Destino</th>
+        <th>Status</th>
+        <th>Enviado em</th>
+        <th>Erro</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let log of contract.email_logs">
+        <td>{{ log.to_email }}</td>
+        <td>{{ log.status }}</td>
+        <td>{{ log.sent_at | date : "dd/MM/yyyy HH:mm" }}</td>
+        <td>{{ log.error || "-" }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <ng-template #noLogs>
+    <p class="muted">Sem logs de envio para este contrato.</p>
+  </ng-template>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button mat-dialog-close>Fechar</button>
+</mat-dialog-actions>

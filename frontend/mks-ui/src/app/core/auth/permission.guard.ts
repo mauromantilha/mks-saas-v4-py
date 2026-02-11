@@ -1,25 +1,41 @@
-import { CanActivateFn, Router } from "@angular/router";
-import { inject } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
+import {
+  ActivatedRouteSnapshot,
+  CanActivate,
+  CanActivateFn,
+  Router,
+  RouterStateSnapshot,
+} from "@angular/router";
+import { catchError, map, of } from "rxjs";
 
 import { PermissionCode, PermissionService } from "./permission.service";
 
-export const permissionGuard: CanActivateFn = (route) => {
-  const permissionService = inject(PermissionService);
-  const router = inject(Router);
+@Injectable({ providedIn: "root" })
+export class PermissionGuard implements CanActivate {
+  constructor(
+    private readonly permissionService: PermissionService,
+    private readonly router: Router
+  ) {}
 
-  const singlePermission = route.data?.["permission"] as PermissionCode | undefined;
-  const anyPermissions = route.data?.["anyPermissions"] as PermissionCode[] | undefined;
+  canActivate(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot) {
+    const singlePermission = route.data?.["permission"] as PermissionCode | undefined;
+    const anyPermissions = route.data?.["anyPermissions"] as PermissionCode[] | undefined;
 
-  let allowed = true;
-  if (singlePermission) {
-    allowed = permissionService.hasPermission(singlePermission);
+    return this.permissionService.loadPermissions().pipe(
+      map(() => {
+        let allowed = true;
+        if (singlePermission) {
+          allowed = this.permissionService.can(singlePermission);
+        }
+        if (allowed && anyPermissions && anyPermissions.length > 0) {
+          allowed = this.permissionService.hasAnyPermission(anyPermissions);
+        }
+        return allowed ? true : this.router.createUrlTree(["/login"]);
+      }),
+      catchError(() => of(this.router.createUrlTree(["/login"])))
+    );
   }
-  if (allowed && anyPermissions && anyPermissions.length > 0) {
-    allowed = permissionService.hasAnyPermission(anyPermissions);
-  }
-
-  if (allowed) {
-    return true;
-  }
-  return router.createUrlTree(["/login"]);
 };
+
+export const permissionGuard: CanActivateFn = (route, state) =>
+  inject(PermissionGuard).canActivate(route, state);

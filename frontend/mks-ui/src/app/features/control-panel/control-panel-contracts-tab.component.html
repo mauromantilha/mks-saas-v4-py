@@ -1,0 +1,113 @@
+<mat-card class="contracts-card">
+  <div class="toolbar">
+    <mat-form-field appearance="outline">
+      <mat-label>Email para envio</mat-label>
+      <input
+        matInput
+        type="email"
+        [ngModel]="targetEmail()"
+        (ngModelChange)="targetEmail.set($event || '')"
+        placeholder="contato@tenant.com"
+      />
+    </mat-form-field>
+
+    <button
+      *appCan="'cp.tenants.manage'"
+      mat-flat-button
+      color="primary"
+      type="button"
+      (click)="createContractDraft()"
+      [disabled]="actionLoading()"
+    >
+      Criar contrato
+    </button>
+  </div>
+
+  <div class="filters" *ngIf="!loading() && !error()">
+    <mat-form-field appearance="outline">
+      <mat-label>Status</mat-label>
+      <mat-select [ngModel]="statusFilter()" (ngModelChange)="onStatusFilterChange($event)">
+        <mat-option *ngFor="let option of statusOptions" [value]="option.value">
+          {{ option.label }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Buscar</mat-label>
+      <input
+        matInput
+        [ngModel]="searchFilter()"
+        (ngModelChange)="onSearchChange($event)"
+        placeholder="ID, versão ou status"
+      />
+    </mat-form-field>
+  </div>
+
+  <app-loading-state *ngIf="loading()" message="Carregando contratos..."></app-loading-state>
+
+  <app-error-state
+    *ngIf="hasErrorState()"
+    [message]="error()"
+    retryLabel="Tentar novamente"
+    (retry)="reload()"
+  ></app-error-state>
+
+  <app-empty-state
+    *ngIf="hasEmptyState()"
+    icon="description"
+    title="Nenhum contrato encontrado"
+    description="Crie um draft para iniciar o fluxo."
+  ></app-empty-state>
+
+  <table mat-table [dataSource]="pagedContracts()" *ngIf="!loading() && !error() && filteredContracts().length > 0">
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef>ID</th>
+      <td mat-cell *matCellDef="let item">#{{ item.id }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let item">{{ item.status }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="created_at">
+      <th mat-header-cell *matHeaderCellDef>Criado em</th>
+      <td mat-cell *matCellDef="let item">{{ item.created_at | date : "dd/MM/yyyy HH:mm" }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef>Ações</th>
+      <td mat-cell *matCellDef="let item">
+        <div class="actions">
+          <button mat-stroked-button type="button" (click)="openContractDetails(item.id)" [disabled]="actionLoading()">
+            Logs
+          </button>
+          <button
+            *appCan="'cp.tenants.manage'"
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="sendContract(item)"
+            [disabled]="actionLoading()"
+          >
+            Enviar por e-mail
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+
+  <mat-paginator
+    *ngIf="!loading() && !error() && filteredContracts().length > 0"
+    [length]="filteredContracts().length"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="[10, 25, 50]"
+    showFirstLastButtons
+    (page)="onPageChanged($event)"
+  ></mat-paginator>
+</mat-card>

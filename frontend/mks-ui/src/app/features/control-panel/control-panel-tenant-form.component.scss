@@ -1,0 +1,56 @@
+.tenant-form-card {
+  border-radius: 14px;
+}
+
+.tenant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-grid mat-form-field {
+  grid-column: span 4;
+}
+
+.toggle-row {
+  grid-column: span 4;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 10px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.form-error {
+  color: #f04438;
+}
+
+@media (max-width: 1200px) {
+  .form-grid mat-form-field,
+  .toggle-row {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid mat-form-field,
+  .toggle-row {
+    grid-column: span 12;
+  }
+
+  .form-actions {
+    justify-content: stretch;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,49 @@
+.audit-tenant-card {
+  display: grid;
+  gap: 12px;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.search-field {
+  grid-column: span 2;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.correlation {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  .search-field {
+    grid-column: span 2;
+  }
+}
+

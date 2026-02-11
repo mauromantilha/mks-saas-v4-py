@@ -1,0 +1,23 @@
+.tenant-page-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  h1 {
+    margin: 0 0 2px;
+    font-size: 1.35rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--mks-text-muted);
+  }
+}

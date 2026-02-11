@@ -1,27 +1,44 @@
-<section class="control-panel-shell">
-  <header class="topbar">
-    <div>
+<mat-sidenav-container class="control-panel-shell">
+  <mat-sidenav mode="side" opened class="sidebar">
+    <div class="brand">
       <strong>Control Panel</strong>
       <span>Administração SaaS</span>
     </div>
-  </header>
 
-  <div class="body">
-    <aside class="sidebar">
-      <nav>
-        <a
-          *ngFor="let item of menuItems"
-          [routerLink]="item.path"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: item.exact ?? true }"
-        >
-          {{ item.label }}
-        </a>
-      </nav>
-    </aside>
+    <mat-nav-list>
+      <a
+        mat-list-item
+        *ngFor="let item of menuItems"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.exact ?? true }"
+      >
+        <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+        <span matListItemTitle>{{ item.label }}</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
 
-    <main class="content">
+  <mat-sidenav-content>
+    <mat-toolbar color="primary" class="topbar">
+      <div class="topbar-left">
+        <span class="title">Portal de Gestão</span>
+        <nav class="breadcrumbs" aria-label="breadcrumbs">
+          <span *ngFor="let crumb of breadcrumbs(); let last = last" class="crumb">
+            <ng-container *ngIf="!last">{{ crumb }} / </ng-container>
+            <ng-container *ngIf="last"><strong>{{ crumb }}</strong></ng-container>
+          </span>
+        </nav>
+      </div>
+
+      <div class="topbar-right" *ngIf="session() as current">
+        <span class="tenant-badge" *ngIf="current.tenantCode">{{ current.tenantCode }}</span>
+        <span class="user">{{ current.username }}</span>
+      </div>
+    </mat-toolbar>
+
+    <main class="content" cdkScrollable>
       <router-outlet></router-outlet>
     </main>
-  </div>
-</section>
+  </mat-sidenav-content>
+</mat-sidenav-container>
