@@ -8,256 +8,63 @@
   </div>
 
   <div class="toolbar">
-    <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+    <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar painel</button>
   </div>
 
   <p *ngIf="loading()">Carregando...</p>
   <p *ngIf="error()" class="error">{{ error() }}</p>
   <p *ngIf="notice()" class="notice">{{ notice() }}</p>
 
-  <p-card styleClass="card metrics-card" *ngIf="metrics() as currentMetrics">
-    <h2>Métricas do Funil</h2>
-    <div class="metrics-filters">
-      <label>
-        De
-        <input pInputText
-          type="date"
-          [ngModel]="metricsFromDate()"
-          (ngModelChange)="metricsFromDate.set($event)"
-          [disabled]="loading()"
-        />
-      </label>
-      <label>
-        Até
-        <input pInputText
-          type="date"
-          [ngModel]="metricsToDate()"
-          (ngModelChange)="metricsToDate.set($event)"
-          [disabled]="loading()"
-        />
-      </label>
-      <label>
-        Responsável (ID)
-        <input pInputText
-          type="number"
-          min="1"
-          [ngModel]="metricsAssignedTo()"
-          (ngModelChange)="metricsAssignedTo.set($event)"
-          [disabled]="loading()"
-          placeholder="Ex.: 12"
-        />
-      </label>
-      <div class="actions">
-        <button pButton type="button" (click)="applyMetricsFilters()" [disabled]="loading()">
-          Aplicar filtros
-        </button>
-        <button pButton type="button" (click)="clearMetricsFilters()" [disabled]="loading()">
-          Limpar filtros
-        </button>
-      </div>
-    </div>
+  <p-card styleClass="card metrics-card" *ngIf="metrics() as m">
+    <h2>Visão Comercial Prioritária</h2>
     <p class="filters-summary">
-      Período: {{ currentMetrics.period.from_date || "início" }} até
-      {{ currentMetrics.period.to_date || "hoje" }} | Responsável:
-      {{ currentMetrics.period.assigned_to_user_id || "todos" }}
+      Período: {{ m.period.from_date || "início" }} até {{ m.period.to_date || "hoje" }}
     </p>
-
     <div class="metrics-grid">
       <div class="metric-item">
         <span class="metric-label">Leads Novos</span>
-        <strong class="metric-value">{{ currentMetrics.lead_funnel.NEW }}</strong>
+        <strong class="metric-value">{{ m.lead_funnel.NEW }}</strong>
       </div>
       <div class="metric-item">
         <span class="metric-label">Leads Qualificados</span>
-        <strong class="metric-value">{{ currentMetrics.lead_funnel.QUALIFIED }}</strong>
+        <strong class="metric-value">{{ m.lead_funnel.QUALIFIED }}</strong>
       </div>
       <div class="metric-item">
         <span class="metric-label">Leads Convertidos</span>
-        <strong class="metric-value">{{ currentMetrics.lead_funnel.CONVERTED }}</strong>
+        <strong class="metric-value">{{ m.lead_funnel.CONVERTED }}</strong>
       </div>
       <div class="metric-item">
         <span class="metric-label">Oportunidades Ganhas</span>
-        <strong class="metric-value">{{ currentMetrics.opportunity_funnel.WON }}</strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Atividades em Aberto</span>
-        <strong class="metric-value">{{ currentMetrics.activities.open_total }}</strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Atividades Atrasadas</span>
-        <strong class="metric-value">{{ currentMetrics.activities.overdue_total }}</strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Taxa Lead → Oportunidade</span>
-        <strong class="metric-value">
-          {{ currentMetrics.conversion.lead_to_opportunity_rate | number: "1.0-2" }}%
-        </strong>
+        <strong class="metric-value">{{ m.opportunity_funnel.WON }}</strong>
       </div>
       <div class="metric-item">
         <span class="metric-label">Taxa de Fechamento</span>
-        <strong class="metric-value">
-          {{ currentMetrics.conversion.opportunity_win_rate | number: "1.0-2" }}%
-        </strong>
+        <strong class="metric-value">{{ m.conversion.opportunity_win_rate | number: "1.0-2" }}%</strong>
       </div>
       <div class="metric-item">
         <span class="metric-label">Pipeline Aberto</span>
-        <strong class="metric-value">
-          {{ formatCurrency(currentMetrics.pipeline_value.open_total_amount) }}
-        </strong>
+        <strong class="metric-value">{{ formatCurrency(m.pipeline_value.open_total_amount) }}</strong>
       </div>
       <div class="metric-item">
-        <span class="metric-label">Pipeline Ganho</span>
-        <strong class="metric-value">
-          {{ formatCurrency(currentMetrics.pipeline_value.won_total_amount) }}
-        </strong>
+        <span class="metric-label">Previsto 30 dias</span>
+        <strong class="metric-value">{{ formatCurrency(m.pipeline_value.expected_close_next_30d_amount) }}</strong>
       </div>
       <div class="metric-item">
-        <span class="metric-label">Pipeline Perdido</span>
-        <strong class="metric-value">
-          {{ formatCurrency(currentMetrics.pipeline_value.lost_total_amount) }}
-        </strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Previsto Fechar (30 dias)</span>
-        <strong class="metric-value">
-          {{ formatCurrency(currentMetrics.pipeline_value.expected_close_next_30d_amount) }}
-        </strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Emissão Pendente</span>
-        <strong class="metric-value">
-          {{ currentMetrics.policy_requests.PENDING_DATA }}
-        </strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Em Revisão</span>
-        <strong class="metric-value">
-          {{ currentMetrics.policy_requests.UNDER_REVIEW }}
-        </strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Apólices Emitidas</span>
-        <strong class="metric-value">
-          {{ currentMetrics.policy_requests.ISSUED }}
-        </strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Atividades LOW</span>
-        <strong class="metric-value">{{ currentMetrics.activities_by_priority.LOW }}</strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Atividades MEDIUM</span>
-        <strong class="metric-value">
-          {{ currentMetrics.activities_by_priority.MEDIUM }}
-        </strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Atividades HIGH</span>
-        <strong class="metric-value">{{ currentMetrics.activities_by_priority.HIGH }}</strong>
-      </div>
-      <div class="metric-item">
-        <span class="metric-label">Atividades URGENT</span>
-        <strong class="metric-value">
-          {{ currentMetrics.activities_by_priority.URGENT }}
-        </strong>
+        <span class="metric-label">Atividades Atrasadas</span>
+        <strong class="metric-value">{{ m.activities.overdue_total }}</strong>
       </div>
     </div>
   </p-card>
 
   <div class="grid">
     <p-card styleClass="card">
-      <h2>Novo Cliente</h2>
+      <h2>Entrada Comercial (Lead/Prospect)</h2>
+      <p class="hint">
+        Cadastro único de entrada. O cliente é criado automaticamente na conversão do lead.
+      </p>
       <div class="form-grid">
         <label>
-          Nome
-          <input pInputText
-            type="text"
-            [ngModel]="customerName()"
-            (ngModelChange)="customerName.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="Ex.: Empresa XYZ"
-          />
-        </label>
-        <label>
-          E-mail
-          <input pInputText
-            type="email"
-            [ngModel]="customerEmail()"
-            (ngModelChange)="customerEmail.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="contato@empresa.com"
-          />
-        </label>
-        <label>
-          CNPJ
-          <input pInputText
-            type="text"
-            [ngModel]="customerCnpj()"
-            (ngModelChange)="customerCnpj.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="00.000.000/0001-00"
-          />
-        </label>
-        <label>
-          Telefone
-          <input pInputText
-            type="text"
-            [ngModel]="customerPhone()"
-            (ngModelChange)="customerPhone.set($event)"
-            [disabled]="loading() || !canWrite()"
-          />
-        </label>
-        <label>
-          Contato principal
-          <input pInputText
-            type="text"
-            [ngModel]="customerContactName()"
-            (ngModelChange)="customerContactName.set($event)"
-            [disabled]="loading() || !canWrite()"
-          />
-        </label>
-        <label>
-          Segmento
-          <input pInputText
-            type="text"
-            [ngModel]="customerIndustry()"
-            (ngModelChange)="customerIndustry.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="Ex.: Transporte"
-          />
-        </label>
-        <label>
-          Origem
-          <input pInputText
-            type="text"
-            [ngModel]="customerLeadSource()"
-            (ngModelChange)="customerLeadSource.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="Indicação, inbound, evento..."
-          />
-        </label>
-        <label class="field-full">
-          Observações
-          <textarea pInputTextarea
-            rows="2"
-            [ngModel]="customerNotes()"
-            (ngModelChange)="customerNotes.set($event)"
-            [disabled]="loading() || !canWrite()"
-          ></textarea>
-        </label>
-      </div>
-      <div class="actions top-gap">
-        <button pButton type="button" (click)="createCustomer()" [disabled]="loading() || !canWrite()">
-          Criar cliente
-        </button>
-      </div>
-    </p-card>
-
-    <p-card styleClass="card">
-      <h2>Novo Lead</h2>
-      <div class="form-grid">
-        <label>
-          Origem
+          Origem *
           <input pInputText
             type="text"
             [ngModel]="leadSource()"
@@ -309,6 +116,7 @@
             [ngModel]="leadCnpj()"
             (ngModelChange)="leadCnpj.set($event)"
             [disabled]="loading() || !canWrite()"
+            placeholder="00.000.000/0001-00"
           />
         </label>
         <label>
@@ -318,6 +126,7 @@
             [ngModel]="leadProductsOfInterest()"
             (ngModelChange)="leadProductsOfInterest.set($event)"
             [disabled]="loading() || !canWrite()"
+            placeholder="Auto, Vida, Empresarial..."
           />
         </label>
         <label>
@@ -345,181 +154,9 @@
         </button>
       </div>
     </p-card>
-  </div>
-
-  <div class="grid secondary-grid">
-    <p-card styleClass="card">
-      <h2>Clientes</h2>
-      <p-table *ngIf="customers().length > 0" class="table" [value]="customers()" responsiveLayout="scroll">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>ID</th>
-            <th>Nome</th>
-            <th>E-mail</th>
-            <th>CNPJ</th>
-            <th>Etapa</th>
-            <th>Ações IA</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-customer>
-          <tr>
-            <td>{{ customer.id }}</td>
-            <td>{{ customer.name }}</td>
-            <td>{{ customer.email }}</td>
-            <td>{{ customer.cnpj || "-" }}</td>
-            <td>{{ customer.lifecycle_stage }}</td>
-            <td>
-              <div class="actions">
-                <button pButton type="button" (click)="generateCustomerInsights(customer)" [disabled]="loading() || !canWrite()">
-                  Insights IA
-                </button>
-                <button pButton type="button" (click)="enrichCustomerCnpj(customer)" [disabled]="loading() || !canWrite()">
-                  Enriquecer CNPJ
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-      <p *ngIf="customers().length === 0">Nenhum cliente encontrado.</p>
-    </p-card>
 
     <p-card styleClass="card">
-      <h2>Leads</h2>
-      <p-table *ngIf="leads().length > 0" class="table" [value]="leads()" responsiveLayout="scroll">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>ID</th>
-            <th>Origem</th>
-            <th>Empresa</th>
-            <th>Status</th>
-            <th>CNPJ</th>
-            <th>Histórico</th>
-            <th>Ações</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-lead>
-          <tr>
-            <td>{{ lead.id }}</td>
-            <td>{{ lead.source }}</td>
-            <td>{{ lead.company_name || "-" }}</td>
-            <td>{{ lead.status }}</td>
-            <td>{{ lead.cnpj || "-" }}</td>
-            <td>
-              <button pButton type="button" (click)="viewLeadHistory(lead)" [disabled]="loading()">
-                Ver histórico
-              </button>
-            </td>
-            <td>
-              <div class="actions">
-                <button pButton
-                  type="button"
-                  (click)="qualifyLead(lead)"
-                  [disabled]="loading() || !canWrite() || lead.status !== 'NEW'"
-                >
-                  Qualificar
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="disqualifyLead(lead)"
-                  [disabled]="loading() || !canWrite() || lead.status === 'CONVERTED'"
-                >
-                  Desqualificar
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="convertLead(lead)"
-                  [disabled]="loading() || !canWrite() || lead.status !== 'QUALIFIED'"
-                >
-                  Converter
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="generateLeadInsights(lead)"
-                  [disabled]="loading() || !canWrite()"
-                >
-                  Insights IA
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="enrichLeadCnpj(lead)"
-                  [disabled]="loading() || !canWrite()"
-                >
-                  Enriquecer CNPJ
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-      <p *ngIf="leads().length === 0">Nenhum lead encontrado.</p>
-    </p-card>
-  </div>
-
-  <div class="grid secondary-grid">
-    <p-card styleClass="card">
-      <h2>Oportunidades</h2>
-      <p-table *ngIf="opportunities().length > 0" class="table" [value]="opportunities()" responsiveLayout="scroll">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>ID</th>
-            <th>Título</th>
-            <th>Estágio</th>
-            <th>Valor</th>
-            <th>Probabilidade</th>
-            <th>Histórico</th>
-            <th>Ações</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-opp>
-          <tr>
-            <td>{{ opp.id }}</td>
-            <td>{{ opp.title }}</td>
-            <td>{{ opp.stage }}</td>
-            <td>{{ opp.amount }}</td>
-            <td>{{ opp.closing_probability }}%</td>
-            <td>
-              <button pButton
-                type="button"
-                (click)="viewOpportunityHistory(opp)"
-                [disabled]="loading()"
-              >
-                Ver histórico
-              </button>
-            </td>
-            <td>
-              <div class="actions">
-                <button pButton
-                  type="button"
-                  (click)="moveToNextStage(opp)"
-                  [disabled]="loading() || !canWrite()"
-                >
-                  Próximo estágio
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="markLost(opp)"
-                  [disabled]="loading() || !canWrite() || opp.stage === 'LOST'"
-                >
-                  Marcar perdida
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="generateOpportunityInsights(opp)"
-                  [disabled]="loading() || !canWrite()"
-                >
-                  Insights IA
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-      <p *ngIf="opportunities().length === 0">Nenhuma oportunidade encontrada.</p>
-    </p-card>
-
-    <p-card styleClass="card">
-      <h2>Nova Atividade / Follow-up</h2>
+      <h2>Atividade / Follow-up</h2>
       <div class="form-grid">
         <label>
           Tipo
@@ -532,7 +169,6 @@
             [disabled]="loading() || !canWrite()"
           ></p-select>
         </label>
-
         <label>
           Prioridade
           <p-select
@@ -544,9 +180,8 @@
             [disabled]="loading() || !canWrite()"
           ></p-select>
         </label>
-
         <label class="field-full">
-          Título
+          Título *
           <input pInputText
             type="text"
             [ngModel]="activityTitle()"
@@ -555,18 +190,6 @@
             placeholder="Ex.: Follow-up proposta renovação"
           />
         </label>
-
-        <label class="field-full">
-          Descrição
-          <textarea pInputTextarea
-            rows="3"
-            [ngModel]="activityDescription()"
-            (ngModelChange)="activityDescription.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="Detalhes do contato/atividade"
-          ></textarea>
-        </label>
-
         <label>
           Vínculo
           <p-select
@@ -578,7 +201,6 @@
             [disabled]="loading() || !canWrite()"
           ></p-select>
         </label>
-
         <label>
           Registro
           <p-select
@@ -598,7 +220,6 @@
             placeholder="Selecione..."
           ></p-select>
         </label>
-
         <label>
           Vencimento
           <input pInputText
@@ -608,7 +229,6 @@
             [disabled]="loading() || !canWrite()"
           />
         </label>
-
         <label>
           Lembrete
           <input pInputText
@@ -618,7 +238,6 @@
             [disabled]="loading() || !canWrite()"
           />
         </label>
-
         <label>
           SLA (horas)
           <input pInputText
@@ -631,7 +250,6 @@
           />
         </label>
       </div>
-
       <div class="actions top-gap">
         <button pButton type="button" (click)="createActivity()" [disabled]="loading() || !canWrite()">
           Criar atividade
@@ -642,241 +260,70 @@
 
   <div class="grid secondary-grid">
     <p-card styleClass="card">
-      <h2>Nova Proposta Comparativa</h2>
-      <div class="form-grid">
-        <label>
-          Oportunidade
-          <p-select
-            [options]="opportunityTargetOptions()"
-            [ngModel]="proposalOpportunityId()"
-            (ngModelChange)="proposalOpportunityId.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="Selecione..."
-          ></p-select>
-        </label>
-        <label>
-          Seguradora
-          <input pInputText
-            type="text"
-            [ngModel]="proposalInsurerName()"
-            (ngModelChange)="proposalInsurerName.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="Ex.: Seguradora A"
-          />
-        </label>
-        <label>
-          Plano
-          <input pInputText
-            type="text"
-            [ngModel]="proposalPlanName()"
-            (ngModelChange)="proposalPlanName.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="Ex.: Plano Executivo"
-          />
-        </label>
-        <label>
-          Prêmio anual
-          <input pInputText
-            type="number"
-            min="0"
-            [ngModel]="proposalAnnualPremium()"
-            (ngModelChange)="proposalAnnualPremium.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="12000"
-          />
-        </label>
-        <label>
-          Score (0-100)
-          <input pInputText
-            type="number"
-            min="0"
-            max="100"
-            [ngModel]="proposalRankingScore()"
-            (ngModelChange)="proposalRankingScore.set($event)"
-            [disabled]="loading() || !canWrite()"
-          />
-        </label>
-        <label class="checkbox-row">
-          <p-checkbox
-            [binary]="true"
-            [ngModel]="proposalRecommended()"
-            (ngModelChange)="proposalRecommended.set(!!$event)"
-            [disabled]="loading() || !canWrite()"
-          ></p-checkbox>
-          Marcar como recomendada
-        </label>
-      </div>
-      <div class="actions top-gap">
-        <button pButton
-          type="button"
-          (click)="createProposalOption()"
-          [disabled]="loading() || !canWrite()"
-        >
-          Criar proposta comparativa
-        </button>
-      </div>
-    </p-card>
-
-    <p-card styleClass="card">
-      <h2>Novo Pedido de Emissão</h2>
-      <div class="form-grid">
-        <label>
-          Oportunidade
-          <p-select
-            [options]="opportunityTargetOptions()"
-            [ngModel]="policyOpportunityId()"
-            (ngModelChange)="policyOpportunityId.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="Selecione..."
-          ></p-select>
-        </label>
-        <label>
-          Cliente (opcional)
-          <p-select
-            [options]="customerSelectOptions()"
-            [ngModel]="policyCustomerId()"
-            (ngModelChange)="policyCustomerId.set($event)"
-            [disabled]="loading() || !canWrite()"
-            placeholder="Auto (pela oportunidade)"
-          ></p-select>
-        </label>
-        <label>
-          Prazo de emissão
-          <input pInputText
-            type="datetime-local"
-            [ngModel]="policyIssueDeadlineAt()"
-            (ngModelChange)="policyIssueDeadlineAt.set($event)"
-            [disabled]="loading() || !canWrite()"
-          />
-        </label>
-        <label class="checkbox-row">
-          <p-checkbox
-            [binary]="true"
-            [ngModel]="policyInspectionRequired()"
-            (ngModelChange)="policyInspectionRequired.set(!!$event)"
-            [disabled]="loading() || !canWrite()"
-          ></p-checkbox>
-          Exige vistoria
-        </label>
-        <label class="field-full">
-          Observações
-          <textarea pInputTextarea
-            rows="2"
-            [ngModel]="policyNotes()"
-            (ngModelChange)="policyNotes.set($event)"
-            [disabled]="loading() || !canWrite()"
-          ></textarea>
-        </label>
-      </div>
-      <div class="actions top-gap">
-        <button pButton
-          type="button"
-          (click)="createPolicyRequest()"
-          [disabled]="loading() || !canWrite()"
-        >
-          Criar pedido de emissão
-        </button>
-      </div>
-    </p-card>
-  </div>
-
-  <div class="grid secondary-grid">
-    <p-card styleClass="card">
-      <h2>Propostas Comparativas</h2>
-      <p-table *ngIf="proposalOptions().length > 0" class="table" [value]="proposalOptions()" responsiveLayout="scroll">
+      <h2>Leads</h2>
+      <p-table *ngIf="leads().length > 0" class="table" [value]="leads()" responsiveLayout="scroll">
         <ng-template pTemplate="header">
           <tr>
             <th>ID</th>
-            <th>Oportunidade</th>
-            <th>Seguradora</th>
-            <th>Plano</th>
-            <th>Prêmio anual</th>
-            <th>Score</th>
-            <th>Recomendada</th>
-            <th>Ações</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-proposal>
-          <tr>
-            <td>{{ proposal.id }}</td>
-            <td>#{{ proposal.opportunity }}</td>
-            <td>{{ proposal.insurer_name }}</td>
-            <td>{{ proposal.plan_name || "-" }}</td>
-            <td>{{ proposal.annual_premium || "-" }}</td>
-            <td>{{ proposal.ranking_score }}</td>
-            <td>{{ proposal.is_recommended ? "Sim" : "Não" }}</td>
-            <td>
-              <div class="actions">
-                <button pButton
-                  type="button"
-                  (click)="generateProposalOptionInsights(proposal)"
-                  [disabled]="loading() || !canWrite()"
-                >
-                  Insights IA
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-      <p *ngIf="proposalOptions().length === 0">
-        Nenhuma proposta comparativa cadastrada.
-      </p>
-    </p-card>
-
-    <p-card styleClass="card">
-      <h2>Pedidos de Emissão</h2>
-      <p-table *ngIf="policyRequests().length > 0" class="table" [value]="policyRequests()" responsiveLayout="scroll">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>ID</th>
-            <th>Oportunidade</th>
-            <th>Cliente</th>
+            <th>Origem</th>
+            <th>Empresa</th>
             <th>Status</th>
-            <th>Vistoria</th>
-            <th>Prazo</th>
+            <th>CNPJ</th>
             <th>Ações</th>
           </tr>
         </ng-template>
-        <ng-template pTemplate="body" let-request>
+        <ng-template pTemplate="body" let-lead>
           <tr>
-            <td>{{ request.id }}</td>
-            <td>#{{ request.opportunity }}</td>
-            <td>#{{ request.customer }}</td>
-            <td>{{ request.status }}</td>
-            <td>{{ request.inspection_status }}</td>
-            <td>{{ request.issue_deadline_at || "-" }}</td>
+            <td>{{ lead.id }}</td>
+            <td>{{ lead.source }}</td>
+            <td>{{ lead.company_name || "-" }}</td>
+            <td>{{ lead.status }}</td>
+            <td>{{ lead.cnpj || "-" }}</td>
             <td>
               <div class="actions">
-                <button pButton
-                  type="button"
-                  (click)="advancePolicyRequestStatus(request)"
-                  [disabled]="loading() || !canWrite()"
-                >
-                  Avançar status
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="rejectPolicyRequest(request)"
-                  [disabled]="loading() || !canWrite() || request.status === 'REJECTED'"
-                >
-                  Rejeitar
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="generatePolicyRequestInsights(request)"
-                  [disabled]="loading() || !canWrite()"
-                >
-                  Insights IA
-                </button>
+                <button pButton type="button" (click)="qualifyLead(lead)" [disabled]="loading() || !canWrite() || lead.status !== 'NEW'">Qualificar</button>
+                <button pButton type="button" (click)="convertLead(lead)" [disabled]="loading() || !canWrite() || lead.status !== 'QUALIFIED'">Converter</button>
+                <button pButton type="button" (click)="generateLeadInsights(lead)" [disabled]="loading() || !canWrite()">Insights IA</button>
+                <button pButton type="button" (click)="enrichLeadCnpj(lead)" [disabled]="loading() || !canWrite()">Enriquecer CNPJ</button>
               </div>
             </td>
           </tr>
         </ng-template>
       </p-table>
-      <p *ngIf="policyRequests().length === 0">
-        Nenhum pedido de emissão cadastrado.
-      </p>
+      <p *ngIf="leads().length === 0">Nenhum lead encontrado.</p>
+    </p-card>
+
+    <p-card styleClass="card">
+      <h2>Oportunidades</h2>
+      <p-table *ngIf="opportunities().length > 0" class="table" [value]="opportunities()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Estágio</th>
+            <th>Valor</th>
+            <th>Probabilidade</th>
+            <th>Ações</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-opp>
+          <tr>
+            <td>{{ opp.id }}</td>
+            <td>{{ opp.title }}</td>
+            <td>{{ opp.stage }}</td>
+            <td>{{ opp.amount }}</td>
+            <td>{{ opp.closing_probability }}%</td>
+            <td>
+              <div class="actions">
+                <button pButton type="button" (click)="moveToNextStage(opp)" [disabled]="loading() || !canWrite()">Próximo estágio</button>
+                <button pButton type="button" (click)="markLost(opp)" [disabled]="loading() || !canWrite() || opp.stage === 'LOST'">Perdida</button>
+                <button pButton type="button" (click)="generateOpportunityInsights(opp)" [disabled]="loading() || !canWrite()">Insights IA</button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+      <p *ngIf="opportunities().length === 0">Nenhuma oportunidade encontrada.</p>
     </p-card>
   </div>
 
@@ -891,7 +338,6 @@
             <th>Status</th>
             <th>Prioridade</th>
             <th>Vínculo</th>
-            <th>Due</th>
             <th>SLA</th>
             <th>Ações</th>
           </tr>
@@ -906,35 +352,11 @@
               <span *ngIf="activity.lead">Lead #{{ activity.lead }}</span>
               <span *ngIf="activity.opportunity">Opp #{{ activity.opportunity }}</span>
             </td>
-            <td>{{ activity.due_at || "-" }}</td>
-            <td>
-              <span [class.badge-alert]="activity.is_sla_breached">
-                {{ activity.sla_due_at || "-" }}
-              </span>
-            </td>
+            <td><span [class.badge-alert]="activity.is_sla_breached">{{ activity.sla_due_at || "-" }}</span></td>
             <td>
               <div class="actions">
-                <button pButton
-                  type="button"
-                  (click)="completeActivity(activity)"
-                  [disabled]="loading() || !canWrite() || activity.status === 'DONE'"
-                >
-                  Concluir
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="reopenActivity(activity)"
-                  [disabled]="loading() || !canWrite() || activity.status !== 'DONE'"
-                >
-                  Reabrir
-                </button>
-                <button pButton
-                  type="button"
-                  (click)="generateActivityInsights(activity)"
-                  [disabled]="loading() || !canWrite()"
-                >
-                  Insights IA
-                </button>
+                <button pButton type="button" (click)="completeActivity(activity)" [disabled]="loading() || !canWrite() || activity.status === 'DONE'">Concluir</button>
+                <button pButton type="button" (click)="reopenActivity(activity)" [disabled]="loading() || !canWrite() || activity.status !== 'DONE'">Reabrir</button>
               </div>
             </td>
           </tr>
@@ -960,110 +382,14 @@
             <td>{{ activity.title }}</td>
             <td>{{ activity.reminder_at }}</td>
             <td>
-              <button pButton
-                type="button"
-                (click)="markReminderSent(activity)"
-                [disabled]="loading() || !canWrite() || activity.reminder_sent"
-              >
+              <button pButton type="button" (click)="markReminderSent(activity)" [disabled]="loading() || !canWrite() || activity.reminder_sent">
                 Marcar enviado
               </button>
             </td>
           </tr>
         </ng-template>
       </p-table>
-      <p *ngIf="reminderActivities().length === 0">
-        Não há lembretes pendentes para envio.
-      </p>
-    </p-card>
-  </div>
-
-  <div class="grid secondary-grid">
-    <p-card styleClass="card history-card">
-      <div class="history-header">
-        <h2>Histórico</h2>
-        <button pButton type="button" (click)="clearHistory()" [disabled]="loading()">
-          Limpar
-        </button>
-      </div>
-
-      <div *ngIf="leadHistory() as leadPayload">
-        <p>
-          <strong>Lead #{{ leadPayload.lead.id }}</strong> -
-          {{ leadPayload.lead.source }} ({{ leadPayload.lead.status }})
-        </p>
-        <p>
-          Atividades: {{ leadPayload.activities.length }} |
-          Oportunidades geradas: {{ leadPayload.converted_opportunities.length }}
-        </p>
-      </div>
-
-      <div *ngIf="opportunityHistory() as opportunityPayload">
-        <p>
-          <strong>Opp #{{ opportunityPayload.opportunity.id }}</strong> -
-          {{ opportunityPayload.opportunity.title }} ({{ opportunityPayload.opportunity.stage }})
-        </p>
-        <p>Atividades: {{ opportunityPayload.activities.length }}</p>
-      </div>
-
-      <p *ngIf="!leadHistory() && !opportunityHistory()">
-        Selecione um lead ou oportunidade para visualizar o histórico consolidado.
-      </p>
-    </p-card>
-
-    <p-card styleClass="card">
-      <div class="history-header">
-        <h2>Painel IA Comercial</h2>
-        <button pButton type="button" (click)="clearAiResult()" [disabled]="loading()">
-          Limpar
-        </button>
-      </div>
-
-      <label class="ai-focus-label">
-        Foco da análise IA
-        <input pInputText
-          type="text"
-          [ngModel]="aiFocus()"
-          (ngModelChange)="aiFocus.set($event)"
-          [disabled]="loading()"
-          placeholder="Ex.: objeções de preço, próximos passos para fechamento..."
-        />
-      </label>
-
-      <div *ngIf="aiResponse() as response" class="ai-result">
-        <p><strong>Entidade:</strong> {{ aiEntityLabel() }}</p>
-        <p><strong>Resumo:</strong> {{ aiSummary() }}</p>
-        <p *ngIf="aiQualificationScore() !== null">
-          <strong>Score de qualificação:</strong> {{ aiQualificationScore() }}%
-        </p>
-        <p><strong>Provider:</strong> {{ aiProvider() }}</p>
-
-        <p><strong>Riscos:</strong></p>
-        <ul>
-          <li *ngFor="let risk of aiRisks()">{{ risk }}</li>
-          <li *ngIf="aiRisks().length === 0">Sem riscos destacados.</li>
-        </ul>
-
-        <p><strong>Oportunidades:</strong></p>
-        <ul>
-          <li *ngFor="let item of aiOpportunities()">{{ item }}</li>
-          <li *ngIf="aiOpportunities().length === 0">Sem oportunidades destacadas.</li>
-        </ul>
-
-        <p><strong>Próximas ações:</strong></p>
-        <ul>
-          <li *ngFor="let action of aiNextActions()">{{ action }}</li>
-          <li *ngIf="aiNextActions().length === 0">Sem ações sugeridas.</li>
-        </ul>
-
-        <details *ngIf="response.cnpj_profile" class="ai-cnpj-details">
-          <summary>CNPJ profile (raw)</summary>
-          <pre>{{ response.cnpj_profile | json }}</pre>
-        </details>
-      </div>
-
-      <p *ngIf="!aiResponse()">
-        Acione "Insights IA" em Cliente, Lead ou Oportunidade para visualizar análise.
-      </p>
+      <p *ngIf="reminderActivities().length === 0">Não há lembretes pendentes.</p>
     </p-card>
   </div>
 </section>
