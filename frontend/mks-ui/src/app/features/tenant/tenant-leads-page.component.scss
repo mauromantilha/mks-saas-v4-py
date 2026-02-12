@@ -87,8 +87,15 @@ button[disabled] {
   background: var(--mks-surface);
   border: 1px solid var(--mks-border);
   border-radius: 14px;
-  padding: 12px;
   margin-top: 12px;
+}
+
+:host ::ng-deep .card .p-card-body {
+  padding: 0;
+}
+
+:host ::ng-deep .card .p-card-content {
+  padding: 12px;
 }
 
 .form-grid {
@@ -259,4 +266,3 @@ textarea {
 .error {
   color: #b42318;
 }
-

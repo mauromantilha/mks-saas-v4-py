@@ -14,7 +14,7 @@
   <p *ngIf="error()" class="error">{{ error() }}</p>
   <p *ngIf="notice()" class="notice">{{ notice() }}</p>
 
-  <article class="card">
+  <p-card styleClass="card">
     <h2>Novo Cliente</h2>
     <p class="muted">Campos com <strong>*</strong> são obrigatórios.</p>
 
@@ -73,7 +73,7 @@
         />
       </label>
 
-      <label>
+      <label class="cep-field">
         CEP *
         <div class="inline-field">
           <input pInputText
@@ -241,12 +241,12 @@
         Criar cliente
       </button>
     </div>
-  </article>
+  </p-card>
 
-  <article class="card">
+  <p-card styleClass="card">
     <h2>Lista de Clientes</h2>
-    <table class="table" *ngIf="customers().length > 0; else noCustomers">
-      <thead>
+    <p-table class="table" *ngIf="customers().length > 0; else noCustomers" [value]="customers()" responsiveLayout="scroll">
+      <ng-template pTemplate="header">
         <tr>
           <th>ID</th>
           <th>Nome</th>
@@ -256,9 +256,9 @@
           <th>Status</th>
           <th>Ações</th>
         </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let c of customers()">
+      </ng-template>
+      <ng-template pTemplate="body" let-c>
+        <tr>
           <td>#{{ c.id }}</td>
           <td>{{ c.name }}</td>
           <td>{{ c.email }}</td>
@@ -290,14 +290,14 @@
             </div>
           </td>
         </tr>
-      </tbody>
-    </table>
+      </ng-template>
+    </p-table>
     <ng-template #noCustomers>
       <p class="muted">Nenhum cliente encontrado.</p>
     </ng-template>
-  </article>
+  </p-card>
 
-  <article class="card" *ngIf="selectedCustomer() as selected">
+  <p-card styleClass="card" *ngIf="selectedCustomer() as selected">
     <header class="detail-header">
       <div>
         <h2>Ficha do Cliente #{{ selected.id }}</h2>
@@ -342,8 +342,8 @@
 
     <div *ngIf="(selected.contacts || []).length > 0 && !editing()" class="top-gap">
       <h3>Contatos</h3>
-      <table class="table compact-table">
-        <thead>
+      <p-table class="table compact-table" [value]="selected.contacts || []" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
           <tr>
             <th>Nome</th>
             <th>E-mail</th>
@@ -351,17 +351,17 @@
             <th>Cargo</th>
             <th>Primário</th>
           </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let c of selected.contacts; trackBy: trackContact">
+        </ng-template>
+        <ng-template pTemplate="body" let-c>
+          <tr>
             <td>{{ c.name }}</td>
             <td>{{ c.email || '-' }}</td>
             <td>{{ c.phone || '-' }}</td>
             <td>{{ c.role || '-' }}</td>
             <td>{{ c.is_primary ? 'Sim' : 'Não' }}</td>
           </tr>
-        </tbody>
-      </table>
+        </ng-template>
+      </p-table>
     </div>
 
     <div *ngIf="editing()" class="top-gap">
@@ -395,7 +395,7 @@
           <input pInputText type="text" [(ngModel)]="editForm.cnpj" [disabled]="loading() || !canWrite()" />
         </label>
 
-        <label>
+        <label class="cep-field">
           CEP *
           <div class="inline-field">
             <input pInputText type="text" [(ngModel)]="editForm.zip_code" (blur)="lookupEditCep()" [disabled]="loading() || editCepLoading() || !canWrite()" />
@@ -516,9 +516,9 @@
         <button pButton type="button" class="secondary" (click)="cancelEditCustomer()" [disabled]="loading()">Cancelar</button>
       </div>
     </div>
-  </article>
+  </p-card>
 
-  <article class="card ai-card" *ngIf="aiResponse() as ai">
+  <p-card styleClass="card ai-card" *ngIf="aiResponse() as ai">
     <header class="ai-header">
       <h2>Insights IA</h2>
       <span class="muted">{{ aiEntityLabel() }} | Provider: {{ ai.insights.provider }}</span>
@@ -544,5 +544,5 @@
         </ul>
       </div>
     </div>
-  </article>
+  </p-card>
 </section>

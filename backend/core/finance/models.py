@@ -101,6 +101,7 @@ class ReceivableInstallment(BaseTenantModel):
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     due_date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    paid_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         app_label = "finance"

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from customers.models import Company, CompanyMembership, Domain
+from customers.models import Company, CompanyMembership, Domain, ProducerProfile
 
 
 @admin.register(Company)
@@ -58,3 +58,17 @@ class DomainAdmin(admin.ModelAdmin):
     list_display = ("domain", "tenant", "is_primary")
     list_filter = ("is_primary",)
     search_fields = ("domain", "tenant__tenant_code", "tenant__subdomain")
+
+
+@admin.register(ProducerProfile)
+class ProducerProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        "full_name",
+        "company",
+        "team_name",
+        "is_team_manager",
+        "commission_transfer_percent",
+        "is_active",
+    )
+    list_filter = ("company", "is_active", "is_team_manager", "team_name")
+    search_fields = ("full_name", "cpf", "membership__user__username", "team_name")

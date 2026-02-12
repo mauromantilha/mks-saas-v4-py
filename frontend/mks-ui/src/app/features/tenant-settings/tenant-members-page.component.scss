@@ -1,69 +1,140 @@
 .members-wrap {
-  max-width: 1080px;
+  max-width: 1320px;
   margin: 20px auto;
-  padding: 0 16px;
+  padding: 0 16px 32px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.badge {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #0b4a6f;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--mks-muted);
 }
 
 .meta {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
-  margin-bottom: 12px;
+  margin: 10px 0;
 }
 
-.toolbar {
-  margin-bottom: 14px;
-}
-
-.upsert {
-  background: var(--mks-surface);
-  border: 1px solid var(--mks-border);
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 16px;
+.grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  margin-top: 12px;
+  border: 1px solid var(--mks-border);
+  border-radius: 12px;
+  background: var(--mks-surface);
+}
+
+:host ::ng-deep .card .p-card-body {
+  padding: 0;
+}
+
+:host ::ng-deep .card .p-card-content {
+  padding: 12px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
 }
 
-.upsert label {
-  display: grid;
-  gap: 4px;
-}
-
-.upsert input,
-.upsert select {
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font: inherit;
-}
-
-.members-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--mks-surface);
+.kpi {
   border: 1px solid var(--mks-border);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--mks-surface-soft);
 }
 
-.members-table th,
-.members-table td {
-  text-align: left;
+.label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--mks-muted);
+}
+
+.value {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.team-card {
+  border: 1px solid var(--mks-border);
+  border-radius: 10px;
   padding: 10px;
-  border-bottom: 1px solid #f1f5f9;
-  vertical-align: middle;
+}
+
+.team-name {
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+:host ::ng-deep .form-grid .p-select {
+  width: 100%;
 }
 
 .actions {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
-.actions select {
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 6px 8px;
+.top-gap {
+  margin-top: 10px;
+}
+
+.notice {
+  color: #046c4e;
 }
 
 .error {
   color: #b42318;
+}
+
+.muted {
+  color: var(--mks-muted);
 }

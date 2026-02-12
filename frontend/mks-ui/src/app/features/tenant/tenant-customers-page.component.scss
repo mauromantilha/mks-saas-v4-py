@@ -96,8 +96,15 @@ button[disabled] {
   background: var(--mks-surface);
   border: 1px solid var(--mks-border);
   border-radius: 14px;
-  padding: 12px;
   margin-top: 12px;
+}
+
+:host ::ng-deep .card .p-card-body {
+  padding: 0;
+}
+
+:host ::ng-deep .card .p-card-content {
+  padding: 12px;
 }
 
 .form-grid {
@@ -129,10 +136,21 @@ select {
   display: flex;
   gap: 8px;
   align-items: center;
+  width: 100%;
 }
 
 .inline-field input {
   flex: 1;
+  min-width: 0;
+}
+
+.inline-field button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.cep-field {
+  grid-column: span 2;
 }
 
 .field-full {
@@ -285,5 +303,9 @@ select {
 @media (max-width: 960px) {
   .detail-header {
     flex-direction: column;
+  }
+
+  .cep-field {
+    grid-column: 1 / -1;
   }
 }

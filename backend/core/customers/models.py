@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db import connection
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from django_tenants.models import DomainMixin, TenantMixin
 
@@ -137,3 +138,96 @@ class CompanyMembership(models.Model):
 
     def __str__(self):
         return f"{self.user} @ {self.company} ({self.role})"
+
+
+class ProducerProfile(models.Model):
+    ACCOUNT_CHECKING = "CHECKING"
+    ACCOUNT_SAVINGS = "SAVINGS"
+    ACCOUNT_PAYMENT = "PAYMENT"
+    ACCOUNT_TYPE_CHOICES = [
+        (ACCOUNT_CHECKING, "Conta Corrente"),
+        (ACCOUNT_SAVINGS, "Conta Poupança"),
+        (ACCOUNT_PAYMENT, "Conta Pagamento"),
+    ]
+
+    PIX_CPF = "CPF"
+    PIX_CNPJ = "CNPJ"
+    PIX_EMAIL = "EMAIL"
+    PIX_PHONE = "PHONE"
+    PIX_RANDOM = "RANDOM"
+    PIX_KEY_TYPE_CHOICES = [
+        (PIX_CPF, "CPF"),
+        (PIX_CNPJ, "CNPJ"),
+        (PIX_EMAIL, "Email"),
+        (PIX_PHONE, "Telefone"),
+        (PIX_RANDOM, "Chave Aleatória"),
+    ]
+
+    company = models.ForeignKey(
+        Company,
+        related_name="producer_profiles",
+        on_delete=models.CASCADE,
+    )
+    membership = models.OneToOneField(
+        CompanyMembership,
+        related_name="producer_profile",
+        on_delete=models.CASCADE,
+    )
+    full_name = models.CharField(max_length=255)
+    cpf = models.CharField(max_length=14)
+    team_name = models.CharField(max_length=120, blank=True)
+    is_team_manager = models.BooleanField(default=False)
+
+    zip_code = models.CharField(max_length=12, blank=True)
+    state = models.CharField(max_length=60, blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    neighborhood = models.CharField(max_length=120, blank=True)
+    street = models.CharField(max_length=255, blank=True)
+    street_number = models.CharField(max_length=30, blank=True)
+    address_complement = models.CharField(max_length=120, blank=True)
+
+    commission_transfer_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Percentual do repasse sobre a comissão da empresa.",
+    )
+    payout_hold_days = models.PositiveSmallIntegerField(default=3)
+
+    bank_code = models.CharField(max_length=4, blank=True)
+    bank_name = models.CharField(max_length=120, blank=True)
+    bank_agency = models.CharField(max_length=20, blank=True)
+    bank_account = models.CharField(max_length=30, blank=True)
+    bank_account_type = models.CharField(
+        max_length=20,
+        choices=ACCOUNT_TYPE_CHOICES,
+        blank=True,
+    )
+    pix_key_type = models.CharField(
+        max_length=20,
+        choices=PIX_KEY_TYPE_CHOICES,
+        blank=True,
+    )
+    pix_key = models.CharField(max_length=140, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("full_name",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "cpf"),
+                name="uq_producer_profile_company_cpf",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.membership_id and self.membership.company_id != self.company_id:
+            raise ValidationError("Producer profile must belong to the same company as membership.")
+
+    def save(self, *args, **kwargs):
+        if self.membership_id and self.company_id is None:
+            self.company = self.membership.company
+        return super().save(*args, **kwargs)

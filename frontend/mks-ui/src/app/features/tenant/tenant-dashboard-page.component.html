@@ -34,7 +34,7 @@
 
   <ng-container *ngIf="summary() as summary">
     <section class="kpi-grid">
-      <article class="kpi kpi-strong">
+      <p-card styleClass="kpi kpi-strong">
         <span class="label">Produção (Ano)</span>
         <strong class="value">{{ formatCurrency(summary.kpis.production_premium_ytd) }}</strong>
         <span class="hint">
@@ -42,9 +42,9 @@
             summary.progress.premium_ytd_pct
           }}%)
         </span>
-      </article>
+      </p-card>
 
-      <article class="kpi kpi-strong">
+      <p-card styleClass="kpi kpi-strong">
         <span class="label">Comissão (Ano)</span>
         <strong class="value">{{ formatCurrency(summary.kpis.commission_ytd) }}</strong>
         <span class="hint">
@@ -52,9 +52,9 @@
             summary.progress.commission_ytd_pct
           }}%)
         </span>
-      </article>
+      </p-card>
 
-      <article class="kpi">
+      <p-card styleClass="kpi">
         <span class="label">Produção (Mês)</span>
         <strong class="value">{{ formatCurrency(summary.kpis.production_premium_mtd) }}</strong>
         <span class="hint">
@@ -62,9 +62,9 @@
             summary.progress.premium_mtd_pct
           }}%)
         </span>
-      </article>
+      </p-card>
 
-      <article class="kpi">
+      <p-card styleClass="kpi">
         <span class="label">Comissão (Mês)</span>
         <strong class="value">{{ formatCurrency(summary.kpis.commission_mtd) }}</strong>
         <span class="hint">
@@ -72,35 +72,35 @@
             summary.progress.commission_mtd_pct
           }}%)
         </span>
-      </article>
+      </p-card>
 
-      <article class="kpi">
+      <p-card styleClass="kpi">
         <span class="label">Renovações (30 dias)</span>
         <strong class="value">{{ summary.kpis.renewals_due_next_30d }}</strong>
         <span class="hint">Apólices com vencimento próximo</span>
-      </article>
+      </p-card>
 
-      <article class="kpi">
+      <p-card styleClass="kpi">
         <span class="label">Renovações (Mês)</span>
         <strong class="value">{{ summary.kpis.renewals_mtd }}</strong>
         <span class="hint">Endossos do tipo renovação</span>
-      </article>
+      </p-card>
 
-      <article class="kpi">
+      <p-card styleClass="kpi">
         <span class="label">Clientes</span>
         <strong class="value">{{ summary.kpis.customers_total }}</strong>
         <span class="hint">Lifecycle stage = CUSTOMER</span>
-      </article>
+      </p-card>
 
-      <article class="kpi">
+      <p-card styleClass="kpi">
         <span class="label">Inadimplência</span>
         <strong class="value">{{ formatCurrency(summary.kpis.delinquency_open_total) }}</strong>
         <span class="hint">Preparado para integrar parcelas/recebíveis</span>
-      </article>
+      </p-card>
     </section>
 
     <section class="grid">
-      <article class="card">
+      <p-card styleClass="card">
         <h2>Realizado vs Meta</h2>
 
         <div class="progress-block">
@@ -148,9 +148,9 @@
             ></div>
           </div>
         </div>
-      </article>
+      </p-card>
 
-      <article class="card" *ngIf="metrics() as metrics">
+      <p-card styleClass="card" *ngIf="metrics() as metrics">
         <h2>Funil e SLA</h2>
         <div class="mini-grid">
           <div class="mini-item">
@@ -188,9 +188,9 @@
             </strong>
           </div>
         </div>
-      </article>
+      </p-card>
 
-      <article class="card" *ngIf="aiInsights() as ai">
+      <p-card styleClass="card" *ngIf="aiInsights() as ai">
         <h2>IA Insights Automáticos</h2>
         <p class="muted">{{ ai.insights.summary || "Sem resumo de IA." }}</p>
         <div class="mini-grid">
@@ -219,9 +219,9 @@
         <ol>
           <li *ngFor="let action of ai.insights.next_actions">{{ action }}</li>
         </ol>
-      </article>
+      </p-card>
 
-      <article class="card" *ngIf="canWrite()">
+      <p-card styleClass="card" *ngIf="canWrite()">
         <h2>Metas do mês</h2>
         <p class="muted">
           Ajuste as metas de produção/comissão. O painel recalcula o progresso automaticamente.
@@ -276,11 +276,11 @@
             Salvar metas
           </button>
         </div>
-      </article>
+      </p-card>
     </section>
 
     <section class="grid wide">
-      <article class="card">
+      <p-card styleClass="card">
         <h2>Produção diária (Mês)</h2>
         <div class="bars">
           <div
@@ -291,9 +291,23 @@
           ></div>
         </div>
         <p class="muted">Barras representam o prêmio total por dia (endossos).</p>
-      </article>
+        <p-table [value]="dailySeries()" class="series-table top-gap" [paginator]="false" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Data</th>
+              <th>Prêmio</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td>{{ row.date }}</td>
+              <td>{{ formatCurrency(row.premium_total) }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
 
-      <article class="card">
+      <p-card styleClass="card">
         <h2>Produção mensal (Ano)</h2>
         <div class="bars month-bars">
           <div
@@ -304,7 +318,21 @@
           ></div>
         </div>
         <p class="muted">Barras representam o prêmio total por mês (YTD).</p>
-      </article>
+        <p-table [value]="monthlySeries()" class="series-table top-gap" [paginator]="false" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Mês</th>
+              <th>Prêmio</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td>{{ row.month }}</td>
+              <td>{{ formatCurrency(row.premium_total) }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
     </section>
   </ng-container>
 </section>

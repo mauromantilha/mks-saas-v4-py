@@ -12,20 +12,28 @@
   <p *ngIf="error()" class="error">{{ error() }}</p>
   <p *ngIf="notice()" class="notice">{{ notice() }}</p>
 
-  <article class="card">
+  <p-card styleClass="card">
     <h2>Criar Projeto</h2>
     <div class="toggle-row">
-      <label><input type="radio" [checked]="useExistingCustomer()" (change)="changeCustomerMode(true)" /> Cliente existente</label>
-      <label><input type="radio" [checked]="!useExistingCustomer()" (change)="changeCustomerMode(false)" /> Novo cliente (simplificado)</label>
+      <label>
+        <p-radioButton name="customerMode" [value]="true" [ngModel]="useExistingCustomer()" (ngModelChange)="changeCustomerMode(!!$event)"></p-radioButton>
+        Cliente existente
+      </label>
+      <label>
+        <p-radioButton name="customerMode" [value]="false" [ngModel]="useExistingCustomer()" (ngModelChange)="changeCustomerMode(!!$event)"></p-radioButton>
+        Novo cliente (simplificado)
+      </label>
     </div>
 
     <div class="form-grid">
       <label *ngIf="useExistingCustomer()">
         Cliente
-        <select [ngModel]="customerId()" (ngModelChange)="customerId.set($event ? +$event : null)">
-          <option [ngValue]="null">Selecione...</option>
-          <option *ngFor="let c of customers()" [value]="c.id">#{{ c.id }} - {{ c.name }}</option>
-        </select>
+        <p-select
+          [options]="customerSelectOptions()"
+          [ngModel]="customerId()"
+          (ngModelChange)="customerId.set($event ? +$event : null)"
+          placeholder="Selecione..."
+        ></p-select>
       </label>
 
       <label *ngIf="!useExistingCustomer()">
@@ -51,17 +59,22 @@
       </label>
       <label>
         Tipo de projeto
-        <select [ngModel]="projectType()" (ngModelChange)="projectType.set($event)">
-          <option value="TRANSFER_RISK">Transferência de Risco (Seguros)</option>
-          <option value="RISK_MANAGEMENT">Gestão de Riscos</option>
-        </select>
+        <p-select
+          [options]="projectTypeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="projectType()"
+          (ngModelChange)="projectType.set($event)"
+        ></p-select>
       </label>
       <label>
         Owner
-        <select [ngModel]="ownerId()" (ngModelChange)="ownerId.set($event ? +$event : null)">
-          <option [ngValue]="null">Selecione...</option>
-          <option *ngFor="let m of members()" [value]="m.user_id">{{ m.username }} ({{ m.role }})</option>
-        </select>
+        <p-select
+          [options]="memberOwnerOptions()"
+          [ngModel]="ownerId()"
+          (ngModelChange)="ownerId.set($event ? +$event : null)"
+          placeholder="Selecione..."
+        ></p-select>
       </label>
       <label>
         Data início
@@ -97,28 +110,28 @@
     <div class="actions top-gap">
       <button pButton type="button" (click)="createProject()" [disabled]="loading() || !canWrite()">Criar projeto</button>
     </div>
-  </article>
+  </p-card>
 
-  <article class="card">
+  <p-card styleClass="card">
     <h2>Projetos</h2>
     <div class="form-grid one-line">
       <label>
         Status
-        <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
-          <option value="">Todos</option>
-          <option value="OPEN">Aberto</option>
-          <option value="CLOSED">Fechado</option>
-          <option value="CLOSED_WON">Ganho</option>
-          <option value="CLOSED_LOST">Perdido</option>
-        </select>
+        <p-select
+          [options]="statusFilterOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event)"
+        ></p-select>
       </label>
       <div class="actions align-end">
         <button pButton type="button" (click)="loadProjects()" [disabled]="loading()">Filtrar</button>
       </div>
     </div>
 
-    <table class="table" *ngIf="projects().length > 0; else noProjects">
-      <thead>
+    <p-table class="table" *ngIf="projects().length > 0; else noProjects" [value]="projects()" responsiveLayout="scroll">
+      <ng-template pTemplate="header">
         <tr>
           <th>ID</th>
           <th>Projeto</th>
@@ -128,9 +141,9 @@
           <th>Entrega</th>
           <th>Ações</th>
         </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let p of projects()">
+      </ng-template>
+      <ng-template pTemplate="body" let-p>
+        <tr>
           <td>#{{ p.id }}</td>
           <td>{{ p.name }}</td>
           <td>{{ p.customer_name || p.prospect_name || '-' }}</td>
@@ -144,12 +157,12 @@
             </div>
           </td>
         </tr>
-      </tbody>
-    </table>
+      </ng-template>
+    </p-table>
     <ng-template #noProjects><p class="muted">Nenhum projeto cadastrado.</p></ng-template>
-  </article>
+  </p-card>
 
-  <article class="card" *ngIf="selectedProject() as project">
+  <p-card styleClass="card" *ngIf="selectedProject() as project">
     <header class="detail-header">
       <div>
         <h2>Projeto #{{ project.id }} - {{ project.name }}</h2>
@@ -171,17 +184,22 @@
       </label>
       <label>
         Tipo
-        <select [(ngModel)]="project.project_type" [disabled]="loading() || !canWrite()">
-          <option value="TRANSFER_RISK">Transferência de Risco (Seguros)</option>
-          <option value="RISK_MANAGEMENT">Gestão de Riscos</option>
-        </select>
+        <p-select
+          [options]="projectTypeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="project.project_type"
+          [disabled]="loading() || !canWrite()"
+        ></p-select>
       </label>
       <label>
         Owner
-        <select [(ngModel)]="project.owner" [disabled]="loading() || !canWrite()">
-          <option [ngValue]="null">Selecione...</option>
-          <option *ngFor="let m of members()" [ngValue]="m.user_id">{{ m.username }}</option>
-        </select>
+        <p-select
+          [options]="memberSimpleOptions()"
+          [(ngModel)]="project.owner"
+          [disabled]="loading() || !canWrite()"
+          placeholder="Selecione..."
+        ></p-select>
       </label>
       <label>
         Início
@@ -218,7 +236,7 @@
     </div>
 
     <div class="split-grid top-gap">
-      <section class="card inner">
+      <p-card styleClass="card inner">
         <h3>Atividades</h3>
         <div class="form-grid">
           <label>
@@ -238,10 +256,10 @@
           <button pButton type="button" (click)="addActivity()" [disabled]="loading() || !canWrite()">Adicionar atividade</button>
         </div>
 
-        <table class="table compact-table" *ngIf="project.activities.length > 0">
-          <thead><tr><th>Título</th><th>Entrega</th><th>Status</th><th></th></tr></thead>
-          <tbody>
-            <tr *ngFor="let a of project.activities">
+        <p-table class="table compact-table" *ngIf="project.activities.length > 0" [value]="project.activities" responsiveLayout="scroll">
+          <ng-template pTemplate="header"><tr><th>Título</th><th>Entrega</th><th>Status</th><th></th></tr></ng-template>
+          <ng-template pTemplate="body" let-a>
+            <tr>
               <td>{{ a.title }}</td>
               <td>{{ a.due_date ? (a.due_date | date:'shortDate') : '-' }}</td>
               <td>{{ a.status }}</td>
@@ -252,17 +270,17 @@
                 </div>
               </td>
             </tr>
-          </tbody>
-        </table>
-      </section>
+          </ng-template>
+        </p-table>
+      </p-card>
 
-      <section class="card inner">
+      <p-card styleClass="card inner">
         <h3>Documentos</h3>
         <input type="file" multiple (change)="uploadDocuments($event)" [disabled]="loading() || !canWrite()" />
-        <table class="table compact-table" *ngIf="project.documents.length > 0">
-          <thead><tr><th>Título</th><th>Arquivo</th><th>Enviado por</th><th></th></tr></thead>
-          <tbody>
-            <tr *ngFor="let d of project.documents">
+        <p-table class="table compact-table" *ngIf="project.documents.length > 0" [value]="project.documents" responsiveLayout="scroll">
+          <ng-template pTemplate="header"><tr><th>Título</th><th>Arquivo</th><th>Enviado por</th><th></th></tr></ng-template>
+          <ng-template pTemplate="body" let-d>
+            <tr>
               <td>{{ d.title }}</td>
               <td><a [href]="d.file_url || d.file" target="_blank" rel="noopener">Abrir</a></td>
               <td>{{ d.uploaded_by_username || '-' }}</td>
@@ -270,9 +288,9 @@
                 <button pButton type="button" class="danger" (click)="removeDocument(d)" [disabled]="loading() || !canWrite()">Excluir</button>
               </td>
             </tr>
-          </tbody>
-        </table>
-      </section>
+          </ng-template>
+        </p-table>
+      </p-card>
     </div>
-  </article>
+  </p-card>
 </section>

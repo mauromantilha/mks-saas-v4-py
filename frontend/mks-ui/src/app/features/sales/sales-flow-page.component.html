@@ -8,19 +8,19 @@
   </div>
 
   <div class="toolbar">
-    <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+    <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
   </div>
 
   <p *ngIf="loading()">Carregando...</p>
   <p *ngIf="error()" class="error">{{ error() }}</p>
   <p *ngIf="notice()" class="notice">{{ notice() }}</p>
 
-  <article class="card metrics-card" *ngIf="metrics() as currentMetrics">
+  <p-card styleClass="card metrics-card" *ngIf="metrics() as currentMetrics">
     <h2>Métricas do Funil</h2>
     <div class="metrics-filters">
       <label>
         De
-        <input
+        <input pInputText
           type="date"
           [ngModel]="metricsFromDate()"
           (ngModelChange)="metricsFromDate.set($event)"
@@ -29,7 +29,7 @@
       </label>
       <label>
         Até
-        <input
+        <input pInputText
           type="date"
           [ngModel]="metricsToDate()"
           (ngModelChange)="metricsToDate.set($event)"
@@ -38,7 +38,7 @@
       </label>
       <label>
         Responsável (ID)
-        <input
+        <input pInputText
           type="number"
           min="1"
           [ngModel]="metricsAssignedTo()"
@@ -48,10 +48,10 @@
         />
       </label>
       <div class="actions">
-        <button type="button" (click)="applyMetricsFilters()" [disabled]="loading()">
+        <button pButton type="button" (click)="applyMetricsFilters()" [disabled]="loading()">
           Aplicar filtros
         </button>
-        <button type="button" (click)="clearMetricsFilters()" [disabled]="loading()">
+        <button pButton type="button" (click)="clearMetricsFilters()" [disabled]="loading()">
           Limpar filtros
         </button>
       </div>
@@ -162,15 +162,15 @@
         </strong>
       </div>
     </div>
-  </article>
+  </p-card>
 
   <div class="grid">
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Novo Cliente</h2>
       <div class="form-grid">
         <label>
           Nome
-          <input
+          <input pInputText
             type="text"
             [ngModel]="customerName()"
             (ngModelChange)="customerName.set($event)"
@@ -180,7 +180,7 @@
         </label>
         <label>
           E-mail
-          <input
+          <input pInputText
             type="email"
             [ngModel]="customerEmail()"
             (ngModelChange)="customerEmail.set($event)"
@@ -190,7 +190,7 @@
         </label>
         <label>
           CNPJ
-          <input
+          <input pInputText
             type="text"
             [ngModel]="customerCnpj()"
             (ngModelChange)="customerCnpj.set($event)"
@@ -200,7 +200,7 @@
         </label>
         <label>
           Telefone
-          <input
+          <input pInputText
             type="text"
             [ngModel]="customerPhone()"
             (ngModelChange)="customerPhone.set($event)"
@@ -209,7 +209,7 @@
         </label>
         <label>
           Contato principal
-          <input
+          <input pInputText
             type="text"
             [ngModel]="customerContactName()"
             (ngModelChange)="customerContactName.set($event)"
@@ -218,7 +218,7 @@
         </label>
         <label>
           Segmento
-          <input
+          <input pInputText
             type="text"
             [ngModel]="customerIndustry()"
             (ngModelChange)="customerIndustry.set($event)"
@@ -228,7 +228,7 @@
         </label>
         <label>
           Origem
-          <input
+          <input pInputText
             type="text"
             [ngModel]="customerLeadSource()"
             (ngModelChange)="customerLeadSource.set($event)"
@@ -238,7 +238,7 @@
         </label>
         <label class="field-full">
           Observações
-          <textarea
+          <textarea pInputTextarea
             rows="2"
             [ngModel]="customerNotes()"
             (ngModelChange)="customerNotes.set($event)"
@@ -247,18 +247,18 @@
         </label>
       </div>
       <div class="actions top-gap">
-        <button type="button" (click)="createCustomer()" [disabled]="loading() || !canWrite()">
+        <button pButton type="button" (click)="createCustomer()" [disabled]="loading() || !canWrite()">
           Criar cliente
         </button>
       </div>
-    </article>
+    </p-card>
 
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Novo Lead</h2>
       <div class="form-grid">
         <label>
           Origem
-          <input
+          <input pInputText
             type="text"
             [ngModel]="leadSource()"
             (ngModelChange)="leadSource.set($event)"
@@ -268,7 +268,7 @@
         </label>
         <label>
           Nome do contato
-          <input
+          <input pInputText
             type="text"
             [ngModel]="leadFullName()"
             (ngModelChange)="leadFullName.set($event)"
@@ -277,7 +277,7 @@
         </label>
         <label>
           Empresa
-          <input
+          <input pInputText
             type="text"
             [ngModel]="leadCompanyName()"
             (ngModelChange)="leadCompanyName.set($event)"
@@ -286,7 +286,7 @@
         </label>
         <label>
           E-mail
-          <input
+          <input pInputText
             type="email"
             [ngModel]="leadEmail()"
             (ngModelChange)="leadEmail.set($event)"
@@ -295,7 +295,7 @@
         </label>
         <label>
           Telefone
-          <input
+          <input pInputText
             type="text"
             [ngModel]="leadPhone()"
             (ngModelChange)="leadPhone.set($event)"
@@ -304,7 +304,7 @@
         </label>
         <label>
           CNPJ
-          <input
+          <input pInputText
             type="text"
             [ngModel]="leadCnpj()"
             (ngModelChange)="leadCnpj.set($event)"
@@ -313,7 +313,7 @@
         </label>
         <label>
           Produtos de interesse
-          <input
+          <input pInputText
             type="text"
             [ngModel]="leadProductsOfInterest()"
             (ngModelChange)="leadProductsOfInterest.set($event)"
@@ -322,7 +322,7 @@
         </label>
         <label>
           Orçamento estimado
-          <input
+          <input pInputText
             type="number"
             [ngModel]="leadEstimatedBudget()"
             (ngModelChange)="leadEstimatedBudget.set($event)"
@@ -331,7 +331,7 @@
         </label>
         <label class="field-full">
           Observações
-          <textarea
+          <textarea pInputTextarea
             rows="2"
             [ngModel]="leadNotes()"
             (ngModelChange)="leadNotes.set($event)"
@@ -340,18 +340,18 @@
         </label>
       </div>
       <div class="actions top-gap">
-        <button type="button" (click)="createLead()" [disabled]="loading() || !canWrite()">
+        <button pButton type="button" (click)="createLead()" [disabled]="loading() || !canWrite()">
           Criar lead
         </button>
       </div>
-    </article>
+    </p-card>
   </div>
 
   <div class="grid secondary-grid">
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Clientes</h2>
-      <table *ngIf="customers().length > 0" class="table">
-        <thead>
+      <p-table *ngIf="customers().length > 0" class="table" [value]="customers()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
           <tr>
             <th>ID</th>
             <th>Nome</th>
@@ -360,9 +360,9 @@
             <th>Etapa</th>
             <th>Ações IA</th>
           </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let customer of customers()">
+        </ng-template>
+        <ng-template pTemplate="body" let-customer>
+          <tr>
             <td>{{ customer.id }}</td>
             <td>{{ customer.name }}</td>
             <td>{{ customer.email }}</td>
@@ -370,32 +370,24 @@
             <td>{{ customer.lifecycle_stage }}</td>
             <td>
               <div class="actions">
-                <button
-                  type="button"
-                  (click)="generateCustomerInsights(customer)"
-                  [disabled]="loading() || !canWrite()"
-                >
+                <button pButton type="button" (click)="generateCustomerInsights(customer)" [disabled]="loading() || !canWrite()">
                   Insights IA
                 </button>
-                <button
-                  type="button"
-                  (click)="enrichCustomerCnpj(customer)"
-                  [disabled]="loading() || !canWrite()"
-                >
+                <button pButton type="button" (click)="enrichCustomerCnpj(customer)" [disabled]="loading() || !canWrite()">
                   Enriquecer CNPJ
                 </button>
               </div>
             </td>
           </tr>
-        </tbody>
-      </table>
+        </ng-template>
+      </p-table>
       <p *ngIf="customers().length === 0">Nenhum cliente encontrado.</p>
-    </article>
+    </p-card>
 
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Leads</h2>
-      <table *ngIf="leads().length > 0" class="table">
-        <thead>
+      <p-table *ngIf="leads().length > 0" class="table" [value]="leads()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
           <tr>
             <th>ID</th>
             <th>Origem</th>
@@ -405,50 +397,50 @@
             <th>Histórico</th>
             <th>Ações</th>
           </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let lead of leads()">
+        </ng-template>
+        <ng-template pTemplate="body" let-lead>
+          <tr>
             <td>{{ lead.id }}</td>
             <td>{{ lead.source }}</td>
             <td>{{ lead.company_name || "-" }}</td>
             <td>{{ lead.status }}</td>
             <td>{{ lead.cnpj || "-" }}</td>
             <td>
-              <button type="button" (click)="viewLeadHistory(lead)" [disabled]="loading()">
+              <button pButton type="button" (click)="viewLeadHistory(lead)" [disabled]="loading()">
                 Ver histórico
               </button>
             </td>
             <td>
               <div class="actions">
-                <button
+                <button pButton
                   type="button"
                   (click)="qualifyLead(lead)"
                   [disabled]="loading() || !canWrite() || lead.status !== 'NEW'"
                 >
                   Qualificar
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="disqualifyLead(lead)"
                   [disabled]="loading() || !canWrite() || lead.status === 'CONVERTED'"
                 >
                   Desqualificar
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="convertLead(lead)"
                   [disabled]="loading() || !canWrite() || lead.status !== 'QUALIFIED'"
                 >
                   Converter
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="generateLeadInsights(lead)"
                   [disabled]="loading() || !canWrite()"
                 >
                   Insights IA
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="enrichLeadCnpj(lead)"
                   [disabled]="loading() || !canWrite()"
@@ -458,17 +450,17 @@
               </div>
             </td>
           </tr>
-        </tbody>
-      </table>
+        </ng-template>
+      </p-table>
       <p *ngIf="leads().length === 0">Nenhum lead encontrado.</p>
-    </article>
+    </p-card>
   </div>
 
   <div class="grid secondary-grid">
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Oportunidades</h2>
-      <table *ngIf="opportunities().length > 0" class="table">
-        <thead>
+      <p-table *ngIf="opportunities().length > 0" class="table" [value]="opportunities()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
           <tr>
             <th>ID</th>
             <th>Título</th>
@@ -478,16 +470,16 @@
             <th>Histórico</th>
             <th>Ações</th>
           </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let opp of opportunities()">
+        </ng-template>
+        <ng-template pTemplate="body" let-opp>
+          <tr>
             <td>{{ opp.id }}</td>
             <td>{{ opp.title }}</td>
             <td>{{ opp.stage }}</td>
             <td>{{ opp.amount }}</td>
             <td>{{ opp.closing_probability }}%</td>
             <td>
-              <button
+              <button pButton
                 type="button"
                 (click)="viewOpportunityHistory(opp)"
                 [disabled]="loading()"
@@ -497,21 +489,21 @@
             </td>
             <td>
               <div class="actions">
-                <button
+                <button pButton
                   type="button"
                   (click)="moveToNextStage(opp)"
                   [disabled]="loading() || !canWrite()"
                 >
                   Próximo estágio
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="markLost(opp)"
                   [disabled]="loading() || !canWrite() || opp.stage === 'LOST'"
                 >
                   Marcar perdida
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="generateOpportunityInsights(opp)"
                   [disabled]="loading() || !canWrite()"
@@ -521,44 +513,41 @@
               </div>
             </td>
           </tr>
-        </tbody>
-      </table>
+        </ng-template>
+      </p-table>
       <p *ngIf="opportunities().length === 0">Nenhuma oportunidade encontrada.</p>
-    </article>
+    </p-card>
 
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Nova Atividade / Follow-up</h2>
       <div class="form-grid">
         <label>
           Tipo
-          <select
+          <p-select
+            [options]="activityKindOptions"
+            optionLabel="label"
+            optionValue="value"
             [ngModel]="activityKind()"
             (ngModelChange)="activityKind.set($event)"
             [disabled]="loading() || !canWrite()"
-          >
-            <option value="TASK">Task</option>
-            <option value="FOLLOW_UP">Follow-up</option>
-            <option value="NOTE">Note</option>
-          </select>
+          ></p-select>
         </label>
 
         <label>
           Prioridade
-          <select
+          <p-select
+            [options]="activityPriorityOptions"
+            optionLabel="label"
+            optionValue="value"
             [ngModel]="activityPriority()"
             (ngModelChange)="activityPriority.set($event)"
             [disabled]="loading() || !canWrite()"
-          >
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-            <option value="URGENT">Urgent</option>
-          </select>
+          ></p-select>
         </label>
 
         <label class="field-full">
           Título
-          <input
+          <input pInputText
             type="text"
             [ngModel]="activityTitle()"
             (ngModelChange)="activityTitle.set($event)"
@@ -569,7 +558,7 @@
 
         <label class="field-full">
           Descrição
-          <textarea
+          <textarea pInputTextarea
             rows="3"
             [ngModel]="activityDescription()"
             (ngModelChange)="activityDescription.set($event)"
@@ -580,40 +569,39 @@
 
         <label>
           Vínculo
-          <select
+          <p-select
+            [options]="activityTargetTypeOptions"
+            optionLabel="label"
+            optionValue="value"
             [ngModel]="activityTargetType()"
             (ngModelChange)="onActivityTargetTypeChange($event)"
             [disabled]="loading() || !canWrite()"
-          >
-            <option value="LEAD">Lead</option>
-            <option value="OPPORTUNITY">Oportunidade</option>
-          </select>
+          ></p-select>
         </label>
 
         <label>
           Registro
-          <select
+          <p-select
+            *ngIf="activityTargetType() === 'LEAD'"
+            [options]="leadTargetOptions()"
             [ngModel]="activityTargetId()"
             (ngModelChange)="activityTargetId.set($event)"
             [disabled]="loading() || !canWrite()"
-          >
-            <option value="">Selecione...</option>
-            <ng-container *ngIf="activityTargetType() === 'LEAD'">
-              <option *ngFor="let lead of leads()" [value]="lead.id">
-                Lead #{{ lead.id }} - {{ lead.source }}
-              </option>
-            </ng-container>
-            <ng-container *ngIf="activityTargetType() === 'OPPORTUNITY'">
-              <option *ngFor="let opp of opportunities()" [value]="opp.id">
-                Opp #{{ opp.id }} - {{ opp.title }}
-              </option>
-            </ng-container>
-          </select>
+            placeholder="Selecione..."
+          ></p-select>
+          <p-select
+            *ngIf="activityTargetType() === 'OPPORTUNITY'"
+            [options]="opportunityTargetOptions()"
+            [ngModel]="activityTargetId()"
+            (ngModelChange)="activityTargetId.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Selecione..."
+          ></p-select>
         </label>
 
         <label>
           Vencimento
-          <input
+          <input pInputText
             type="datetime-local"
             [ngModel]="activityDueAt()"
             (ngModelChange)="activityDueAt.set($event)"
@@ -623,7 +611,7 @@
 
         <label>
           Lembrete
-          <input
+          <input pInputText
             type="datetime-local"
             [ngModel]="activityReminderAt()"
             (ngModelChange)="activityReminderAt.set($event)"
@@ -633,7 +621,7 @@
 
         <label>
           SLA (horas)
-          <input
+          <input pInputText
             type="number"
             min="1"
             [ngModel]="activitySlaHours()"
@@ -645,33 +633,30 @@
       </div>
 
       <div class="actions top-gap">
-        <button type="button" (click)="createActivity()" [disabled]="loading() || !canWrite()">
+        <button pButton type="button" (click)="createActivity()" [disabled]="loading() || !canWrite()">
           Criar atividade
         </button>
       </div>
-    </article>
+    </p-card>
   </div>
 
   <div class="grid secondary-grid">
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Nova Proposta Comparativa</h2>
       <div class="form-grid">
         <label>
           Oportunidade
-          <select
+          <p-select
+            [options]="opportunityTargetOptions()"
             [ngModel]="proposalOpportunityId()"
             (ngModelChange)="proposalOpportunityId.set($event)"
             [disabled]="loading() || !canWrite()"
-          >
-            <option value="">Selecione...</option>
-            <option *ngFor="let opp of opportunities()" [value]="opp.id">
-              Opp #{{ opp.id }} - {{ opp.title }}
-            </option>
-          </select>
+            placeholder="Selecione..."
+          ></p-select>
         </label>
         <label>
           Seguradora
-          <input
+          <input pInputText
             type="text"
             [ngModel]="proposalInsurerName()"
             (ngModelChange)="proposalInsurerName.set($event)"
@@ -681,7 +666,7 @@
         </label>
         <label>
           Plano
-          <input
+          <input pInputText
             type="text"
             [ngModel]="proposalPlanName()"
             (ngModelChange)="proposalPlanName.set($event)"
@@ -691,7 +676,7 @@
         </label>
         <label>
           Prêmio anual
-          <input
+          <input pInputText
             type="number"
             min="0"
             [ngModel]="proposalAnnualPremium()"
@@ -702,7 +687,7 @@
         </label>
         <label>
           Score (0-100)
-          <input
+          <input pInputText
             type="number"
             min="0"
             max="100"
@@ -712,17 +697,17 @@
           />
         </label>
         <label class="checkbox-row">
-          <input
-            type="checkbox"
+          <p-checkbox
+            [binary]="true"
             [ngModel]="proposalRecommended()"
-            (ngModelChange)="proposalRecommended.set($event)"
+            (ngModelChange)="proposalRecommended.set(!!$event)"
             [disabled]="loading() || !canWrite()"
-          />
+          ></p-checkbox>
           Marcar como recomendada
         </label>
       </div>
       <div class="actions top-gap">
-        <button
+        <button pButton
           type="button"
           (click)="createProposalOption()"
           [disabled]="loading() || !canWrite()"
@@ -730,40 +715,34 @@
           Criar proposta comparativa
         </button>
       </div>
-    </article>
+    </p-card>
 
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Novo Pedido de Emissão</h2>
       <div class="form-grid">
         <label>
           Oportunidade
-          <select
+          <p-select
+            [options]="opportunityTargetOptions()"
             [ngModel]="policyOpportunityId()"
             (ngModelChange)="policyOpportunityId.set($event)"
             [disabled]="loading() || !canWrite()"
-          >
-            <option value="">Selecione...</option>
-            <option *ngFor="let opp of opportunities()" [value]="opp.id">
-              Opp #{{ opp.id }} - {{ opp.title }}
-            </option>
-          </select>
+            placeholder="Selecione..."
+          ></p-select>
         </label>
         <label>
           Cliente (opcional)
-          <select
+          <p-select
+            [options]="customerSelectOptions()"
             [ngModel]="policyCustomerId()"
             (ngModelChange)="policyCustomerId.set($event)"
             [disabled]="loading() || !canWrite()"
-          >
-            <option value="">Auto (pela oportunidade)</option>
-            <option *ngFor="let customer of customers()" [value]="customer.id">
-              {{ customer.id }} - {{ customer.name }}
-            </option>
-          </select>
+            placeholder="Auto (pela oportunidade)"
+          ></p-select>
         </label>
         <label>
           Prazo de emissão
-          <input
+          <input pInputText
             type="datetime-local"
             [ngModel]="policyIssueDeadlineAt()"
             (ngModelChange)="policyIssueDeadlineAt.set($event)"
@@ -771,17 +750,17 @@
           />
         </label>
         <label class="checkbox-row">
-          <input
-            type="checkbox"
+          <p-checkbox
+            [binary]="true"
             [ngModel]="policyInspectionRequired()"
-            (ngModelChange)="policyInspectionRequired.set($event)"
+            (ngModelChange)="policyInspectionRequired.set(!!$event)"
             [disabled]="loading() || !canWrite()"
-          />
+          ></p-checkbox>
           Exige vistoria
         </label>
         <label class="field-full">
           Observações
-          <textarea
+          <textarea pInputTextarea
             rows="2"
             [ngModel]="policyNotes()"
             (ngModelChange)="policyNotes.set($event)"
@@ -790,7 +769,7 @@
         </label>
       </div>
       <div class="actions top-gap">
-        <button
+        <button pButton
           type="button"
           (click)="createPolicyRequest()"
           [disabled]="loading() || !canWrite()"
@@ -798,14 +777,14 @@
           Criar pedido de emissão
         </button>
       </div>
-    </article>
+    </p-card>
   </div>
 
   <div class="grid secondary-grid">
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Propostas Comparativas</h2>
-      <table *ngIf="proposalOptions().length > 0" class="table">
-        <thead>
+      <p-table *ngIf="proposalOptions().length > 0" class="table" [value]="proposalOptions()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
           <tr>
             <th>ID</th>
             <th>Oportunidade</th>
@@ -816,9 +795,9 @@
             <th>Recomendada</th>
             <th>Ações</th>
           </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let proposal of proposalOptions()">
+        </ng-template>
+        <ng-template pTemplate="body" let-proposal>
+          <tr>
             <td>{{ proposal.id }}</td>
             <td>#{{ proposal.opportunity }}</td>
             <td>{{ proposal.insurer_name }}</td>
@@ -828,7 +807,7 @@
             <td>{{ proposal.is_recommended ? "Sim" : "Não" }}</td>
             <td>
               <div class="actions">
-                <button
+                <button pButton
                   type="button"
                   (click)="generateProposalOptionInsights(proposal)"
                   [disabled]="loading() || !canWrite()"
@@ -838,17 +817,17 @@
               </div>
             </td>
           </tr>
-        </tbody>
-      </table>
+        </ng-template>
+      </p-table>
       <p *ngIf="proposalOptions().length === 0">
         Nenhuma proposta comparativa cadastrada.
       </p>
-    </article>
+    </p-card>
 
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Pedidos de Emissão</h2>
-      <table *ngIf="policyRequests().length > 0" class="table">
-        <thead>
+      <p-table *ngIf="policyRequests().length > 0" class="table" [value]="policyRequests()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
           <tr>
             <th>ID</th>
             <th>Oportunidade</th>
@@ -858,9 +837,9 @@
             <th>Prazo</th>
             <th>Ações</th>
           </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let request of policyRequests()">
+        </ng-template>
+        <ng-template pTemplate="body" let-request>
+          <tr>
             <td>{{ request.id }}</td>
             <td>#{{ request.opportunity }}</td>
             <td>#{{ request.customer }}</td>
@@ -869,21 +848,21 @@
             <td>{{ request.issue_deadline_at || "-" }}</td>
             <td>
               <div class="actions">
-                <button
+                <button pButton
                   type="button"
                   (click)="advancePolicyRequestStatus(request)"
                   [disabled]="loading() || !canWrite()"
                 >
                   Avançar status
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="rejectPolicyRequest(request)"
                   [disabled]="loading() || !canWrite() || request.status === 'REJECTED'"
                 >
                   Rejeitar
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="generatePolicyRequestInsights(request)"
                   [disabled]="loading() || !canWrite()"
@@ -893,19 +872,19 @@
               </div>
             </td>
           </tr>
-        </tbody>
-      </table>
+        </ng-template>
+      </p-table>
       <p *ngIf="policyRequests().length === 0">
         Nenhum pedido de emissão cadastrado.
       </p>
-    </article>
+    </p-card>
   </div>
 
   <div class="grid secondary-grid">
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Atividades</h2>
-      <table *ngIf="activities().length > 0" class="table">
-        <thead>
+      <p-table *ngIf="activities().length > 0" class="table" [value]="activities()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
           <tr>
             <th>ID</th>
             <th>Título</th>
@@ -916,9 +895,9 @@
             <th>SLA</th>
             <th>Ações</th>
           </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let activity of activities()">
+        </ng-template>
+        <ng-template pTemplate="body" let-activity>
+          <tr>
             <td>{{ activity.id }}</td>
             <td>{{ activity.title }}</td>
             <td>{{ activity.status }}</td>
@@ -935,21 +914,21 @@
             </td>
             <td>
               <div class="actions">
-                <button
+                <button pButton
                   type="button"
                   (click)="completeActivity(activity)"
                   [disabled]="loading() || !canWrite() || activity.status === 'DONE'"
                 >
                   Concluir
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="reopenActivity(activity)"
                   [disabled]="loading() || !canWrite() || activity.status !== 'DONE'"
                 >
                   Reabrir
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="generateActivityInsights(activity)"
                   [disabled]="loading() || !canWrite()"
@@ -959,29 +938,29 @@
               </div>
             </td>
           </tr>
-        </tbody>
-      </table>
+        </ng-template>
+      </p-table>
       <p *ngIf="activities().length === 0">Nenhuma atividade cadastrada.</p>
-    </article>
+    </p-card>
 
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Lembretes Pendentes</h2>
-      <table *ngIf="reminderActivities().length > 0" class="table">
-        <thead>
+      <p-table *ngIf="reminderActivities().length > 0" class="table" [value]="reminderActivities()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
           <tr>
             <th>ID</th>
             <th>Título</th>
             <th>Lembrete</th>
             <th>Ação</th>
           </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let activity of reminderActivities()">
+        </ng-template>
+        <ng-template pTemplate="body" let-activity>
+          <tr>
             <td>{{ activity.id }}</td>
             <td>{{ activity.title }}</td>
             <td>{{ activity.reminder_at }}</td>
             <td>
-              <button
+              <button pButton
                 type="button"
                 (click)="markReminderSent(activity)"
                 [disabled]="loading() || !canWrite() || activity.reminder_sent"
@@ -990,19 +969,19 @@
               </button>
             </td>
           </tr>
-        </tbody>
-      </table>
+        </ng-template>
+      </p-table>
       <p *ngIf="reminderActivities().length === 0">
         Não há lembretes pendentes para envio.
       </p>
-    </article>
+    </p-card>
   </div>
 
   <div class="grid secondary-grid">
-    <article class="card history-card">
+    <p-card styleClass="card history-card">
       <div class="history-header">
         <h2>Histórico</h2>
-        <button type="button" (click)="clearHistory()" [disabled]="loading()">
+        <button pButton type="button" (click)="clearHistory()" [disabled]="loading()">
           Limpar
         </button>
       </div>
@@ -1029,19 +1008,19 @@
       <p *ngIf="!leadHistory() && !opportunityHistory()">
         Selecione um lead ou oportunidade para visualizar o histórico consolidado.
       </p>
-    </article>
+    </p-card>
 
-    <article class="card">
+    <p-card styleClass="card">
       <div class="history-header">
         <h2>Painel IA Comercial</h2>
-        <button type="button" (click)="clearAiResult()" [disabled]="loading()">
+        <button pButton type="button" (click)="clearAiResult()" [disabled]="loading()">
           Limpar
         </button>
       </div>
 
       <label class="ai-focus-label">
         Foco da análise IA
-        <input
+        <input pInputText
           type="text"
           [ngModel]="aiFocus()"
           (ngModelChange)="aiFocus.set($event)"
@@ -1085,6 +1064,6 @@
       <p *ngIf="!aiResponse()">
         Acione "Insights IA" em Cliente, Lead ou Oportunidade para visualizar análise.
       </p>
-    </article>
+    </p-card>
   </div>
 </section>

@@ -65,6 +65,40 @@ export class TenantSpecialProjectsPageComponent {
 
   lossReason = signal("");
 
+  readonly projectTypeOptions = [
+    { label: "Transferência de Risco (Seguros)", value: "TRANSFER_RISK" as const },
+    { label: "Gestão de Riscos", value: "RISK_MANAGEMENT" as const },
+  ];
+
+  readonly statusFilterOptions = [
+    { label: "Todos", value: "" },
+    { label: "Aberto", value: "OPEN" },
+    { label: "Fechado", value: "CLOSED" },
+    { label: "Ganho", value: "CLOSED_WON" },
+    { label: "Perdido", value: "CLOSED_LOST" },
+  ];
+
+  readonly customerSelectOptions = computed(() =>
+    this.customers().map((c) => ({
+      label: `#${c.id} - ${c.name}`,
+      value: c.id,
+    }))
+  );
+
+  readonly memberOwnerOptions = computed(() =>
+    this.members().map((m) => ({
+      label: `${m.username} (${m.role})`,
+      value: m.user_id,
+    }))
+  );
+
+  readonly memberSimpleOptions = computed(() =>
+    this.members().map((m) => ({
+      label: m.username,
+      value: m.user_id,
+    }))
+  );
+
   constructor(
     private readonly salesFlowService: SalesFlowService,
     private readonly tenantMembersService: TenantMembersService,

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
@@ -5,9 +6,10 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 
-from finance.models import IntegrationInbox, ReceivableInvoice, ReceivableInstallment
+from finance.models import IntegrationInbox, Payable, ReceivableInvoice, ReceivableInstallment
 from insurance_core.models import Policy
 from ledger.services import append_ledger_entry
+from customers.models import ProducerProfile
 from operational.models import Customer
 
 
@@ -139,9 +141,11 @@ def settle_receivable_installment(
 
     with transaction.atomic():
         installment.status = ReceivableInstallment.STATUS_PAID
-        installment.save(update_fields=["status", "updated_at"])
+        installment.paid_at = timezone.now()
+        installment.save(update_fields=["status", "paid_at", "updated_at"])
 
         invoice = sync_receivable_invoice_status(installment.invoice)
+        _create_producer_payables_from_installment(company=company, installment=installment)
 
         append_ledger_entry(
             scope="TENANT",
@@ -163,6 +167,63 @@ def settle_receivable_installment(
         )
 
     return installment
+
+
+def _create_producer_payables_from_installment(*, company, installment: ReceivableInstallment) -> None:
+    """
+    Prepare producer transfer payables after settlement.
+
+    Rule: producer transfer is due only after installment settlement + hold days.
+    """
+
+    invoice = installment.invoice
+    policy = getattr(invoice, "policy", None)
+    billing = getattr(policy, "billing_config", None) if policy else None
+    commission_rate_percent = Decimal(str(getattr(billing, "commission_rate_percent", "0") or "0"))
+    if commission_rate_percent <= 0:
+        return
+
+    company_commission = (installment.amount * commission_rate_percent / Decimal("100")).quantize(
+        Decimal("0.01")
+    )
+    if company_commission <= 0:
+        return
+
+    producer_profiles = ProducerProfile.objects.filter(
+        company=company,
+        is_active=True,
+        membership__is_active=True,
+    ).select_related("membership", "membership__user")
+
+    paid_date = timezone.localdate()
+    for profile in producer_profiles:
+        transfer_percent = Decimal(str(profile.commission_transfer_percent or "0"))
+        if transfer_percent <= 0:
+            continue
+        payable_amount = (company_commission * transfer_percent / Decimal("100")).quantize(
+            Decimal("0.01")
+        )
+        if payable_amount <= 0:
+            continue
+
+        hold_days = profile.payout_hold_days or 3
+        due_date = paid_date + timedelta(days=hold_days)
+        source_ref = f"PRODUCER_REPASSE:{installment.id}:{profile.id}"
+        Payable.all_objects.get_or_create(
+            company=company,
+            source_ref=source_ref,
+            defaults={
+                "recipient": profile.membership.user,
+                "beneficiary_name": profile.full_name,
+                "amount": payable_amount,
+                "due_date": due_date,
+                "description": (
+                    f"Repasse produtor ({profile.commission_transfer_percent}%) "
+                    f"da parcela #{installment.number} da fatura {invoice.id}"
+                ),
+                "status": Payable.STATUS_OPEN,
+            },
+        )
 
 
 def process_endorsement_financial_impact(event: dict, company) -> None:

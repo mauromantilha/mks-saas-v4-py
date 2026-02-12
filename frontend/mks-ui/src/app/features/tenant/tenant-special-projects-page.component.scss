@@ -67,6 +67,13 @@ button[disabled] {
   border: 1px solid var(--mks-border);
   border-radius: 14px;
   background: var(--mks-surface);
+}
+
+:host ::ng-deep .card .p-card-body {
+  padding: 0;
+}
+
+:host ::ng-deep .card .p-card-content {
   padding: 12px;
 }
 
@@ -100,6 +107,10 @@ textarea {
   padding: 10px;
   font: inherit;
   background: var(--mks-surface);
+}
+
+:host ::ng-deep .form-grid .p-select {
+  width: 100%;
 }
 
 .field-full {

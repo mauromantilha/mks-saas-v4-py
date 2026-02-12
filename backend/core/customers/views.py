@@ -1,4 +1,6 @@
 from copy import deepcopy
+from datetime import date
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -15,14 +17,19 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from customers.models import CompanyMembership
+from customers.models import CompanyMembership, ProducerProfile
 from customers.serializers import (
     CompanyMembershipReadSerializer,
     CompanyMembershipUpdateSerializer,
     CompanyMembershipUpsertSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
+    ProducerProfilePatchSerializer,
+    ProducerProfileReadSerializer,
+    ProducerProfileUpsertSerializer,
 )
+from finance.models import Payable
+from operational.models import SalesGoal
 from tenancy.permissions import IsAuthenticatedTenantMember, IsTenantOwner
 from tenancy.rbac import (
     get_resource_role_matrices,
@@ -397,3 +404,277 @@ class TenantMemberDetailAPIView(APIView):
         membership.is_active = False
         membership.save(update_fields=["is_active", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TenantProducersAPIView(APIView):
+    def get_permissions(self):
+        if self.request.method in ("GET", "HEAD", "OPTIONS"):
+            return [IsAuthenticatedTenantMember()]
+        return [IsTenantOwner()]
+
+    def get(self, request):
+        queryset = (
+            ProducerProfile.objects.filter(company=request.company)
+            .select_related("membership", "membership__user")
+            .order_by("team_name", "full_name")
+        )
+        serializer = ProducerProfileReadSerializer(queryset, many=True)
+        return Response(
+            {
+                "tenant_code": request.company.tenant_code,
+                "results": serializer.data,
+            }
+        )
+
+    def post(self, request):
+        serializer = ProducerProfileUpsertSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
+
+        username = payload["username"]
+        email = payload.get("email", "")
+
+        User = get_user_model()
+        user, _created = User.objects.get_or_create(
+            username=username,
+            defaults={
+                "email": email,
+                "first_name": payload["full_name"].split(" ", 1)[0],
+                "last_name": payload["full_name"].split(" ", 1)[1] if " " in payload["full_name"] else "",
+                "is_active": True,
+            },
+        )
+        if email and not user.email:
+            user.email = email
+            user.save(update_fields=["email"])
+
+        membership, _ = CompanyMembership.objects.update_or_create(
+            company=request.company,
+            user=user,
+            defaults={
+                "role": payload.get("role", CompanyMembership.ROLE_MEMBER),
+                "is_active": payload.get("is_active", True),
+            },
+        )
+
+        profile_defaults = {
+            "full_name": payload["full_name"],
+            "cpf": payload["cpf"],
+            "team_name": payload.get("team_name", ""),
+            "is_team_manager": payload.get("is_team_manager", False),
+            "zip_code": payload.get("zip_code", ""),
+            "state": payload.get("state", ""),
+            "city": payload.get("city", ""),
+            "neighborhood": payload.get("neighborhood", ""),
+            "street": payload.get("street", ""),
+            "street_number": payload.get("street_number", ""),
+            "address_complement": payload.get("address_complement", ""),
+            "commission_transfer_percent": payload["commission_transfer_percent"],
+            "payout_hold_days": payload.get("payout_hold_days", 3),
+            "bank_code": payload.get("bank_code", ""),
+            "bank_name": payload.get("bank_name", ""),
+            "bank_agency": payload.get("bank_agency", ""),
+            "bank_account": payload.get("bank_account", ""),
+            "bank_account_type": payload.get("bank_account_type", ""),
+            "pix_key_type": payload.get("pix_key_type", ""),
+            "pix_key": payload.get("pix_key", ""),
+            "is_active": payload.get("is_active", True),
+        }
+        profile, created = ProducerProfile.objects.update_or_create(
+            company=request.company,
+            membership=membership,
+            defaults=profile_defaults,
+        )
+        return Response(
+            ProducerProfileReadSerializer(profile).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class TenantProducerDetailAPIView(APIView):
+    permission_classes = [IsTenantOwner]
+
+    def patch(self, request, producer_id):
+        profile = get_object_or_404(
+            ProducerProfile.objects.select_related("membership", "membership__user"),
+            id=producer_id,
+            company=request.company,
+        )
+        serializer = ProducerProfilePatchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
+
+        if "role" in payload:
+            profile.membership.role = payload["role"]
+        if "is_active" in payload:
+            profile.membership.is_active = payload["is_active"]
+            profile.is_active = payload["is_active"]
+        profile.membership.save(update_fields=["role", "is_active", "updated_at"])
+
+        for field in (
+            "full_name",
+            "team_name",
+            "is_team_manager",
+            "zip_code",
+            "state",
+            "city",
+            "neighborhood",
+            "street",
+            "street_number",
+            "address_complement",
+            "commission_transfer_percent",
+            "payout_hold_days",
+            "bank_code",
+            "bank_name",
+            "bank_agency",
+            "bank_account",
+            "bank_account_type",
+            "pix_key_type",
+            "pix_key",
+            "is_active",
+        ):
+            if field in payload:
+                setattr(profile, field, payload[field])
+        profile.save()
+        return Response(ProducerProfileReadSerializer(profile).data)
+
+
+class TenantProducerPerformanceAPIView(APIView):
+    permission_classes = [IsAuthenticatedTenantMember]
+
+    def get(self, request):
+        today = timezone.localdate()
+        month_start = date(today.year, today.month, 1)
+        if today.month == 12:
+            next_month_start = date(today.year + 1, 1, 1)
+        else:
+            next_month_start = date(today.year, today.month + 1, 1)
+
+        goal = (
+            SalesGoal.all_objects.filter(
+                company=request.company,
+                year=today.year,
+                month=today.month,
+            )
+            .order_by("-id")
+            .first()
+        )
+        company_goal = goal.commission_goal if goal else Decimal("0.00")
+
+        producers = list(
+            ProducerProfile.objects.filter(
+                company=request.company,
+                is_active=True,
+                membership__is_active=True,
+            )
+            .select_related("membership", "membership__user")
+            .order_by("team_name", "full_name")
+        )
+
+        payables = (
+            Payable.all_objects.filter(
+                company=request.company,
+                source_ref__startswith="PRODUCER_REPASSE:",
+                due_date__gte=month_start,
+                due_date__lt=next_month_start,
+            )
+            .select_related("recipient")
+            .order_by("due_date")
+        )
+
+        by_user_id: dict[int, Decimal] = {}
+        team_totals: dict[str, Decimal] = {}
+        for payable in payables:
+            if payable.recipient_id is None:
+                continue
+            by_user_id[payable.recipient_id] = by_user_id.get(payable.recipient_id, Decimal("0.00")) + (
+                payable.amount or Decimal("0.00")
+            )
+
+        producer_rows = []
+        for producer in producers:
+            user_id = producer.membership.user_id
+            result_value = by_user_id.get(user_id, Decimal("0.00"))
+            team_name = producer.team_name.strip() or "Equipe Geral"
+            team_totals[team_name] = team_totals.get(team_name, Decimal("0.00")) + result_value
+            producer_rows.append(
+                {
+                    "producer_id": producer.id,
+                    "membership_id": producer.membership_id,
+                    "user_id": user_id,
+                    "username": producer.membership.user.username,
+                    "full_name": producer.full_name,
+                    "role": producer.membership.role,
+                    "team_name": team_name,
+                    "is_team_manager": producer.is_team_manager,
+                    "commission_transfer_percent": str(producer.commission_transfer_percent),
+                    "result_current_month": str(result_value),
+                }
+            )
+
+        producer_count = len(producer_rows)
+        target_per_producer = (
+            (company_goal / producer_count).quantize(Decimal("0.01"))
+            if producer_count > 0
+            else Decimal("0.00")
+        )
+        total_result = sum((Decimal(row["result_current_month"]) for row in producer_rows), Decimal("0.00"))
+        progress_pct = (
+            float((total_result / company_goal) * Decimal("100.00"))
+            if company_goal > 0
+            else 0.0
+        )
+
+        teams_payload = []
+        for team_name, team_total in sorted(team_totals.items(), key=lambda item: item[0]):
+            rows = [row for row in producer_rows if row["team_name"] == team_name]
+            manager = next((row for row in rows if row["is_team_manager"]), None)
+            teams_payload.append(
+                {
+                    "team_name": team_name,
+                    "manager": manager["full_name"] if manager else None,
+                    "result_current_month": str(team_total),
+                    "members": rows,
+                }
+            )
+
+        return Response(
+            {
+                "period": {
+                    "month": today.month,
+                    "year": today.year,
+                    "start_date": month_start.isoformat(),
+                    "end_date_exclusive": next_month_start.isoformat(),
+                },
+                "team_vs_goal": {
+                    "company_goal_commission": str(company_goal),
+                    "team_result_current_month": str(total_result),
+                    "target_per_producer": str(target_per_producer),
+                    "progress_pct": round(progress_pct, 2),
+                    "producer_count": producer_count,
+                },
+                "individual_results": producer_rows,
+                "teams": teams_payload,
+            }
+        )
+
+
+class BankCatalogAPIView(APIView):
+    permission_classes = [IsAuthenticatedTenantMember]
+
+    BANKS = [
+        {"code": "001", "name": "Banco do Brasil"},
+        {"code": "033", "name": "Santander"},
+        {"code": "104", "name": "Caixa Econômica Federal"},
+        {"code": "237", "name": "Bradesco"},
+        {"code": "341", "name": "Itaú"},
+        {"code": "748", "name": "Sicredi"},
+        {"code": "756", "name": "Sicoob"},
+        {"code": "077", "name": "Banco Inter"},
+        {"code": "260", "name": "Nu Pagamentos (Nubank)"},
+        {"code": "290", "name": "PagSeguro"},
+        {"code": "323", "name": "Mercado Pago"},
+    ]
+
+    def get(self, _request):
+        return Response({"results": self.BANKS})

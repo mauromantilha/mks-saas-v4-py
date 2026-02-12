@@ -12,7 +12,11 @@ from customers.views import (
     TenantCapabilitiesAPIView,
     TenantMemberDetailAPIView,
     TenantMembersAPIView,
+    TenantProducerDetailAPIView,
+    TenantProducerPerformanceAPIView,
+    TenantProducersAPIView,
     TenantRBACAPIView,
+    BankCatalogAPIView,
 )
 from ledger.views import TenantLedgerEntryListAPIView
 from operational.views import (
@@ -112,6 +116,26 @@ urlpatterns = [
         "api/auth/tenant-members/<int:membership_id>/",
         TenantMemberDetailAPIView.as_view(),
         name="auth-tenant-members-detail",
+    ),
+    path(
+        "api/auth/tenant-producers/",
+        TenantProducersAPIView.as_view(),
+        name="auth-tenant-producers",
+    ),
+    path(
+        "api/auth/tenant-producers/<int:producer_id>/",
+        TenantProducerDetailAPIView.as_view(),
+        name="auth-tenant-producers-detail",
+    ),
+    path(
+        "api/auth/tenant-producers/performance/",
+        TenantProducerPerformanceAPIView.as_view(),
+        name="auth-tenant-producers-performance",
+    ),
+    path(
+        "api/utils/banks/",
+        BankCatalogAPIView.as_view(),
+        name="utils-banks-catalog",
     ),
     # Immutable tenant ledger.
     path("api/ledger/", TenantLedgerEntryListAPIView.as_view(), name="tenant-ledger-list"),

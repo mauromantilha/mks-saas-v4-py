@@ -25,3 +25,7 @@ dist/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Local backend artifacts
+backend/core/reports/
+backend/core/.ruff_cache/

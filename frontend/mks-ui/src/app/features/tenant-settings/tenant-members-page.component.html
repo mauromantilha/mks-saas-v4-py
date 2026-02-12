@@ -1,79 +1,268 @@
 <section class="members-wrap">
-  <h1>Membros do Tenant</h1>
+  <header class="page-header">
+    <div>
+      <p class="badge">Equipe / Produtores</p>
+      <h1>Gestão de Produção Comercial</h1>
+      <p class="subtitle">Análise mensal automática da equipe e repasses dos produtores.</p>
+    </div>
+    <div class="actions">
+      <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+    </div>
+  </header>
 
   <div *ngIf="session()" class="meta">
     <span><strong>Tenant:</strong> {{ session()?.tenantCode }}</span>
     <span><strong>Seu role:</strong> {{ session()?.role }}</span>
   </div>
 
-  <div class="toolbar">
-    <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
-  </div>
-
-  <div class="upsert" *ngIf="isOwner()">
-    <h2>Adicionar/Atualizar membro</h2>
-    <label>
-      Username
-      <input pInputText
-        type="text"
-        [ngModel]="newUsername()"
-        (ngModelChange)="newUsername.set($event)"
-      />
-    </label>
-    <label>
-      Role
-      <select [ngModel]="newRole()" (ngModelChange)="newRole.set($event)">
-        <option *ngFor="let role of roles" [ngValue]="role">{{ role }}</option>
-      </select>
-    </label>
-    <button pButton type="button" (click)="createOrUpdateMember()" [disabled]="loading()">
-      Salvar membro
-    </button>
-  </div>
-
-  <p *ngIf="loading()">Carregando...</p>
+  <p *ngIf="loading()" class="muted">Carregando...</p>
   <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
 
-  <table *ngIf="members().length > 0" class="members-table">
-    <thead>
-      <tr>
-        <th>Username</th>
-        <th>Email</th>
-        <th>Role</th>
-        <th>Ativo</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let member of members()">
-        <td>{{ member.username }}</td>
-        <td>{{ member.email }}</td>
-        <td>{{ member.role }}</td>
-        <td>{{ member.is_active ? "Sim" : "Não" }}</td>
-        <td>
-          <div class="actions" *ngIf="isOwner(); else readOnlyActions">
-            <select
-              [ngModel]="member.role"
-              (ngModelChange)="updateRole(member, $event)"
-              [disabled]="loading()"
-            >
-              <option *ngFor="let role of roles" [ngValue]="role">{{ role }}</option>
-            </select>
-            <button pButton
-              type="button"
-              (click)="deactivate(member)"
-              [disabled]="loading() || !member.is_active"
-            >
-              Desativar
-            </button>
-          </div>
-          <ng-template #readOnlyActions>
-            <span>Somente leitura</span>
-          </ng-template>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="grid" *ngIf="performance() as performance">
+    <p-card styleClass="card">
+      <h2>Equipe x Meta (Mês Corrente)</h2>
+      <div class="kpi-grid">
+        <div class="kpi">
+          <span class="label">Mês/Ano</span>
+          <strong class="value">{{ performance.period.month }}/{{ performance.period.year }}</strong>
+        </div>
+        <div class="kpi">
+          <span class="label">Meta Empresa (Comissão)</span>
+          <strong class="value">{{ performance.team_vs_goal.company_goal_commission }}</strong>
+        </div>
+        <div class="kpi">
+          <span class="label">Resultado Equipe</span>
+          <strong class="value">{{ performance.team_vs_goal.team_result_current_month }}</strong>
+        </div>
+        <div class="kpi">
+          <span class="label">Meta por Produtor</span>
+          <strong class="value">{{ performance.team_vs_goal.target_per_producer }}</strong>
+        </div>
+        <div class="kpi">
+          <span class="label">Progresso</span>
+          <strong class="value">{{ performance.team_vs_goal.progress_pct }}%</strong>
+        </div>
+      </div>
+    </p-card>
 
-  <p *ngIf="!loading() && members().length === 0">Nenhum membro encontrado.</p>
+    <p-card styleClass="card">
+      <h2>Resultado Individual</h2>
+      <p-table [value]="performance.individual_results" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Produtor</th>
+            <th>Equipe</th>
+            <th>Role</th>
+            <th>Repasse %</th>
+            <th>Resultado Mês</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td>{{ row.full_name }}</td>
+            <td>{{ row.team_name }}</td>
+            <td>{{ row.role }}</td>
+            <td>{{ row.commission_transfer_percent }}</td>
+            <td>{{ row.result_current_month }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-card>
+  </div>
+
+  <p-card styleClass="card" *ngIf="performance()?.teams?.length">
+    <h2>Estrutura por Equipe</h2>
+    <div class="team-grid">
+      <div class="team-card" *ngFor="let team of performance()?.teams">
+        <p class="team-name">{{ team.team_name }}</p>
+        <p class="muted">Gestor: {{ team.manager || "Não definido" }}</p>
+        <p><strong>Resultado:</strong> {{ team.result_current_month }}</p>
+        <ul>
+          <li *ngFor="let member of team.members">
+            {{ member.full_name }} ({{ member.role }}) - {{ member.result_current_month }}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </p-card>
+
+  <p-card styleClass="card" *ngIf="isOwner()">
+    <h2>Novo Produtor</h2>
+    <p class="muted">Os repasses gerados entram em Contas a Pagar como pendência após baixa da parcela + prazo de retenção.</p>
+
+    <div class="form-grid">
+      <label>
+        Nome *
+        <input pInputText type="text" [ngModel]="fullName()" (ngModelChange)="fullName.set($event)" />
+      </label>
+      <label>
+        Username (opcional)
+        <input pInputText type="text" [ngModel]="username()" (ngModelChange)="username.set($event)" />
+      </label>
+      <label>
+        E-mail
+        <input pInputText type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" />
+      </label>
+      <label>
+        CPF *
+        <input pInputText type="text" [ngModel]="cpf()" (ngModelChange)="cpf.set($event)" />
+      </label>
+      <label>
+        Equipe
+        <input pInputText type="text" [ngModel]="teamName()" (ngModelChange)="teamName.set($event)" />
+      </label>
+      <label>
+        Role
+        <p-select [options]="roles" [ngModel]="role()" (ngModelChange)="role.set($event)"></p-select>
+      </label>
+      <label class="checkbox-row">
+        <p-checkbox [binary]="true" [ngModel]="isTeamManager()" (ngModelChange)="isTeamManager.set(!!$event)"></p-checkbox>
+        Gestor da equipe
+      </label>
+      <label class="checkbox-row">
+        <p-checkbox [binary]="true" [ngModel]="isActive()" (ngModelChange)="isActive.set(!!$event)"></p-checkbox>
+        Ativo
+      </label>
+
+      <label>
+        CEP
+        <input pInputText type="text" [ngModel]="zipCode()" (ngModelChange)="zipCode.set($event)" />
+      </label>
+      <label>
+        Endereço
+        <input pInputText type="text" [ngModel]="street()" (ngModelChange)="street.set($event)" />
+      </label>
+      <label>
+        Número
+        <input pInputText type="text" [ngModel]="streetNumber()" (ngModelChange)="streetNumber.set($event)" />
+      </label>
+      <label>
+        Complemento
+        <input pInputText type="text" [ngModel]="addressComplement()" (ngModelChange)="addressComplement.set($event)" />
+      </label>
+      <label>
+        Bairro
+        <input pInputText type="text" [ngModel]="neighborhood()" (ngModelChange)="neighborhood.set($event)" />
+      </label>
+      <label>
+        Cidade
+        <input pInputText type="text" [ngModel]="city()" (ngModelChange)="city.set($event)" />
+      </label>
+      <label>
+        Estado
+        <input pInputText type="text" [ngModel]="state()" (ngModelChange)="state.set($event)" />
+      </label>
+
+      <label>
+        Repasse da Comissão (%) *
+        <input pInputText type="number" min="0" max="100" [ngModel]="commissionTransferPercent()" (ngModelChange)="commissionTransferPercent.set(($event ?? '') + '')" />
+      </label>
+      <label>
+        Prazo retenção (dias)
+        <input pInputText type="number" min="0" max="30" [ngModel]="payoutHoldDays()" (ngModelChange)="payoutHoldDays.set(($event ?? '') + '')" />
+      </label>
+
+      <label>
+        Banco (FEBRABAN)
+        <p-select
+          [options]="banks()"
+          optionLabel="name"
+          optionValue="code"
+          [ngModel]="bankCode()"
+          (ngModelChange)="onBankChange($event)"
+          placeholder="Selecione o banco"
+        ></p-select>
+      </label>
+      <label>
+        Código Banco
+        <input pInputText type="text" [ngModel]="bankCode()" (ngModelChange)="bankCode.set($event)" />
+      </label>
+      <label>
+        Nome Banco
+        <input pInputText type="text" [ngModel]="bankName()" (ngModelChange)="bankName.set($event)" />
+      </label>
+      <label>
+        Agência
+        <input pInputText type="text" [ngModel]="bankAgency()" (ngModelChange)="bankAgency.set($event)" />
+      </label>
+      <label>
+        Conta
+        <input pInputText type="text" [ngModel]="bankAccount()" (ngModelChange)="bankAccount.set($event)" />
+      </label>
+      <label>
+        Tipo Conta
+        <p-select
+          [options]="accountTypeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="bankAccountType()"
+          (ngModelChange)="bankAccountType.set($event)"
+          placeholder="Selecione"
+        ></p-select>
+      </label>
+      <label>
+        Tipo Chave Pix
+        <p-select
+          [options]="pixKeyTypeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="pixKeyType()"
+          (ngModelChange)="pixKeyType.set($event)"
+          placeholder="Selecione"
+        ></p-select>
+      </label>
+      <label>
+        Chave Pix
+        <input pInputText type="text" [ngModel]="pixKey()" (ngModelChange)="pixKey.set($event)" />
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button pButton type="button" (click)="createOrUpdateMember()" [disabled]="loading()">Salvar produtor</button>
+    </div>
+  </p-card>
+
+  <p-card styleClass="card">
+    <h2>Produtores Cadastrados</h2>
+    <p-table [value]="producers()" responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Nome</th>
+          <th>Username</th>
+          <th>Equipe</th>
+          <th>Role</th>
+          <th>Repasse %</th>
+          <th>Ativo</th>
+          <th>Ações</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-member>
+        <tr>
+          <td>{{ member.full_name }}</td>
+          <td>{{ member.username }}</td>
+          <td>{{ member.team_name || "-" }}</td>
+          <td>{{ member.role }}</td>
+          <td>{{ member.commission_transfer_percent }}</td>
+          <td>{{ member.is_active ? "Sim" : "Não" }}</td>
+          <td>
+            <div class="actions" *ngIf="isOwner(); else readOnlyActions">
+              <p-select
+                [options]="roles"
+                [ngModel]="member.role"
+                (ngModelChange)="updateRole(member, $event)"
+                [disabled]="loading()"
+              ></p-select>
+              <button pButton type="button" class="danger" (click)="deactivate(member)" [disabled]="loading() || !member.is_active">
+                Desativar
+              </button>
+            </div>
+            <ng-template #readOnlyActions>
+              <span>Somente leitura</span>
+            </ng-template>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
 </section>

@@ -22,11 +22,12 @@ import {
   SalesMetricsRecord,
 } from "../../core/api/sales-flow.types";
 import { SessionService } from "../../core/auth/session.service";
+import { PrimeUiModule } from "../../shared/prime-ui.module";
 
 @Component({
   selector: "app-sales-flow-page",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PrimeUiModule],
   templateUrl: "./sales-flow-page.component.html",
   styleUrl: "./sales-flow-page.component.scss",
 })
@@ -118,6 +119,45 @@ export class SalesFlowPageComponent {
     () => this.aiResponse()?.insights.qualification_score ?? null
   );
   readonly aiProvider = computed(() => this.aiResponse()?.insights.provider || "");
+
+  readonly activityKindOptions = [
+    { label: "Task", value: "TASK" as ActivityKind },
+    { label: "Follow-up", value: "FOLLOW_UP" as ActivityKind },
+    { label: "Note", value: "NOTE" as ActivityKind },
+  ];
+
+  readonly activityPriorityOptions = [
+    { label: "Low", value: "LOW" as ActivityPriority },
+    { label: "Medium", value: "MEDIUM" as ActivityPriority },
+    { label: "High", value: "HIGH" as ActivityPriority },
+    { label: "Urgent", value: "URGENT" as ActivityPriority },
+  ];
+
+  readonly activityTargetTypeOptions = [
+    { label: "Lead", value: "LEAD" as const },
+    { label: "Oportunidade", value: "OPPORTUNITY" as const },
+  ];
+
+  readonly leadTargetOptions = computed(() =>
+    this.leads().map((lead) => ({
+      label: `Lead #${lead.id} - ${lead.source}`,
+      value: String(lead.id),
+    }))
+  );
+
+  readonly opportunityTargetOptions = computed(() =>
+    this.opportunities().map((opp) => ({
+      label: `Opp #${opp.id} - ${opp.title}`,
+      value: String(opp.id),
+    }))
+  );
+
+  readonly customerSelectOptions = computed(() =>
+    this.customers().map((customer) => ({
+      label: `${customer.id} - ${customer.name}`,
+      value: String(customer.id),
+    }))
+  );
 
   constructor(
     private readonly salesFlowService: SalesFlowService,

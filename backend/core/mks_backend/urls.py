@@ -36,7 +36,11 @@ from customers.views import (
     TenantCapabilitiesAPIView,
     TenantMemberDetailAPIView,
     TenantMembersAPIView,
+    TenantProducerDetailAPIView,
+    TenantProducerPerformanceAPIView,
+    TenantProducersAPIView,
     TenantRBACAPIView,
+    BankCatalogAPIView,
 )
 from ledger.views import PlatformLedgerEntryListAPIView, TenantLedgerEntryListAPIView
 from operational.views import (
@@ -162,6 +166,26 @@ urlpatterns = [
         "api/auth/tenant-members/<int:membership_id>/",
         TenantMemberDetailAPIView.as_view(),
         name="auth-tenant-members-detail",
+    ),
+    path(
+        "api/auth/tenant-producers/",
+        TenantProducersAPIView.as_view(),
+        name="auth-tenant-producers",
+    ),
+    path(
+        "api/auth/tenant-producers/<int:producer_id>/",
+        TenantProducerDetailAPIView.as_view(),
+        name="auth-tenant-producers-detail",
+    ),
+    path(
+        "api/auth/tenant-producers/performance/",
+        TenantProducerPerformanceAPIView.as_view(),
+        name="auth-tenant-producers-performance",
+    ),
+    path(
+        "api/utils/banks/",
+        BankCatalogAPIView.as_view(),
+        name="utils-banks-catalog",
     ),
     path("api/ledger/", TenantLedgerEntryListAPIView.as_view(), name="tenant-ledger-list"),
     path("api/customers/", CustomerListCreateAPIView.as_view(), name="customers-list"),

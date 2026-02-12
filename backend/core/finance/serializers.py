@@ -74,6 +74,7 @@ class ReceivableInstallmentSerializer(serializers.ModelSerializer):
             "amount",
             "due_date",
             "status",
+            "paid_at",
             "is_overdue",
             "days_overdue",
             "created_at",

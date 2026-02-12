@@ -1,5 +1,5 @@
 .sales-wrap {
-  max-width: 1280px;
+  max-width: 100%;
   margin: 20px auto;
   padding: 0 16px;
 }
@@ -29,6 +29,13 @@
   background: var(--mks-surface);
   border: 1px solid var(--mks-border);
   border-radius: 12px;
+}
+
+:host ::ng-deep .card .p-card-body {
+  padding: 0;
+}
+
+:host ::ng-deep .card .p-card-content {
   padding: 12px;
 }
 
@@ -98,10 +105,20 @@
   vertical-align: middle;
 }
 
+.table th:last-child,
+.table td:last-child {
+  min-width: 240px;
+}
+
 .actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.actions button {
+  white-space: nowrap;
 }
 
 .form-grid {
@@ -131,6 +148,10 @@
   border: 1px solid var(--mks-border);
   border-radius: 8px;
   padding: 8px;
+}
+
+:host ::ng-deep .form-grid .p-select {
+  width: 100%;
 }
 
 .field-full {

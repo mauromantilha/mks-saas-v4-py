@@ -32,7 +32,7 @@
   <p *ngIf="error()" class="error">{{ error() }}</p>
   <p *ngIf="notice()" class="notice">{{ notice() }}</p>
 
-  <article class="card">
+  <p-card styleClass="card">
     <h2>Novo Lead</h2>
     <p class="muted">
       Ao salvar, o backend aplica IA automaticamente (score + próximos passos). Se houver
@@ -133,7 +133,7 @@
         Criar lead
       </button>
     </div>
-  </article>
+  </p-card>
 
   <ng-container *ngIf="mode() === 'KANBAN'">
     <section class="kanban">
@@ -193,10 +193,10 @@
   </ng-container>
 
   <ng-container *ngIf="mode() === 'LIST'">
-    <article class="card">
+    <p-card styleClass="card">
       <h2>Lista de Leads</h2>
-      <table class="table" *ngIf="leads().length > 0">
-        <thead>
+      <p-table class="table" *ngIf="leads().length > 0" [value]="leads()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
           <tr>
             <th>ID</th>
             <th>Origem</th>
@@ -206,9 +206,9 @@
             <th>CNPJ</th>
             <th>Ações</th>
           </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let lead of leads()">
+        </ng-template>
+        <ng-template pTemplate="body" let-lead>
+          <tr>
             <td>{{ lead.id }}</td>
             <td>{{ lead.source }}</td>
             <td>{{ lead.company_name || "-" }}</td>
@@ -230,13 +230,13 @@
               </div>
             </td>
           </tr>
-        </tbody>
-      </table>
+        </ng-template>
+      </p-table>
       <p *ngIf="leads().length === 0" class="muted">Nenhum lead encontrado.</p>
-    </article>
+    </p-card>
   </ng-container>
 
-  <article class="card ai-card" *ngIf="aiResponse() as ai">
+  <p-card styleClass="card ai-card" *ngIf="aiResponse() as ai">
     <header class="ai-header">
       <h2>Insights IA</h2>
       <span class="muted">{{ aiEntityLabel() }} | Provider: {{ ai.insights.provider }}</span>
@@ -262,6 +262,5 @@
         </ul>
       </div>
     </div>
-  </article>
+  </p-card>
 </section>
-

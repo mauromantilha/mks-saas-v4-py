@@ -91,7 +91,6 @@ button[disabled] {
   background: var(--mks-surface);
   border: 1px solid var(--mks-border);
   border-radius: 14px;
-  padding: 12px;
 }
 
 .kpi-strong {
@@ -133,6 +132,15 @@ button[disabled] {
   background: var(--mks-surface);
   border: 1px solid var(--mks-border);
   border-radius: 14px;
+}
+
+:host ::ng-deep .kpi .p-card-body,
+:host ::ng-deep .card .p-card-body {
+  padding: 0;
+}
+
+:host ::ng-deep .kpi .p-card-content,
+:host ::ng-deep .card .p-card-content {
   padding: 12px;
 }
 
@@ -255,6 +263,10 @@ button[disabled] {
 
 .bar:hover {
   opacity: 1;
+}
+
+.top-gap {
+  margin-top: 12px;
 }
 
 .muted {
