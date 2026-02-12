@@ -13,6 +13,12 @@ interface NavItem {
   path: string;
   exact?: boolean;
   accent?: string;
+  inDevelopment?: boolean;
+}
+
+interface NavGroup {
+  label?: string;
+  items: NavItem[];
 }
 
 @Component({
@@ -47,25 +53,145 @@ export class AppComponent {
     { label: "Audit", path: "/control-panel/audit", accent: "#64748b" },
   ];
 
-  private readonly tenantMenu: NavItem[] = [
-    { label: "Dashboard", path: "/tenant/dashboard", exact: true, accent: "#0ea5e9" },
-    { label: "Fluxo Comercial", path: "/sales/flow", accent: "#38bdf8" },
-    { label: "Clientes", path: "/tenant/customers", accent: "#14b8a6" },
-    { label: "Leads", path: "/tenant/leads", accent: "#f59e0b" },
-    { label: "Oportunidades", path: "/tenant/opportunities", accent: "#10b981" },
-    { label: "Atividades", path: "/tenant/activities", accent: "#a855f7" },
-    { label: "Seguradoras", path: "/tenant/insurers", accent: "#6366f1" },
-    { label: "Financeiro", path: "/tenant/finance", accent: "#0f766e" },
-    { label: "Apólices", path: "/tenant/policies", accent: "#0f172a" },
-    { label: "Pedidos de Emissão", path: "/tenant/policy-requests", accent: "#22c55e" },
-    { label: "Propostas", path: "/tenant/proposal-options", accent: "#06b6d4" },
-    { label: "Membros", path: "/tenant/members", accent: "#64748b" },
-    { label: "Fiscal (NF)", path: "/tenant/fiscal", accent: "#16a34a" },
-    { label: "Auditoria", path: "/tenant/ledger", accent: "#94a3b8" },
-    { label: "RBAC", path: "/tenant/rbac", accent: "#475569" },
+  private readonly tenantMenuGroups: NavGroup[] = [
+    {
+      items: [{ label: "Dashboard", path: "/tenant/dashboard", exact: true, accent: "#0ea5e9" }],
+    },
+    {
+      label: "Estratégia & Comercial",
+      items: [
+        {
+          label: "IA Assistente",
+          path: "/tenant/ai-assistant",
+          accent: "#7c3aed",
+          inDevelopment: true,
+        },
+        { label: "Fluxo Comercial", path: "/sales/flow", accent: "#38bdf8" },
+        { label: "Leads/Funil", path: "/tenant/leads", accent: "#f59e0b" },
+        {
+          label: "Radar de Leads",
+          path: "/tenant/radar-leads",
+          accent: "#f97316",
+          inDevelopment: true,
+        },
+        {
+          label: "Projetos Especiais",
+          path: "/tenant/special-projects",
+          accent: "#8b5cf6",
+          inDevelopment: true,
+        },
+        { label: "Clientes", path: "/tenant/customers", accent: "#14b8a6" },
+        {
+          label: "Equipe/Produtores",
+          path: "/tenant/members",
+          accent: "#64748b",
+        },
+        {
+          label: "Metas",
+          path: "/tenant/goals",
+          accent: "#0ea5e9",
+          inDevelopment: true,
+        },
+        {
+          label: "Visão Gestor",
+          path: "/tenant/manager-view",
+          accent: "#0f766e",
+          inDevelopment: true,
+        },
+        {
+          label: "Mensageria",
+          path: "/tenant/messaging",
+          accent: "#22c55e",
+          inDevelopment: true,
+        },
+        { label: "Atividade/Agenda", path: "/tenant/activities", accent: "#a855f7" },
+      ],
+    },
+    {
+      label: "Operacional",
+      items: [
+        { label: "Apólices", path: "/tenant/policies", accent: "#0f172a" },
+        { label: "Seguradoras", path: "/tenant/insurers", accent: "#6366f1" },
+        { label: "Propostas", path: "/tenant/proposal-options", accent: "#06b6d4" },
+        { label: "Pedidos de Emissão", path: "/tenant/policy-requests", accent: "#22c55e" },
+      ],
+    },
+    {
+      label: "Financeiro",
+      items: [
+        {
+          label: "Comissões/Fluxo",
+          path: "/tenant/commissions-flow",
+          accent: "#0284c7",
+          inDevelopment: true,
+        },
+        {
+          label: "Parcelas (Clientes)",
+          path: "/tenant/installments-clients",
+          accent: "#14b8a6",
+          inDevelopment: true,
+        },
+        {
+          label: "Contas a Pagar",
+          path: "/tenant/accounts-payable",
+          accent: "#b45309",
+          inDevelopment: true,
+        },
+        {
+          label: "Conciliação Bancos (OFX)",
+          path: "/tenant/bank-reconciliation",
+          accent: "#475569",
+          inDevelopment: true,
+        },
+        {
+          label: "Fechamento Comissão",
+          path: "/tenant/commission-closing",
+          accent: "#0369a1",
+          inDevelopment: true,
+        },
+        { label: "Notas Fiscais", path: "/tenant/fiscal", accent: "#16a34a" },
+        {
+          label: "Fiscal",
+          path: "/tenant/fiscal-settings",
+          accent: "#15803d",
+          inDevelopment: true,
+        },
+      ],
+    },
+    {
+      label: "Ferramentas",
+      items: [
+        {
+          label: "Documentos",
+          path: "/tenant/documents",
+          accent: "#2563eb",
+          inDevelopment: true,
+        },
+        {
+          label: "Importar Clientes",
+          path: "/tenant/import-customers",
+          accent: "#0891b2",
+          inDevelopment: true,
+        },
+      ],
+    },
+    {
+      label: "Admin",
+      items: [
+        {
+          label: "Sistema/Monitor",
+          path: "/tenant/system-monitor",
+          accent: "#475569",
+          inDevelopment: true,
+        },
+        { label: "Usuários", path: "/tenant/members", accent: "#334155" },
+        { label: "Auditoria", path: "/tenant/ledger", accent: "#94a3b8" },
+        { label: "RBAC", path: "/tenant/rbac", accent: "#475569" },
+      ],
+    },
   ];
 
-  readonly menuItems = computed(() => {
+  readonly menuItems = computed<NavItem[]>(() => {
     const session = this.session();
     if (!session) {
       return [];
@@ -73,7 +199,14 @@ export class AppComponent {
     if (this.portalType() === "CONTROL_PLANE") {
       return session.platformAdmin ? this.controlPlaneMenu : [];
     }
-    return this.tenantMenu;
+    return this.tenantMenuGroups.flatMap((group) => group.items);
+  });
+
+  readonly tenantMenuGroupsView = computed<NavGroup[]>(() => {
+    if (this.portalType() !== "TENANT") {
+      return [];
+    }
+    return this.tenantMenuGroups;
   });
 
   readonly portalTitle = computed(() => {

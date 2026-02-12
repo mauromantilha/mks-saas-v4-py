@@ -149,6 +149,22 @@
   padding-right: 4px;
 }
 
+.menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.menu-group-title {
+  margin: 8px 6px 2px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sidebar-muted);
+}
+
 .menu a {
   --accent: var(--sidebar-active);
   display: flex;
@@ -173,6 +189,18 @@
 
 .menu .label {
   line-height: 1.1;
+}
+
+.menu .dev-badge {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border-color));
+  color: color-mix(in srgb, var(--accent) 70%, var(--sidebar-text));
+  background: color-mix(in srgb, var(--accent) 11%, var(--mks-surface));
+  white-space: nowrap;
 }
 
 .menu a:hover {
@@ -244,6 +272,15 @@
     flex: 0 0 auto;
     overflow: visible;
     padding-right: 0;
+  }
+
+  .menu-group {
+    display: contents;
+  }
+
+  .menu-group-title {
+    grid-column: 1 / -1;
+    margin-top: 10px;
   }
 
   .logout-btn {

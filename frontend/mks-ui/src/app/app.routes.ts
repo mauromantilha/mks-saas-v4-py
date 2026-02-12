@@ -93,6 +93,66 @@ export const routes: Routes = [
     },
   },
   {
+    path: "tenant/ai-assistant",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "IA Assistente",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/radar-leads",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Radar de Leads",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/special-projects",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Projetos Especiais",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/goals",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Metas",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/manager-view",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Visão Gestor",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/messaging",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Mensageria",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
     path: "tenant/insurers",
     component: TenantInsurersPageComponent,
     canActivate: [authGuard, portalGuard],
@@ -112,6 +172,56 @@ export const routes: Routes = [
       title: "Financeiro",
       description:
         "Recebíveis, parcelas e inadimplência do tenant com integração ao operacional.",
+    },
+  },
+  {
+    path: "tenant/commissions-flow",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Comissões/Fluxo",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/installments-clients",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Parcelas (Clientes)",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/accounts-payable",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Contas a Pagar",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/bank-reconciliation",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Conciliação Bancos (OFX)",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/commission-closing",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Fechamento Comissão",
+      description: "Módulo em desenvolvimento.",
     },
   },
   {
@@ -145,6 +255,36 @@ export const routes: Routes = [
       title: "Propostas Comparativas",
       description:
         "Comparativo de seguradoras, plano recomendado e estratégia comercial.",
+    },
+  },
+  {
+    path: "tenant/documents",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Documentos",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/import-customers",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Importar Clientes",
+      description: "Módulo em desenvolvimento.",
+    },
+  },
+  {
+    path: "tenant/system-monitor",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Sistema/Monitor",
+      description: "Módulo em desenvolvimento.",
     },
   },
   {
@@ -211,6 +351,16 @@ export const routes: Routes = [
       portal: "TENANT",
       title: "Fiscal (NF)",
       description: "Emissão, cancelamento e auditoria de documentos fiscais do tenant.",
+    },
+  },
+  {
+    path: "tenant/fiscal-settings",
+    component: SectionPlaceholderPageComponent,
+    canActivate: [authGuard, portalGuard],
+    data: {
+      portal: "TENANT",
+      title: "Fiscal",
+      description: "Módulo em desenvolvimento.",
     },
   },
   {

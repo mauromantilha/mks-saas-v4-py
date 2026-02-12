@@ -20,18 +20,37 @@
       <p><strong>Perfil:</strong> {{ current.role || "N/A" }}</p>
     </div>
 
-    <nav class="menu">
-      <a
-        *ngFor="let item of menuItems()"
-        [routerLink]="item.path"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-        [ngStyle]="{ '--accent': item.accent || '#0ea5e9' }"
-      >
-        <span class="dot" aria-hidden="true"></span>
-        <span class="label">{{ item.label }}</span>
-      </a>
+    <nav class="menu" *ngIf="portalType() === 'TENANT'; else flatMenu">
+      <div class="menu-group" *ngFor="let group of tenantMenuGroupsView()">
+        <p class="menu-group-title" *ngIf="group.label">{{ group.label }}</p>
+        <a
+          *ngFor="let item of group.items"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+          [ngStyle]="{ '--accent': item.accent || '#0ea5e9' }"
+        >
+          <span class="dot" aria-hidden="true"></span>
+          <span class="label">{{ item.label }}</span>
+          <span class="dev-badge" *ngIf="item.inDevelopment">Em desenvolvimento</span>
+        </a>
+      </div>
     </nav>
+
+    <ng-template #flatMenu>
+      <nav class="menu">
+        <a
+          *ngFor="let item of menuItems()"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+          [ngStyle]="{ '--accent': item.accent || '#0ea5e9' }"
+        >
+          <span class="dot" aria-hidden="true"></span>
+          <span class="label">{{ item.label }}</span>
+        </a>
+      </nav>
+    </ng-template>
 
     <button type="button" class="logout-btn" (click)="logout()">Sair</button>
   </aside>
