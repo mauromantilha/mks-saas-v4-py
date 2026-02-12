@@ -1,0 +1,273 @@
+<section class="tenant-wrap">
+  <header class="page-header">
+    <div>
+      <p class="badge">Comercial → Operacional</p>
+      <h1>Pedidos de Emissão</h1>
+      <p class="subtitle">
+        Handover do funil para emissão: vistoria, dados de cobrança e prontidão para emitir.
+      </p>
+    </div>
+    <button type="button" (click)="bootstrap()" [disabled]="loading()">Atualizar</button>
+  </header>
+
+  <p *ngIf="loading()" class="muted">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+
+  <article class="card">
+    <h2>Novo Pedido</h2>
+    <div class="form-grid">
+      <label>
+        Oportunidade
+        <select
+          [ngModel]="opportunity()"
+          (ngModelChange)="onOpportunityChange($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let row of opportunities()" [value]="row.id">
+            #{{ row.id }} - {{ row.title }}
+          </option>
+        </select>
+      </label>
+      <label>
+        Cliente
+        <select
+          [ngModel]="customer()"
+          (ngModelChange)="customer.set($event ? +$event : null)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let row of customers()" [value]="row.id">{{ row.name }}</option>
+        </select>
+      </label>
+      <label>
+        Lead de origem
+        <select
+          [ngModel]="sourceLead()"
+          (ngModelChange)="sourceLead.set($event ? +$event : null)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option [ngValue]="null">Opcional</option>
+          <option *ngFor="let row of leads()" [value]="row.id">
+            #{{ row.id }} - {{ row.full_name || row.company_name || row.email || "Lead" }}
+          </option>
+        </select>
+      </label>
+      <label>
+        Linha de produto
+        <input
+          type="text"
+          [ngModel]="productLine()"
+          (ngModelChange)="productLine.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prazo de emissão
+        <input
+          type="date"
+          [ngModel]="issueDeadlineAt()"
+          (ngModelChange)="issueDeadlineAt.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          [checked]="inspectionRequired()"
+          (change)="inspectionRequired.set($any($event.target).checked)"
+          [disabled]="loading() || !canWrite()"
+        />
+        Vistoria obrigatória
+      </label>
+      <label class="span-2">
+        Notas
+        <textarea
+          rows="3"
+          [ngModel]="notes()"
+          (ngModelChange)="notes.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+    </div>
+    <div class="actions top-gap">
+      <button type="button" (click)="createRequest()" [disabled]="loading() || !canWrite()">
+        Criar pedido
+      </button>
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>Pedidos</h2>
+    <div class="form-grid">
+      <label>
+        Filtro por status
+        <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+          <option value="">Todos</option>
+          <option value="PENDING_DATA">Pendente de dados</option>
+          <option value="UNDER_REVIEW">Em análise</option>
+          <option value="READY_TO_ISSUE">Pronto para emissão</option>
+          <option value="ISSUED">Emitido</option>
+          <option value="REJECTED">Rejeitado</option>
+        </select>
+      </label>
+    </div>
+
+    <table class="table" *ngIf="filteredRequests().length > 0; else noRows">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Status</th>
+          <th>Oportunidade</th>
+          <th>Cliente</th>
+          <th>Lead</th>
+          <th>Linha</th>
+          <th>Prazo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of filteredRequests()">
+          <td>#{{ row.id }}</td>
+          <td><span class="pill">{{ row.status }}</span></td>
+          <td>#{{ row.opportunity }}</td>
+          <td>{{ customerLabel(row.customer) }}</td>
+          <td>{{ leadLabel(row.source_lead) }}</td>
+          <td>{{ row.product_line || "-" }}</td>
+          <td>{{ row.issue_deadline_at ? (row.issue_deadline_at | date : "shortDate") : "-" }}</td>
+          <td class="actions">
+            <button type="button" class="secondary" (click)="startEdit(row)">Editar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noRows>
+      <p class="muted">Nenhum pedido cadastrado para este tenant.</p>
+    </ng-template>
+  </article>
+
+  <article class="card" *ngIf="editing() as current">
+    <h2>Editar Pedido #{{ current.id }}</h2>
+    <div class="form-grid">
+      <label>
+        Status
+        <select
+          [ngModel]="editStatus()"
+          (ngModelChange)="editStatus.set($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="PENDING_DATA">Pendente de dados</option>
+          <option value="UNDER_REVIEW">Em análise</option>
+          <option value="READY_TO_ISSUE">Pronto para emissão</option>
+          <option value="ISSUED">Emitido</option>
+          <option value="REJECTED">Rejeitado</option>
+        </select>
+      </label>
+      <label>
+        Status da vistoria
+        <select
+          [ngModel]="editInspectionStatus()"
+          (ngModelChange)="editInspectionStatus.set($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="NOT_REQUIRED">Não aplicável</option>
+          <option value="PENDING">Pendente</option>
+          <option value="SCHEDULED">Agendada</option>
+          <option value="APPROVED">Aprovada</option>
+          <option value="REJECTED">Rejeitada</option>
+        </select>
+      </label>
+      <label>
+        Data da vistoria
+        <input
+          type="date"
+          [ngModel]="editInspectionScheduledAt()"
+          (ngModelChange)="editInspectionScheduledAt.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Forma de cobrança
+        <select
+          [ngModel]="editBillingMethod()"
+          (ngModelChange)="editBillingMethod.set($event)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option value="">Sem definição</option>
+          <option value="BANK_DEBIT">Débito</option>
+          <option value="INVOICE">Boleto</option>
+          <option value="PIX">PIX</option>
+          <option value="CREDIT_CARD">Cartão</option>
+          <option value="OTHER">Outro</option>
+        </select>
+      </label>
+      <label>
+        Dia de pagamento
+        <input
+          type="number"
+          [ngModel]="editPaymentDay()"
+          (ngModelChange)="editPaymentDay.set($event ? +$event : null)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prêmio final
+        <input
+          type="text"
+          [ngModel]="editFinalPremium()"
+          (ngModelChange)="editFinalPremium.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Comissão final
+        <input
+          type="text"
+          [ngModel]="editFinalCommission()"
+          (ngModelChange)="editFinalCommission.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prazo de emissão
+        <input
+          type="date"
+          [ngModel]="editIssueDeadlineAt()"
+          (ngModelChange)="editIssueDeadlineAt.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          [checked]="editInspectionRequired()"
+          (change)="editInspectionRequired.set($any($event.target).checked)"
+          [disabled]="loading() || !canWrite()"
+        />
+        Vistoria obrigatória
+      </label>
+      <label class="span-2">
+        Notas
+        <textarea
+          rows="3"
+          [ngModel]="editNotes()"
+          (ngModelChange)="editNotes.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+    </div>
+    <div class="actions top-gap">
+      <button type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
+        Salvar
+      </button>
+      <button type="button" class="secondary" (click)="runAiInsights()" [disabled]="loading()">
+        Gerar insights IA
+      </button>
+      <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
+        Fechar
+      </button>
+    </div>
+    <pre class="ai-box" *ngIf="aiResult()">{{ aiResult() }}</pre>
+  </article>
+</section>

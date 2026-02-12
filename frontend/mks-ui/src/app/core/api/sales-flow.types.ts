@@ -330,6 +330,22 @@ export interface CreateProposalOptionPayload {
   notes?: string;
 }
 
+export interface UpdateProposalOptionPayload {
+  insurer_name?: string;
+  plan_name?: string;
+  coverage_summary?: string;
+  deductible?: string;
+  franchise_notes?: string;
+  annual_premium?: string | number | null;
+  monthly_premium?: string | number | null;
+  commission_percent?: string | number | null;
+  commission_amount?: string | number | null;
+  ranking_score?: number;
+  is_recommended?: boolean;
+  external_reference?: string;
+  notes?: string;
+}
+
 export type ActivityKind = "TASK" | "FOLLOW_UP" | "NOTE";
 export type ActivityStatus = "PENDING" | "DONE" | "CANCELED";
 export type ActivityPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";

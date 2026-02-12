@@ -27,6 +27,7 @@ import {
   UpdatePolicyRequestPayload,
   UpdateLeadPayload,
   ProposalOptionRecord,
+  UpdateProposalOptionPayload,
   SalesMetricsFilters,
   SalesMetricsRecord,
 } from "./sales-flow.types";
@@ -100,6 +101,16 @@ export class SalesFlowService {
     payload: CreateProposalOptionPayload
   ): Observable<ProposalOptionRecord> {
     return this.http.post<ProposalOptionRecord>(`${this.apiBase}/proposal-options/`, payload);
+  }
+
+  updateProposalOption(
+    id: number,
+    payload: UpdateProposalOptionPayload
+  ): Observable<ProposalOptionRecord> {
+    return this.http.patch<ProposalOptionRecord>(
+      `${this.apiBase}/proposal-options/${id}/`,
+      payload
+    );
   }
 
   listActivities(): Observable<CommercialActivityRecord[]> {

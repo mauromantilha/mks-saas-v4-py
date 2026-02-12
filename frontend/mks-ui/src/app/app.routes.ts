@@ -19,6 +19,8 @@ import { TenantLeadsPageComponent } from "./features/tenant/tenant-leads-page.co
 import { TenantOpportunitiesPageComponent } from "./features/tenant/tenant-opportunities-page.component";
 import { TenantFinancePageComponent } from "./features/tenant/tenant-finance-page.component";
 import { TenantPoliciesPageComponent } from "./features/tenant/tenant-policies-page.component";
+import { TenantPolicyRequestsPageComponent } from "./features/tenant/tenant-policy-requests-page.component";
+import { TenantProposalOptionsPageComponent } from "./features/tenant/tenant-proposal-options-page.component";
 import { TenantMembersPageComponent } from "./features/tenant-settings/tenant-members-page.component";
 import { TenantFiscalPageComponent } from "./features/tenant-settings/tenant-fiscal-page.component";
 import { TenantLedgerPageComponent } from "./features/tenant-settings/tenant-ledger-page.component";
@@ -125,7 +127,7 @@ export const routes: Routes = [
   },
   {
     path: "tenant/policy-requests",
-    component: SectionPlaceholderPageComponent,
+    component: TenantPolicyRequestsPageComponent,
     canActivate: [authGuard, portalGuard],
     data: {
       portal: "TENANT",
@@ -136,7 +138,7 @@ export const routes: Routes = [
   },
   {
     path: "tenant/proposal-options",
-    component: SectionPlaceholderPageComponent,
+    component: TenantProposalOptionsPageComponent,
     canActivate: [authGuard, portalGuard],
     data: {
       portal: "TENANT",

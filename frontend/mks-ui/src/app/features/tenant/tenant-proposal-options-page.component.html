@@ -1,0 +1,304 @@
+<section class="tenant-wrap">
+  <header class="page-header">
+    <div>
+      <p class="badge">Comercial</p>
+      <h1>Propostas Comparativas</h1>
+      <p class="subtitle">
+        Opções por seguradora/plano com ranking e recomendação para negociação final.
+      </p>
+    </div>
+    <button type="button" (click)="bootstrap()" [disabled]="loading()">Atualizar</button>
+  </header>
+
+  <p *ngIf="loading()" class="muted">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+
+  <article class="card">
+    <h2>Nova Proposta</h2>
+    <div class="form-grid">
+      <label>
+        Oportunidade
+        <select
+          [ngModel]="opportunity()"
+          (ngModelChange)="opportunity.set($event ? +$event : null)"
+          [disabled]="loading() || !canWrite()"
+        >
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let row of opportunities()" [value]="row.id">
+            #{{ row.id }} - {{ row.title }}
+          </option>
+        </select>
+      </label>
+      <label>
+        Seguradora
+        <input
+          type="text"
+          [ngModel]="insurerName()"
+          (ngModelChange)="insurerName.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Plano
+        <input
+          type="text"
+          [ngModel]="planName()"
+          (ngModelChange)="planName.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prêmio anual
+        <input
+          type="text"
+          [ngModel]="annualPremium()"
+          (ngModelChange)="annualPremium.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prêmio mensal
+        <input
+          type="text"
+          [ngModel]="monthlyPremium()"
+          (ngModelChange)="monthlyPremium.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Comissão %
+        <input
+          type="text"
+          [ngModel]="commissionPercent()"
+          (ngModelChange)="commissionPercent.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Comissão valor
+        <input
+          type="text"
+          [ngModel]="commissionAmount()"
+          (ngModelChange)="commissionAmount.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Ranking
+        <input
+          type="number"
+          [ngModel]="rankingScore()"
+          (ngModelChange)="rankingScore.set($event ? +$event : 0)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          [checked]="isRecommended()"
+          (change)="isRecommended.set($any($event.target).checked)"
+          [disabled]="loading() || !canWrite()"
+        />
+        Recomendado
+      </label>
+      <label class="span-2">
+        Cobertura resumida
+        <textarea
+          rows="2"
+          [ngModel]="coverageSummary()"
+          (ngModelChange)="coverageSummary.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+      <label class="span-2">
+        Notas
+        <textarea
+          rows="2"
+          [ngModel]="notes()"
+          (ngModelChange)="notes.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+    </div>
+    <div class="actions top-gap">
+      <button type="button" (click)="createOption()" [disabled]="loading() || !canWrite()">
+        Criar proposta
+      </button>
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>Propostas cadastradas</h2>
+    <table class="table" *ngIf="options().length > 0; else emptyTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Oportunidade</th>
+          <th>Seguradora</th>
+          <th>Plano</th>
+          <th>Anual</th>
+          <th>Ranking</th>
+          <th>Recomendada</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of options()">
+          <td>#{{ row.id }}</td>
+          <td>#{{ row.opportunity }}</td>
+          <td>{{ row.insurer_name }}</td>
+          <td>{{ row.plan_name || "-" }}</td>
+          <td>{{ row.annual_premium || "-" }}</td>
+          <td>{{ row.ranking_score }}</td>
+          <td>
+            <span class="pill" [class.inactive]="!row.is_recommended">
+              {{ row.is_recommended ? "Sim" : "Não" }}
+            </span>
+          </td>
+          <td class="actions">
+            <button type="button" class="secondary" (click)="startEdit(row)">Editar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #emptyTable>
+      <p class="muted">Nenhuma proposta cadastrada para este tenant.</p>
+    </ng-template>
+  </article>
+
+  <article class="card" *ngIf="editing() as current">
+    <h2>Editar proposta #{{ current.id }}</h2>
+    <div class="form-grid">
+      <label>
+        Seguradora
+        <input
+          type="text"
+          [ngModel]="editInsurerName()"
+          (ngModelChange)="editInsurerName.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Plano
+        <input
+          type="text"
+          [ngModel]="editPlanName()"
+          (ngModelChange)="editPlanName.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Franquia
+        <input
+          type="text"
+          [ngModel]="editDeductible()"
+          (ngModelChange)="editDeductible.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prêmio anual
+        <input
+          type="text"
+          [ngModel]="editAnnualPremium()"
+          (ngModelChange)="editAnnualPremium.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Prêmio mensal
+        <input
+          type="text"
+          [ngModel]="editMonthlyPremium()"
+          (ngModelChange)="editMonthlyPremium.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Comissão %
+        <input
+          type="text"
+          [ngModel]="editCommissionPercent()"
+          (ngModelChange)="editCommissionPercent.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Comissão valor
+        <input
+          type="text"
+          [ngModel]="editCommissionAmount()"
+          (ngModelChange)="editCommissionAmount.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label>
+        Ranking
+        <input
+          type="number"
+          [ngModel]="editRankingScore()"
+          (ngModelChange)="editRankingScore.set($event ? +$event : 0)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          [checked]="editRecommended()"
+          (change)="editRecommended.set($any($event.target).checked)"
+          [disabled]="loading() || !canWrite()"
+        />
+        Recomendado
+      </label>
+      <label>
+        Referência externa
+        <input
+          type="text"
+          [ngModel]="editExternalReference()"
+          (ngModelChange)="editExternalReference.set($event)"
+          [disabled]="loading() || !canWrite()"
+        />
+      </label>
+      <label class="span-2">
+        Cobertura resumida
+        <textarea
+          rows="2"
+          [ngModel]="editCoverageSummary()"
+          (ngModelChange)="editCoverageSummary.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+      <label class="span-2">
+        Notas de franquia
+        <textarea
+          rows="2"
+          [ngModel]="editFranchiseNotes()"
+          (ngModelChange)="editFranchiseNotes.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+      <label class="span-2">
+        Notas internas
+        <textarea
+          rows="2"
+          [ngModel]="editNotes()"
+          (ngModelChange)="editNotes.set($event)"
+          [disabled]="loading() || !canWrite()"
+        ></textarea>
+      </label>
+    </div>
+    <div class="actions top-gap">
+      <button type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
+        Salvar
+      </button>
+      <button type="button" class="secondary" (click)="runAiInsights()" [disabled]="loading()">
+        Gerar insights IA
+      </button>
+      <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
+        Fechar
+      </button>
+    </div>
+    <pre class="ai-box" *ngIf="aiResult()">{{ aiResult() }}</pre>
+  </article>
+</section>
