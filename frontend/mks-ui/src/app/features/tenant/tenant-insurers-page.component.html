@@ -7,7 +7,7 @@
         Cadastro de seguradoras do tenant, com referências de integração (sem segredos no banco).
       </p>
     </div>
-    <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+    <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
   </header>
 
   <p *ngIf="loading()" class="muted">Carregando...</p>
@@ -19,7 +19,7 @@
     <div class="form-grid">
       <label>
         Busca
-        <input
+        <input pInputText
           type="text"
           [ngModel]="search()"
           (ngModelChange)="search.set($event)"
@@ -39,7 +39,7 @@
         </select>
       </label>
       <div class="actions filter-actions">
-        <button type="button" (click)="load()" [disabled]="loading()">Aplicar</button>
+        <button pButton type="button" (click)="load()" [disabled]="loading()">Aplicar</button>
       </div>
     </div>
   </article>
@@ -54,7 +54,7 @@
     <div class="form-grid">
       <label>
         Nome (obrigatório)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="name()"
           (ngModelChange)="name.set($event)"
@@ -63,7 +63,7 @@
       </label>
       <label>
         Razão social
-        <input
+        <input pInputText
           type="text"
           [ngModel]="legalName()"
           (ngModelChange)="legalName.set($event)"
@@ -72,7 +72,7 @@
       </label>
       <label>
         CNPJ
-        <input
+        <input pInputText
           type="text"
           [ngModel]="cnpj()"
           (ngModelChange)="cnpj.set($event)"
@@ -82,14 +82,14 @@
       <label>
         CEP
         <div class="inline-field">
-          <input
+          <input pInputText
             type="text"
             [ngModel]="zipCode()"
             (ngModelChange)="zipCode.set($event)"
             (blur)="lookupCepCreate()"
             [disabled]="loading() || cepLoading() || !canWrite()"
           />
-          <button
+          <button pButton
             type="button"
             class="secondary"
             (click)="lookupCepCreate()"
@@ -103,7 +103,7 @@
       </label>
       <label>
         Rua
-        <input
+        <input pInputText
           type="text"
           [ngModel]="street()"
           (ngModelChange)="street.set($event)"
@@ -112,7 +112,7 @@
       </label>
       <label>
         Número
-        <input
+        <input pInputText
           type="text"
           [ngModel]="streetNumber()"
           (ngModelChange)="streetNumber.set($event)"
@@ -121,7 +121,7 @@
       </label>
       <label>
         Complemento
-        <input
+        <input pInputText
           type="text"
           [ngModel]="addressComplement()"
           (ngModelChange)="addressComplement.set($event)"
@@ -130,7 +130,7 @@
       </label>
       <label>
         Bairro
-        <input
+        <input pInputText
           type="text"
           [ngModel]="neighborhood()"
           (ngModelChange)="neighborhood.set($event)"
@@ -139,7 +139,7 @@
       </label>
       <label>
         Cidade
-        <input
+        <input pInputText
           type="text"
           [ngModel]="city()"
           (ngModelChange)="city.set($event)"
@@ -148,7 +148,7 @@
       </label>
       <label>
         Estado/UF
-        <input
+        <input pInputText
           type="text"
           [ngModel]="state()"
           (ngModelChange)="state.set($event)"
@@ -192,7 +192,7 @@
                   />
                   Primário
                 </label>
-                <button
+                <button pButton
                   type="button"
                   class="danger ghost"
                   (click)="removeContact(contacts, i)"
@@ -206,7 +206,7 @@
             <div class="form-grid contact-grid">
               <label>
                 Nome
-                <input
+                <input pInputText
                   type="text"
                   [ngModel]="c.name"
                   (ngModelChange)="updateContact(contacts, i, 'name', $event)"
@@ -215,7 +215,7 @@
               </label>
               <label>
                 Email
-                <input
+                <input pInputText
                   type="email"
                   [ngModel]="c.email"
                   (ngModelChange)="updateContact(contacts, i, 'email', $event)"
@@ -224,7 +224,7 @@
               </label>
               <label>
                 Telefone
-                <input
+                <input pInputText
                   type="text"
                   [ngModel]="c.phone"
                   (ngModelChange)="updateContact(contacts, i, 'phone', $event)"
@@ -233,7 +233,7 @@
               </label>
               <label>
                 Cargo
-                <input
+                <input pInputText
                   type="text"
                   [ngModel]="c.role"
                   (ngModelChange)="updateContact(contacts, i, 'role', $event)"
@@ -242,7 +242,7 @@
               </label>
               <label class="field-full">
                 Notas
-                <textarea
+                <textarea pInputTextarea
                   rows="2"
                   [ngModel]="c.notes"
                   (ngModelChange)="updateContact(contacts, i, 'notes', $event)"
@@ -254,7 +254,7 @@
         </div>
 
         <div class="actions top-gap">
-          <button
+          <button pButton
             type="button"
             class="secondary"
             (click)="addContact(contacts)"
@@ -267,7 +267,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="createInsurer()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="createInsurer()" [disabled]="loading() || !canWrite()">
         Criar seguradora
       </button>
     </div>
@@ -278,7 +278,7 @@
     <div class="form-grid">
       <label>
         Nome
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editName()"
           (ngModelChange)="editName.set($event)"
@@ -287,7 +287,7 @@
       </label>
       <label>
         Razão social
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editLegalName()"
           (ngModelChange)="editLegalName.set($event)"
@@ -296,7 +296,7 @@
       </label>
       <label>
         CNPJ
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editCnpj()"
           (ngModelChange)="editCnpj.set($event)"
@@ -306,14 +306,14 @@
       <label>
         CEP
         <div class="inline-field">
-          <input
+          <input pInputText
             type="text"
             [ngModel]="editZipCode()"
             (ngModelChange)="editZipCode.set($event)"
             (blur)="lookupCepEdit()"
             [disabled]="loading() || editCepLoading() || !canWrite()"
           />
-          <button
+          <button pButton
             type="button"
             class="secondary"
             (click)="lookupCepEdit()"
@@ -327,7 +327,7 @@
       </label>
       <label>
         Rua
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editStreet()"
           (ngModelChange)="editStreet.set($event)"
@@ -336,7 +336,7 @@
       </label>
       <label>
         Número
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editStreetNumber()"
           (ngModelChange)="editStreetNumber.set($event)"
@@ -345,7 +345,7 @@
       </label>
       <label>
         Complemento
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editAddressComplement()"
           (ngModelChange)="editAddressComplement.set($event)"
@@ -354,7 +354,7 @@
       </label>
       <label>
         Bairro
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editNeighborhood()"
           (ngModelChange)="editNeighborhood.set($event)"
@@ -363,7 +363,7 @@
       </label>
       <label>
         Cidade
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editCity()"
           (ngModelChange)="editCity.set($event)"
@@ -372,7 +372,7 @@
       </label>
       <label>
         Estado/UF
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editState()"
           (ngModelChange)="editState.set($event)"
@@ -422,7 +422,7 @@
                   />
                   Primário
                 </label>
-                <button
+                <button pButton
                   type="button"
                   class="danger ghost"
                   (click)="removeContact(editContacts, i)"
@@ -435,7 +435,7 @@
             <div class="form-grid contact-grid">
               <label>
                 Nome
-                <input
+                <input pInputText
                   type="text"
                   [ngModel]="c.name"
                   (ngModelChange)="updateContact(editContacts, i, 'name', $event)"
@@ -444,7 +444,7 @@
               </label>
               <label>
                 Email
-                <input
+                <input pInputText
                   type="email"
                   [ngModel]="c.email"
                   (ngModelChange)="updateContact(editContacts, i, 'email', $event)"
@@ -453,7 +453,7 @@
               </label>
               <label>
                 Telefone
-                <input
+                <input pInputText
                   type="text"
                   [ngModel]="c.phone"
                   (ngModelChange)="updateContact(editContacts, i, 'phone', $event)"
@@ -462,7 +462,7 @@
               </label>
               <label>
                 Cargo
-                <input
+                <input pInputText
                   type="text"
                   [ngModel]="c.role"
                   (ngModelChange)="updateContact(editContacts, i, 'role', $event)"
@@ -471,7 +471,7 @@
               </label>
               <label class="field-full">
                 Notas
-                <textarea
+                <textarea pInputTextarea
                   rows="2"
                   [ngModel]="c.notes"
                   (ngModelChange)="updateContact(editContacts, i, 'notes', $event)"
@@ -482,7 +482,7 @@
           </div>
         </div>
         <div class="actions top-gap">
-          <button
+          <button pButton
             type="button"
             class="secondary"
             (click)="addContact(editContacts)"
@@ -495,10 +495,10 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
         Salvar alterações
       </button>
-      <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
+      <button pButton type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
         Cancelar
       </button>
     </div>
@@ -534,10 +534,10 @@
           <td>{{ insurer.integration_type }}</td>
           <td>{{ insurer.cnpj || "-" }}</td>
           <td class="actions compact">
-            <button type="button" (click)="startEdit(insurer)" [disabled]="loading() || !canWrite()">
+            <button pButton type="button" (click)="startEdit(insurer)" [disabled]="loading() || !canWrite()">
               Editar
             </button>
-            <button
+            <button pButton
               type="button"
               class="danger"
               (click)="deactivate(insurer)"

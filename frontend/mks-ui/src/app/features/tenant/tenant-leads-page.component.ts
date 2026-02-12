@@ -1,4 +1,6 @@
 import { CommonModule } from "@angular/common";
+import { PrimeUiModule } from "../../shared/prime-ui.module";
+
 import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -22,7 +24,7 @@ interface LeadColumn {
 @Component({
   selector: "app-tenant-leads-page",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [PrimeUiModule, CommonModule, FormsModule],
   templateUrl: "./tenant-leads-page.component.html",
   styleUrl: "./tenant-leads-page.component.scss",
 })

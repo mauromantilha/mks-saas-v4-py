@@ -7,7 +7,7 @@
         Núcleo operacional: vigência, status, itens segurados, coberturas, documentos e endossos.
       </p>
     </div>
-    <button type="button" (click)="loadPolicies()" [disabled]="loading()">
+    <button pButton type="button" (click)="loadPolicies()" [disabled]="loading()">
       Atualizar
     </button>
   </header>
@@ -21,7 +21,7 @@
     <div class="form-grid">
       <label>
         Busca (número / segurado)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="search()"
           (ngModelChange)="search.set($event)"
@@ -45,7 +45,7 @@
         </select>
       </label>
       <div class="actions filter-actions">
-        <button type="button" (click)="loadPolicies()" [disabled]="loading()">
+        <button pButton type="button" (click)="loadPolicies()" [disabled]="loading()">
           Aplicar
         </button>
       </div>
@@ -102,7 +102,7 @@
 
       <label>
         Número da apólice (opcional)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="policyNumber()"
           (ngModelChange)="policyNumber.set($event)"
@@ -111,7 +111,7 @@
       </label>
       <label>
         Referência corretor
-        <input
+        <input pInputText
           type="text"
           [ngModel]="brokerReference()"
           (ngModelChange)="brokerReference.set($event)"
@@ -120,7 +120,7 @@
       </label>
       <label>
         Início vigência
-        <input
+        <input pInputText
           type="date"
           [ngModel]="startDate()"
           (ngModelChange)="startDate.set($event)"
@@ -129,7 +129,7 @@
       </label>
       <label>
         Fim vigência
-        <input
+        <input pInputText
           type="date"
           [ngModel]="endDate()"
           (ngModelChange)="endDate.set($event)"
@@ -138,7 +138,7 @@
       </label>
       <label>
         Data de emissão (opcional)
-        <input
+        <input pInputText
           type="date"
           [ngModel]="issueDate()"
           (ngModelChange)="issueDate.set($event)"
@@ -147,7 +147,7 @@
       </label>
       <label>
         Moeda
-        <input
+        <input pInputText
           type="text"
           [ngModel]="currency()"
           (ngModelChange)="currency.set($event)"
@@ -156,7 +156,7 @@
       </label>
       <label>
         Prêmio total
-        <input
+        <input pInputText
           type="text"
           [ngModel]="premiumTotal()"
           (ngModelChange)="premiumTotal.set($event)"
@@ -165,7 +165,7 @@
       </label>
       <label>
         Impostos / IOF
-        <input
+        <input pInputText
           type="text"
           [ngModel]="taxTotal()"
           (ngModelChange)="taxTotal.set($event)"
@@ -174,7 +174,7 @@
       </label>
       <label>
         Comissão (opcional)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="commissionTotal()"
           (ngModelChange)="commissionTotal.set($event)"
@@ -183,7 +183,7 @@
       </label>
       <label class="span-2">
         Notas
-        <textarea
+        <textarea pInputTextarea
           rows="3"
           [ngModel]="notes()"
           (ngModelChange)="notes.set($event)"
@@ -193,7 +193,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="createPolicy()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="createPolicy()" [disabled]="loading() || !canWrite()">
         Criar apólice (DRAFT)
       </button>
     </div>
@@ -228,7 +228,7 @@
     <div class="form-grid">
       <label>
         Número da apólice
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editPolicyNumber()"
           (ngModelChange)="editPolicyNumber.set($event)"
@@ -237,7 +237,7 @@
       </label>
       <label>
         Referência corretor
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editBrokerReference()"
           (ngModelChange)="editBrokerReference.set($event)"
@@ -246,7 +246,7 @@
       </label>
       <label>
         Início vigência
-        <input
+        <input pInputText
           type="date"
           [ngModel]="editStartDate()"
           (ngModelChange)="editStartDate.set($event)"
@@ -255,7 +255,7 @@
       </label>
       <label>
         Fim vigência
-        <input
+        <input pInputText
           type="date"
           [ngModel]="editEndDate()"
           (ngModelChange)="editEndDate.set($event)"
@@ -264,7 +264,7 @@
       </label>
       <label>
         Data de emissão
-        <input
+        <input pInputText
           type="date"
           [ngModel]="editIssueDate()"
           (ngModelChange)="editIssueDate.set($event)"
@@ -273,7 +273,7 @@
       </label>
       <label>
         Moeda
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editCurrency()"
           (ngModelChange)="editCurrency.set($event)"
@@ -282,7 +282,7 @@
       </label>
       <label>
         Prêmio total
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editPremiumTotal()"
           (ngModelChange)="editPremiumTotal.set($event)"
@@ -291,7 +291,7 @@
       </label>
       <label>
         Impostos / IOF
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editTaxTotal()"
           (ngModelChange)="editTaxTotal.set($event)"
@@ -300,7 +300,7 @@
       </label>
       <label>
         Comissão (opcional)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editCommissionTotal()"
           (ngModelChange)="editCommissionTotal.set($event)"
@@ -309,7 +309,7 @@
       </label>
       <label class="span-2">
         Notas
-        <textarea
+        <textarea pInputTextarea
           rows="3"
           [ngModel]="editNotes()"
           (ngModelChange)="editNotes.set($event)"
@@ -319,10 +319,10 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
         Salvar alterações
       </button>
-      <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
+      <button pButton type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
         Fechar
       </button>
     </div>
@@ -346,7 +346,7 @@
         </label>
         <label>
           Motivo (opcional)
-          <input
+          <input pInputText
             type="text"
             [ngModel]="transitionReason()"
             (ngModelChange)="transitionReason.set($event)"
@@ -354,7 +354,7 @@
           />
         </label>
         <div class="actions filter-actions">
-          <button type="button" (click)="transition()" [disabled]="loading() || !canWrite()">
+          <button pButton type="button" (click)="transition()" [disabled]="loading() || !canWrite()">
             Aplicar
           </button>
         </div>
@@ -385,7 +385,7 @@
       </label>
       <label>
         Descrição
-        <input
+        <input pInputText
           type="text"
           [ngModel]="itemDescription()"
           (ngModelChange)="itemDescription.set($event)"
@@ -394,7 +394,7 @@
       </label>
       <label>
         Soma segurada
-        <input
+        <input pInputText
           type="text"
           [ngModel]="itemSumInsured()"
           (ngModelChange)="itemSumInsured.set($event)"
@@ -403,7 +403,7 @@
       </label>
       <label class="span-2">
         Atributos (JSON)
-        <textarea
+        <textarea pInputTextarea
           rows="3"
           [ngModel]="itemAttributesJson()"
           (ngModelChange)="itemAttributesJson.set($event)"
@@ -413,7 +413,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="addItem()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="addItem()" [disabled]="loading() || !canWrite()">
         Adicionar item
       </button>
     </div>
@@ -435,7 +435,7 @@
           <td>{{ item.description || "-" }}</td>
           <td>{{ item.sum_insured }}</td>
           <td class="actions compact">
-            <button type="button" class="danger" (click)="deleteItem(item)" [disabled]="loading() || !canWrite()">
+            <button pButton type="button" class="danger" (click)="deleteItem(item)" [disabled]="loading() || !canWrite()">
               Remover
             </button>
           </td>
@@ -465,7 +465,7 @@
       </label>
       <label>
         Limite
-        <input
+        <input pInputText
           type="text"
           [ngModel]="coverageLimit()"
           (ngModelChange)="coverageLimit.set($event)"
@@ -474,7 +474,7 @@
       </label>
       <label>
         Franquia
-        <input
+        <input pInputText
           type="text"
           [ngModel]="coverageDeductible()"
           (ngModelChange)="coverageDeductible.set($event)"
@@ -483,7 +483,7 @@
       </label>
       <label>
         Prêmio
-        <input
+        <input pInputText
           type="text"
           [ngModel]="coveragePremium()"
           (ngModelChange)="coveragePremium.set($event)"
@@ -502,7 +502,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="addCoverage()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="addCoverage()" [disabled]="loading() || !canWrite()">
         Adicionar cobertura
       </button>
     </div>
@@ -526,7 +526,7 @@
           <td>{{ cov.deductible_amount }}</td>
           <td>{{ cov.premium_amount }}</td>
           <td class="actions compact">
-            <button type="button" class="danger" (click)="deleteCoverage(cov)" [disabled]="loading() || !canWrite()">
+            <button pButton type="button" class="danger" (click)="deleteCoverage(cov)" [disabled]="loading() || !canWrite()">
               Remover
             </button>
           </td>
@@ -543,7 +543,7 @@
     <div class="form-grid">
       <label>
         Código (ex: RG, CNH)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="docCode()"
           (ngModelChange)="docCode.set($event)"
@@ -574,7 +574,7 @@
       </label>
       <label>
         Document ID (módulo documentos)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="docDocumentId()"
           (ngModelChange)="docDocumentId.set($event)"
@@ -584,7 +584,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="addDocRequirement()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="addDocRequirement()" [disabled]="loading() || !canWrite()">
         Adicionar documento
       </button>
     </div>
@@ -608,7 +608,7 @@
           <td>{{ doc.required ? "Sim" : "Não" }}</td>
           <td>{{ doc.document_id || "-" }}</td>
           <td class="actions compact">
-            <button type="button" class="danger" (click)="deleteDocRequirement(doc)" [disabled]="loading() || !canWrite()">
+            <button pButton type="button" class="danger" (click)="deleteDocRequirement(doc)" [disabled]="loading() || !canWrite()">
               Remover
             </button>
           </td>
@@ -625,7 +625,7 @@
     <div class="form-grid">
       <label>
         Número (opcional)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="endorsementNumber()"
           (ngModelChange)="endorsementNumber.set($event)"
@@ -660,7 +660,7 @@
       </label>
       <label>
         Vigência
-        <input
+        <input pInputText
           type="date"
           [ngModel]="endorsementEffectiveDate()"
           (ngModelChange)="endorsementEffectiveDate.set($event)"
@@ -669,7 +669,7 @@
       </label>
       <label class="span-2">
         Payload (JSON)
-        <textarea
+        <textarea pInputTextarea
           rows="3"
           [ngModel]="endorsementPayloadJson()"
           (ngModelChange)="endorsementPayloadJson.set($event)"
@@ -679,7 +679,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="addEndorsement()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="addEndorsement()" [disabled]="loading() || !canWrite()">
         Criar endosso
       </button>
     </div>
@@ -703,7 +703,7 @@
           <td>{{ e.status }}</td>
           <td>{{ e.effective_date }}</td>
           <td class="actions compact">
-            <button type="button" class="danger" (click)="deleteEndorsement(e)" [disabled]="loading() || !canWrite()">
+            <button pButton type="button" class="danger" (click)="deleteEndorsement(e)" [disabled]="loading() || !canWrite()">
               Remover
             </button>
           </td>
@@ -759,10 +759,10 @@
             </ng-template>
           </td>
           <td class="actions compact">
-            <button type="button" (click)="startEdit(p)" [disabled]="loading()">
+            <button pButton type="button" (click)="startEdit(p)" [disabled]="loading()">
               Abrir
             </button>
-            <button
+            <button pButton
               type="button"
               class="danger"
               (click)="deletePolicy(p)"

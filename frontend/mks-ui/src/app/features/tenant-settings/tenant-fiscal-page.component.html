@@ -8,10 +8,10 @@
       </p>
     </div>
     <div class="actions">
-      <button type="button" class="secondary" (click)="loadConfig()" [disabled]="configLoading()">
+      <button pButton type="button" class="secondary" (click)="loadConfig()" [disabled]="configLoading()">
         Recarregar Config
       </button>
-      <button type="button" (click)="loadDocuments()" [disabled]="docsLoading()">
+      <button pButton type="button" (click)="loadDocuments()" [disabled]="docsLoading()">
         Atualizar Lista
       </button>
     </div>
@@ -43,7 +43,7 @@
     <div class="form-grid">
       <label>
         Provider (type ou ID)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="provider()"
           (ngModelChange)="provider.set($event)"
@@ -79,14 +79,14 @@
       <label class="field-full">
         Token (opcional)
         <div class="inline-field">
-          <input
+          <input pInputText
             [type]="tokenVisible() ? 'text' : 'password'"
             [ngModel]="token()"
             (ngModelChange)="token.set($event)"
             placeholder="********"
             [disabled]="configLoading() || !canWrite()"
           />
-          <button
+          <button pButton
             type="button"
             class="secondary"
             (click)="tokenVisible.set(!tokenVisible())"
@@ -102,7 +102,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="saveConfig()" [disabled]="configLoading() || !canWrite()">
+      <button pButton type="button" (click)="saveConfig()" [disabled]="configLoading() || !canWrite()">
         Salvar Config
       </button>
       <span class="muted" *ngIf="!canWrite()"
@@ -121,7 +121,7 @@
     <div class="form-grid">
       <label>
         invoice_id
-        <input
+        <input pInputText
           type="number"
           min="1"
           [ngModel]="issueInvoiceId()"
@@ -130,7 +130,7 @@
         />
       </label>
       <div class="actions filter-actions">
-        <button type="button" (click)="issue()" [disabled]="docsLoading() || !canWrite()">
+        <button pButton type="button" (click)="issue()" [disabled]="docsLoading() || !canWrite()">
           Emitir
         </button>
       </div>
@@ -159,7 +159,7 @@
       </label>
       <label>
         invoice_id
-        <input
+        <input pInputText
           type="number"
           [ngModel]="invoiceFilter()"
           (ngModelChange)="invoiceFilter.set($event)"
@@ -168,7 +168,7 @@
       </label>
       <label>
         Busca (número/série/document_id)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="search()"
           (ngModelChange)="search.set($event)"
@@ -176,7 +176,7 @@
         />
       </label>
       <div class="actions filter-actions">
-        <button type="button" class="secondary" (click)="loadDocuments()" [disabled]="docsLoading()">
+        <button pButton type="button" class="secondary" (click)="loadDocuments()" [disabled]="docsLoading()">
           Aplicar
         </button>
       </div>
@@ -232,7 +232,7 @@
             <td class="mono">{{ jobStatusLabel(doc) }}</td>
             <td class="right">
               <div class="actions compact">
-                <button
+                <button pButton
                   type="button"
                   class="danger ghost"
                   (click)="cancel(doc)"
@@ -240,7 +240,7 @@
                 >
                   Cancelar
                 </button>
-                <button
+                <button pButton
                   type="button"
                   class="secondary"
                   (click)="retry(doc)"

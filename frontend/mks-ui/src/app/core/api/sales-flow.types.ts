@@ -107,6 +107,30 @@ export interface CreateCustomerPayload {
   contacts?: CreateCustomerContactPayload[];
 }
 
+export interface UpdateCustomerPayload {
+  name?: string;
+  email?: string;
+  customer_type?: CustomerType;
+  lifecycle_stage?: CustomerLifecycleStage;
+  document?: string;
+  cnpj?: string;
+  cpf?: string;
+  phone?: string;
+  whatsapp?: string;
+  zip_code?: string;
+  state?: string;
+  city?: string;
+  neighborhood?: string;
+  street?: string;
+  street_number?: string;
+  address_complement?: string;
+  contact_name?: string;
+  industry?: string;
+  lead_source?: string;
+  notes?: string;
+  contacts?: CreateCustomerContactPayload[];
+}
+
 export interface CepLookupResponse {
   zip_code: string;
   street: string;
@@ -346,6 +370,105 @@ export interface UpdateProposalOptionPayload {
   notes?: string;
 }
 
+export interface SpecialProjectActivityRecord {
+  id: number;
+  project: number;
+  title: string;
+  description: string;
+  due_date: string | null;
+  status: "OPEN" | "DONE";
+  done_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SpecialProjectDocumentRecord {
+  id: number;
+  project: number;
+  title: string;
+  file: string;
+  file_url: string;
+  uploaded_by: number | null;
+  uploaded_by_username: string | null;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SpecialProjectRecord {
+  id: number;
+  customer: number | null;
+  customer_name: string;
+  prospect_name: string;
+  prospect_document: string;
+  prospect_phone: string;
+  prospect_email: string;
+  name: string;
+  project_type: "TRANSFER_RISK" | "RISK_MANAGEMENT";
+  owner: number | null;
+  owner_username: string | null;
+  start_date: string;
+  due_date: string;
+  swot_strengths: string;
+  swot_weaknesses: string;
+  swot_opportunities: string;
+  swot_threats: string;
+  status: "OPEN" | "CLOSED" | "CLOSED_WON" | "CLOSED_LOST";
+  loss_reason: string;
+  closed_at: string | null;
+  won_at: string | null;
+  lost_at: string | null;
+  notes: string;
+  activities: SpecialProjectActivityRecord[];
+  documents: SpecialProjectDocumentRecord[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSpecialProjectPayload {
+  customer?: number | null;
+  prospect_name?: string;
+  prospect_document?: string;
+  prospect_phone?: string;
+  prospect_email?: string;
+  name: string;
+  project_type: "TRANSFER_RISK" | "RISK_MANAGEMENT";
+  owner?: number | null;
+  start_date: string;
+  due_date: string;
+  swot_strengths?: string;
+  swot_weaknesses?: string;
+  swot_opportunities?: string;
+  swot_threats?: string;
+  notes?: string;
+}
+
+export interface UpdateSpecialProjectPayload {
+  customer?: number | null;
+  prospect_name?: string;
+  prospect_document?: string;
+  prospect_phone?: string;
+  prospect_email?: string;
+  name?: string;
+  project_type?: "TRANSFER_RISK" | "RISK_MANAGEMENT";
+  owner?: number | null;
+  start_date?: string;
+  due_date?: string;
+  swot_strengths?: string;
+  swot_weaknesses?: string;
+  swot_opportunities?: string;
+  swot_threats?: string;
+  status?: "OPEN" | "CLOSED" | "CLOSED_WON" | "CLOSED_LOST";
+  loss_reason?: string;
+  notes?: string;
+}
+
+export interface CreateSpecialProjectActivityPayload {
+  title: string;
+  description?: string;
+  due_date?: string | null;
+}
+
 export type ActivityKind = "TASK" | "FOLLOW_UP" | "NOTE";
 export type ActivityStatus = "PENDING" | "DONE" | "CANCELED";
 export type ActivityPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
@@ -480,6 +603,52 @@ export interface AIInsightResponse {
   insights: CommercialInsightsPayload;
   cnpj_profile: Record<string, unknown> | null;
   updated_fields: string[];
+}
+
+export interface TenantAIAssistantConsultRequest {
+  prompt: string;
+  focus?: string;
+  cnpj?: string;
+  include_cnpj_enrichment?: boolean;
+  include_market_research?: boolean;
+  include_financial_context?: boolean;
+  include_commercial_context?: boolean;
+  learned_note?: string;
+  pin_learning?: boolean;
+}
+
+export interface TenantAIAssistantInteractionRecord {
+  id: number;
+  query_text: string;
+  focus: string;
+  cnpj: string;
+  context_snapshot: Record<string, unknown>;
+  cnpj_profile: Record<string, unknown>;
+  response_payload: CommercialInsightsPayload;
+  learned_note: string;
+  is_pinned_learning: boolean;
+  provider: string;
+  confidence_score: number | null;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantAIAssistantConsultResponse {
+  tenant_code: string;
+  interaction: TenantAIAssistantInteractionRecord;
+  assistant: CommercialInsightsPayload;
+  context_snapshot: Record<string, unknown>;
+  learning_memory: {
+    pinned_learning: Record<string, unknown>[];
+    recent_interactions: Record<string, unknown>[];
+  };
+}
+
+export interface TenantAIAssistantListResponse {
+  tenant_code: string;
+  results: TenantAIAssistantInteractionRecord[];
 }
 
 export interface CNPJEnrichmentResponse {

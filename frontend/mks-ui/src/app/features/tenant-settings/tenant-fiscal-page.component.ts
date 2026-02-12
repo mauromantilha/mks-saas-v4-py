@@ -1,4 +1,6 @@
 import { CommonModule, DatePipe } from "@angular/common";
+import { PrimeUiModule } from "../../shared/prime-ui.module";
+
 import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -15,7 +17,7 @@ import { SessionService } from "../../core/auth/session.service";
 @Component({
   selector: "app-tenant-fiscal-page",
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [PrimeUiModule, CommonModule, FormsModule, DatePipe],
   templateUrl: "./tenant-fiscal-page.component.html",
   styleUrl: "./tenant-fiscal-page.component.scss",
 })

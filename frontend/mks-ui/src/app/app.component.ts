@@ -78,7 +78,6 @@ export class AppComponent {
           label: "Projetos Especiais",
           path: "/tenant/special-projects",
           accent: "#8b5cf6",
-          inDevelopment: true,
         },
         { label: "Clientes", path: "/tenant/customers", accent: "#14b8a6" },
         {

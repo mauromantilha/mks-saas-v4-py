@@ -1,4 +1,6 @@
 import { CommonModule } from "@angular/common";
+import { PrimeUiModule } from "../../shared/prime-ui.module";
+
 import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { forkJoin } from "rxjs";
@@ -16,7 +18,7 @@ import {
 @Component({
   selector: "app-tenant-rbac-page",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [PrimeUiModule, CommonModule, FormsModule],
   templateUrl: "./tenant-rbac-page.component.html",
 })
 export class TenantRbacPageComponent {

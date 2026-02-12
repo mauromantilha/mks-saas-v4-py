@@ -7,7 +7,7 @@
         Handover do funil para emissão: vistoria, dados de cobrança e prontidão para emitir.
       </p>
     </div>
-    <button type="button" (click)="bootstrap()" [disabled]="loading()">Atualizar</button>
+    <button pButton type="button" (click)="bootstrap()" [disabled]="loading()">Atualizar</button>
   </header>
 
   <p *ngIf="loading()" class="muted">Carregando...</p>
@@ -56,7 +56,7 @@
       </label>
       <label>
         Linha de produto
-        <input
+        <input pInputText
           type="text"
           [ngModel]="productLine()"
           (ngModelChange)="productLine.set($event)"
@@ -65,7 +65,7 @@
       </label>
       <label>
         Prazo de emissão
-        <input
+        <input pInputText
           type="date"
           [ngModel]="issueDeadlineAt()"
           (ngModelChange)="issueDeadlineAt.set($event)"
@@ -83,7 +83,7 @@
       </label>
       <label class="span-2">
         Notas
-        <textarea
+        <textarea pInputTextarea
           rows="3"
           [ngModel]="notes()"
           (ngModelChange)="notes.set($event)"
@@ -92,7 +92,7 @@
       </label>
     </div>
     <div class="actions top-gap">
-      <button type="button" (click)="createRequest()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="createRequest()" [disabled]="loading() || !canWrite()">
         Criar pedido
       </button>
     </div>
@@ -137,7 +137,7 @@
           <td>{{ row.product_line || "-" }}</td>
           <td>{{ row.issue_deadline_at ? (row.issue_deadline_at | date : "shortDate") : "-" }}</td>
           <td class="actions">
-            <button type="button" class="secondary" (click)="startEdit(row)">Editar</button>
+            <button pButton type="button" class="secondary" (click)="startEdit(row)">Editar</button>
           </td>
         </tr>
       </tbody>
@@ -180,7 +180,7 @@
       </label>
       <label>
         Data da vistoria
-        <input
+        <input pInputText
           type="date"
           [ngModel]="editInspectionScheduledAt()"
           (ngModelChange)="editInspectionScheduledAt.set($event)"
@@ -204,7 +204,7 @@
       </label>
       <label>
         Dia de pagamento
-        <input
+        <input pInputText
           type="number"
           [ngModel]="editPaymentDay()"
           (ngModelChange)="editPaymentDay.set($event ? +$event : null)"
@@ -213,7 +213,7 @@
       </label>
       <label>
         Prêmio final
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editFinalPremium()"
           (ngModelChange)="editFinalPremium.set($event)"
@@ -222,7 +222,7 @@
       </label>
       <label>
         Comissão final
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editFinalCommission()"
           (ngModelChange)="editFinalCommission.set($event)"
@@ -231,7 +231,7 @@
       </label>
       <label>
         Prazo de emissão
-        <input
+        <input pInputText
           type="date"
           [ngModel]="editIssueDeadlineAt()"
           (ngModelChange)="editIssueDeadlineAt.set($event)"
@@ -249,7 +249,7 @@
       </label>
       <label class="span-2">
         Notas
-        <textarea
+        <textarea pInputTextarea
           rows="3"
           [ngModel]="editNotes()"
           (ngModelChange)="editNotes.set($event)"
@@ -258,13 +258,13 @@
       </label>
     </div>
     <div class="actions top-gap">
-      <button type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
         Salvar
       </button>
-      <button type="button" class="secondary" (click)="runAiInsights()" [disabled]="loading()">
+      <button pButton type="button" class="secondary" (click)="runAiInsights()" [disabled]="loading()">
         Gerar insights IA
       </button>
-      <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
+      <button pButton type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
         Fechar
       </button>
     </div>

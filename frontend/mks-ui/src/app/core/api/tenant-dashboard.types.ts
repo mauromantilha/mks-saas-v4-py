@@ -76,3 +76,27 @@ export interface UpdateSalesGoalPayload {
   new_customers_goal?: number;
   notes?: string;
 }
+
+export interface TenantDashboardAIInsightsRequest {
+  period_days?: number;
+  focus?: string;
+  weekly_plan?: boolean;
+}
+
+export interface TenantDashboardAIInsightsResponse {
+  tenant_code: string;
+  period_days: number;
+  weekly_plan: boolean;
+  context: Record<string, unknown>;
+  insights: {
+    summary: string;
+    risks: string[];
+    opportunities: string[];
+    next_actions: string[];
+    qualification_score: number | null;
+    provider: string;
+    generated_at: string;
+    focus: string;
+    [key: string]: unknown;
+  };
+}

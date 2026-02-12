@@ -11,11 +11,14 @@ import {
   CNPJEnrichmentResponse,
   CreatePolicyRequestPayload,
   CreateProposalOptionPayload,
+  CreateSpecialProjectActivityPayload,
+  CreateSpecialProjectPayload,
   CreateCustomerPayload,
   CreateCommercialActivityPayload,
   CreateLeadPayload,
   CreateOpportunityPayload,
   CustomerRecord,
+  UpdateCustomerPayload,
   LeadConvertPayload,
   LeadConvertResponse,
   LeadRecord,
@@ -27,9 +30,16 @@ import {
   UpdatePolicyRequestPayload,
   UpdateLeadPayload,
   ProposalOptionRecord,
+  SpecialProjectActivityRecord,
+  SpecialProjectDocumentRecord,
+  SpecialProjectRecord,
+  UpdateSpecialProjectPayload,
   UpdateProposalOptionPayload,
   SalesMetricsFilters,
   SalesMetricsRecord,
+  TenantAIAssistantConsultRequest,
+  TenantAIAssistantConsultResponse,
+  TenantAIAssistantListResponse,
 } from "./sales-flow.types";
 
 @Injectable({ providedIn: "root" })
@@ -46,6 +56,18 @@ export class SalesFlowService {
 
   createCustomer(payload: CreateCustomerPayload): Observable<CustomerRecord> {
     return this.http.post<CustomerRecord>(`${this.apiBase}/customers/`, payload);
+  }
+
+  getCustomer(id: number): Observable<CustomerRecord> {
+    return this.http.get<CustomerRecord>(`${this.apiBase}/customers/${id}/`);
+  }
+
+  updateCustomer(id: number, payload: UpdateCustomerPayload): Observable<CustomerRecord> {
+    return this.http.patch<CustomerRecord>(`${this.apiBase}/customers/${id}/`, payload);
+  }
+
+  deleteCustomer(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiBase}/customers/${id}/`);
   }
 
   lookupCep(cep: string): Observable<CepLookupResponse> {
@@ -110,6 +132,97 @@ export class SalesFlowService {
     return this.http.patch<ProposalOptionRecord>(
       `${this.apiBase}/proposal-options/${id}/`,
       payload
+    );
+  }
+
+  listSpecialProjects(params?: {
+    status?: string;
+    project_type?: string;
+    search?: string;
+  }): Observable<SpecialProjectRecord[]> {
+    let httpParams = new HttpParams();
+    if (params?.status?.trim()) {
+      httpParams = httpParams.set("status", params.status.trim());
+    }
+    if (params?.project_type?.trim()) {
+      httpParams = httpParams.set("project_type", params.project_type.trim());
+    }
+    if (params?.search?.trim()) {
+      httpParams = httpParams.set("search", params.search.trim());
+    }
+    return this.http.get<SpecialProjectRecord[]>(`${this.apiBase}/special-projects/`, {
+      params: httpParams,
+    });
+  }
+
+  getSpecialProject(id: number): Observable<SpecialProjectRecord> {
+    return this.http.get<SpecialProjectRecord>(`${this.apiBase}/special-projects/${id}/`);
+  }
+
+  createSpecialProject(payload: CreateSpecialProjectPayload): Observable<SpecialProjectRecord> {
+    return this.http.post<SpecialProjectRecord>(`${this.apiBase}/special-projects/`, payload);
+  }
+
+  updateSpecialProject(
+    id: number,
+    payload: UpdateSpecialProjectPayload
+  ): Observable<SpecialProjectRecord> {
+    return this.http.patch<SpecialProjectRecord>(
+      `${this.apiBase}/special-projects/${id}/`,
+      payload
+    );
+  }
+
+  deleteSpecialProject(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiBase}/special-projects/${id}/`);
+  }
+
+  addSpecialProjectActivity(
+    projectId: number,
+    payload: CreateSpecialProjectActivityPayload
+  ): Observable<SpecialProjectActivityRecord> {
+    return this.http.post<SpecialProjectActivityRecord>(
+      `${this.apiBase}/special-projects/${projectId}/activities/`,
+      payload
+    );
+  }
+
+  updateSpecialProjectActivity(
+    projectId: number,
+    activityId: number,
+    payload: Partial<CreateSpecialProjectActivityPayload> & { status?: "OPEN" | "DONE" }
+  ): Observable<SpecialProjectActivityRecord> {
+    return this.http.patch<SpecialProjectActivityRecord>(
+      `${this.apiBase}/special-projects/${projectId}/activities/${activityId}/`,
+      payload
+    );
+  }
+
+  deleteSpecialProjectActivity(projectId: number, activityId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiBase}/special-projects/${projectId}/activities/${activityId}/`
+    );
+  }
+
+  uploadSpecialProjectDocument(
+    projectId: number,
+    file: File,
+    title: string,
+    notes = ""
+  ): Observable<SpecialProjectDocumentRecord> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", title || file.name);
+    formData.append("notes", notes);
+    return this.http.post<SpecialProjectDocumentRecord>(
+      `${this.apiBase}/special-projects/${projectId}/documents/`,
+      formData
+    );
+  }
+
+  deleteSpecialProjectDocument(projectId: number, documentId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiBase}/special-projects/${projectId}/documents/${documentId}/`
     );
   }
 
@@ -282,6 +395,25 @@ export class SalesFlowService {
     return this.http.post<AIInsightResponse>(
       `${this.apiBase}/opportunities/${id}/ai-insights/`,
       payload
+    );
+  }
+
+  consultTenantAIAssistant(
+    payload: TenantAIAssistantConsultRequest
+  ): Observable<TenantAIAssistantConsultResponse> {
+    return this.http.post<TenantAIAssistantConsultResponse>(
+      `${this.apiBase}/ai-assistant/consult/`,
+      payload
+    );
+  }
+
+  listTenantAIAssistantInteractions(
+    limit = 20
+  ): Observable<TenantAIAssistantListResponse> {
+    let params = new HttpParams().set("limit", String(limit));
+    return this.http.get<TenantAIAssistantListResponse>(
+      `${this.apiBase}/ai-assistant/consult/`,
+      { params }
     );
   }
 }

@@ -1,0 +1,144 @@
+.tenant-wrap {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.badge {
+  margin: 0;
+  color: #2563eb;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+h1 {
+  margin: 0.25rem 0;
+}
+
+.subtitle {
+  margin: 0;
+  color: #4b5563;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fff;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+}
+
+.two-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.flags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.flags label {
+  margin: 0;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.55rem 0.85rem;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+button.ghost {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.chips {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.chip {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.muted {
+  color: #6b7280;
+}
+
+.error {
+  color: #b91c1c;
+  margin: 0;
+}
+
+.notice {
+  color: #166534;
+  margin: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.55rem;
+  vertical-align: top;
+}
+
+@media (max-width: 960px) {
+  .grid,
+  .two-cols,
+  .flags {
+    grid-template-columns: 1fr;
+  }
+}

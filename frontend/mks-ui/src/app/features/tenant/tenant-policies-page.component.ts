@@ -1,4 +1,6 @@
 import { CommonModule } from "@angular/common";
+import { PrimeUiModule } from "../../shared/prime-ui.module";
+
 import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -35,7 +37,7 @@ import { SessionService } from "../../core/auth/session.service";
 @Component({
   selector: "app-tenant-policies-page",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [PrimeUiModule, CommonModule, FormsModule],
   templateUrl: "./tenant-policies-page.component.html",
   styleUrl: "./tenant-policies-page.component.scss",
 })

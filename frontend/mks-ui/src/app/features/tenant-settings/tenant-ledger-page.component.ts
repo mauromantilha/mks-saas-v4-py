@@ -1,4 +1,6 @@
 import { CommonModule, DatePipe } from "@angular/common";
+import { PrimeUiModule } from "../../shared/prime-ui.module";
+
 import { Component, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
@@ -8,7 +10,7 @@ import { LedgerEntry } from "../../core/api/ledger.types";
 @Component({
   selector: "app-tenant-ledger-page",
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [PrimeUiModule, CommonModule, FormsModule, DatePipe],
   templateUrl: "./tenant-ledger-page.component.html",
   styleUrl: "./tenant-ledger-page.component.scss",
 })

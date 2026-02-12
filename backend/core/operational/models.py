@@ -30,6 +30,18 @@ class Customer(BaseTenantModel):
         (TYPE_INDIVIDUAL, "Pessoa Física"),
         (TYPE_COMPANY, "Pessoa Jurídica"),
     ]
+    INDUSTRY_CHOICES = [
+        ("INDUSTRY", "Indústria"),
+        ("COMMERCE", "Comércio"),
+        ("RETAIL", "Varejo"),
+        ("SERVICES", "Serviços"),
+    ]
+    LEAD_SOURCE_CHOICES = [
+        ("SOCIAL_MEDIA", "Redes Sociais"),
+        ("GOOGLE_ADS", "Google Ads"),
+        ("FACEBOOK_ADS", "Facebook Ads"),
+        ("OTHER", "Outros"),
+    ]
 
     STAGE_LEAD = "LEAD"
     STAGE_PROSPECT = "PROSPECT"
@@ -117,6 +129,171 @@ class Customer(BaseTenantModel):
 
     def __str__(self):
         return f"{self.name} <{self.email}>"
+
+
+class SpecialProject(BaseTenantModel):
+    TYPE_TRANSFER_RISK = "TRANSFER_RISK"
+    TYPE_RISK_MANAGEMENT = "RISK_MANAGEMENT"
+    TYPE_CHOICES = [
+        (TYPE_TRANSFER_RISK, "Transferência de Risco (Seguros)"),
+        (TYPE_RISK_MANAGEMENT, "Gestão de Riscos"),
+    ]
+
+    STATUS_OPEN = "OPEN"
+    STATUS_CLOSED = "CLOSED"
+    STATUS_CLOSED_WON = "CLOSED_WON"
+    STATUS_CLOSED_LOST = "CLOSED_LOST"
+    STATUS_CHOICES = [
+        (STATUS_OPEN, "Aberto"),
+        (STATUS_CLOSED, "Fechado"),
+        (STATUS_CLOSED_WON, "Ganho"),
+        (STATUS_CLOSED_LOST, "Perdido"),
+    ]
+
+    customer = models.ForeignKey(
+        Customer,
+        related_name="special_projects",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    prospect_name = models.CharField(max_length=255, blank=True)
+    prospect_document = models.CharField(max_length=20, blank=True)
+    prospect_phone = models.CharField(max_length=30, blank=True)
+    prospect_email = models.EmailField(blank=True)
+    name = models.CharField(max_length=255)
+    project_type = models.CharField(max_length=30, choices=TYPE_CHOICES)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="owned_special_projects",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    start_date = models.DateField()
+    due_date = models.DateField()
+    swot_strengths = models.TextField(blank=True)
+    swot_weaknesses = models.TextField(blank=True)
+    swot_opportunities = models.TextField(blank=True)
+    swot_threats = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    loss_reason = models.TextField(blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    won_at = models.DateTimeField(null=True, blank=True)
+    lost_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=("company", "status"), name="idx_special_project_status"),
+            models.Index(fields=("company", "project_type"), name="idx_special_project_type"),
+        ]
+
+    def __str__(self):
+        return f"Projeto {self.id} - {self.name}"
+
+    def clean(self):
+        super().clean()
+        if self.customer_id and self.customer.company_id != self.company_id:
+            raise ValidationError("Project and Customer must belong to the same company.")
+        if self.owner_id and self.owner_id <= 0:
+            raise ValidationError("Project owner is invalid.")
+        if self.start_date and self.due_date and self.due_date < self.start_date:
+            raise ValidationError("Due date must be greater or equal start date.")
+        if self.status == self.STATUS_CLOSED_LOST and not self.loss_reason.strip():
+            raise ValidationError("Loss reason is required for lost projects.")
+
+    def save(self, *args, **kwargs):
+        now = timezone.now()
+        if self.status == self.STATUS_CLOSED:
+            if self.closed_at is None:
+                self.closed_at = now
+            self.won_at = None
+            self.lost_at = None
+        elif self.status == self.STATUS_CLOSED_WON:
+            if self.won_at is None:
+                self.won_at = now
+            self.closed_at = now
+            self.lost_at = None
+        elif self.status == self.STATUS_CLOSED_LOST:
+            if self.lost_at is None:
+                self.lost_at = now
+            self.closed_at = now
+            self.won_at = None
+        else:
+            self.closed_at = None
+            self.won_at = None
+            self.lost_at = None
+        return super().save(*args, **kwargs)
+
+
+class SpecialProjectActivity(BaseTenantModel):
+    STATUS_OPEN = "OPEN"
+    STATUS_DONE = "DONE"
+    STATUS_CHOICES = [
+        (STATUS_OPEN, "Aberta"),
+        (STATUS_DONE, "Concluída"),
+    ]
+
+    project = models.ForeignKey(
+        SpecialProject,
+        related_name="activities",
+        on_delete=models.CASCADE,
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    done_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("status", "due_date", "id")
+
+    def clean(self):
+        super().clean()
+        if self.project_id and self.project.company_id != self.company_id:
+            raise ValidationError("Project activity must belong to the same company.")
+
+    def save(self, *args, **kwargs):
+        if self.project_id and self.company_id is None:
+            self.company = self.project.company
+        if self.status == self.STATUS_DONE and self.done_at is None:
+            self.done_at = timezone.now()
+        if self.status != self.STATUS_DONE:
+            self.done_at = None
+        return super().save(*args, **kwargs)
+
+
+class SpecialProjectDocument(BaseTenantModel):
+    project = models.ForeignKey(
+        SpecialProject,
+        related_name="documents",
+        on_delete=models.CASCADE,
+    )
+    title = models.CharField(max_length=255)
+    file = models.FileField(upload_to="special_projects/")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="uploaded_special_project_documents",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def clean(self):
+        super().clean()
+        if self.project_id and self.project.company_id != self.company_id:
+            raise ValidationError("Project document must belong to the same company.")
+
+    def save(self, *args, **kwargs):
+        if self.project_id and self.company_id is None:
+            self.company = self.project.company
+        return super().save(*args, **kwargs)
 
 
 class Lead(BaseTenantModel):
@@ -258,6 +435,43 @@ class Lead(BaseTenantModel):
             )
         if self.first_response_at and self.status == "NEW":
             self.status = "QUALIFIED"
+        return super().save(*args, **kwargs)
+
+
+class CustomerContact(BaseTenantModel):
+    customer = models.ForeignKey(
+        Customer,
+        related_name="contacts",
+        on_delete=models.CASCADE,
+    )
+    name = models.CharField(max_length=255)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    role = models.CharField(max_length=120, blank=True)
+    is_primary = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-is_primary", "name", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "customer"),
+                condition=models.Q(is_primary=True),
+                name="uq_customer_primary_contact_per_customer",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=("company", "customer"), name="idx_customer_contact_customer"),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.customer_id and self.customer.company_id != self.company_id:
+            raise ValidationError("Contact and Customer must belong to the same company.")
+
+    def save(self, *args, **kwargs):
+        if self.customer_id and self.company_id is None:
+            self.company = self.customer.company
         return super().save(*args, **kwargs)
 
 
@@ -889,5 +1103,46 @@ class Installment(BaseTenantModel):
             models.UniqueConstraint(
                 fields=("company", "endosso", "number"),
                 name="uq_installment_number_per_endosso",
+            ),
+        ]
+
+
+class TenantAIInteraction(BaseTenantModel):
+    """
+    Stores AI assistant interactions per tenant to support contextual learning.
+    """
+
+    query_text = models.TextField()
+    focus = models.CharField(max_length=255, blank=True)
+    cnpj = models.CharField(max_length=14, blank=True)
+    context_snapshot = models.JSONField(default=dict, blank=True)
+    cnpj_profile = models.JSONField(default=dict, blank=True)
+    response_payload = models.JSONField(default=dict, blank=True)
+    learned_note = models.TextField(blank=True)
+    is_pinned_learning = models.BooleanField(default=False)
+    provider = models.CharField(max_length=50, blank=True)
+    confidence_score = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="tenant_ai_interactions",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(
+                fields=("company", "-created_at"),
+                name="idx_taii_recent",
+            ),
+            models.Index(
+                fields=("company", "is_pinned_learning"),
+                name="idx_taii_pinned",
             ),
         ]

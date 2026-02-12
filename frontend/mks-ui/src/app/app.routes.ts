@@ -12,6 +12,7 @@ import { PlatformTenantMonitoringPageComponent } from "./features/platform/platf
 import { SalesFlowPageComponent } from "./features/sales/sales-flow-page.component";
 import { SectionPlaceholderPageComponent } from "./features/shared/section-placeholder-page.component";
 import { TenantActivitiesPageComponent } from "./features/tenant/tenant-activities-page.component";
+import { TenantAIAssistantPageComponent } from "./features/tenant/tenant-ai-assistant-page.component";
 import { TenantCustomersPageComponent } from "./features/tenant/tenant-customers-page.component";
 import { TenantDashboardPageComponent } from "./features/tenant/tenant-dashboard-page.component";
 import { TenantInsurersPageComponent } from "./features/tenant/tenant-insurers-page.component";
@@ -21,6 +22,7 @@ import { TenantFinancePageComponent } from "./features/tenant/tenant-finance-pag
 import { TenantPoliciesPageComponent } from "./features/tenant/tenant-policies-page.component";
 import { TenantPolicyRequestsPageComponent } from "./features/tenant/tenant-policy-requests-page.component";
 import { TenantProposalOptionsPageComponent } from "./features/tenant/tenant-proposal-options-page.component";
+import { TenantSpecialProjectsPageComponent } from "./features/tenant/tenant-special-projects-page.component";
 import { TenantMembersPageComponent } from "./features/tenant-settings/tenant-members-page.component";
 import { TenantFiscalPageComponent } from "./features/tenant-settings/tenant-fiscal-page.component";
 import { TenantLedgerPageComponent } from "./features/tenant-settings/tenant-ledger-page.component";
@@ -94,12 +96,13 @@ export const routes: Routes = [
   },
   {
     path: "tenant/ai-assistant",
-    component: SectionPlaceholderPageComponent,
+    component: TenantAIAssistantPageComponent,
     canActivate: [authGuard, portalGuard],
     data: {
       portal: "TENANT",
       title: "IA Assistente",
-      description: "Módulo em desenvolvimento.",
+      description:
+        "Consultoria comercial e de seguros com IA, contexto do tenant e memória de aprendizado.",
     },
   },
   {
@@ -114,7 +117,7 @@ export const routes: Routes = [
   },
   {
     path: "tenant/special-projects",
-    component: SectionPlaceholderPageComponent,
+    component: TenantSpecialProjectsPageComponent,
     canActivate: [authGuard, portalGuard],
     data: {
       portal: "TENANT",

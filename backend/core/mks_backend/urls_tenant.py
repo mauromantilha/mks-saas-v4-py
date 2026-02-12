@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.urls import include, path
 from rest_framework.authtoken.views import obtain_auth_token
@@ -54,6 +56,14 @@ from operational.views import (
     SalesGoalDetailAPIView,
     SalesGoalListCreateAPIView,
     SalesMetricsAPIView,
+    SpecialProjectActivityDetailAPIView,
+    SpecialProjectActivityListCreateAPIView,
+    SpecialProjectDetailAPIView,
+    SpecialProjectDocumentDetailAPIView,
+    SpecialProjectDocumentListCreateAPIView,
+    SpecialProjectListCreateAPIView,
+    TenantAIAssistantConsultAPIView,
+    TenantDashboardAIInsightsAPIView,
     TenantDashboardSummaryAPIView,
 )
 
@@ -177,6 +187,16 @@ urlpatterns = [
         TenantDashboardSummaryAPIView.as_view(),
         name="tenant-dashboard-summary",
     ),
+    path(
+        "api/dashboard/ai-insights/",
+        TenantDashboardAIInsightsAPIView.as_view(),
+        name="tenant-dashboard-ai-insights",
+    ),
+    path(
+        "api/ai-assistant/consult/",
+        TenantAIAssistantConsultAPIView.as_view(),
+        name="tenant-ai-assistant-consult",
+    ),
     path("api/sales-goals/", SalesGoalListCreateAPIView.as_view(), name="sales-goals-list"),
     path(
         "api/sales-goals/<int:pk>/",
@@ -249,6 +269,36 @@ urlpatterns = [
         name="activities-ai-insights",
     ),
     path("api/sales/metrics/", SalesMetricsAPIView.as_view(), name="sales-metrics"),
+    path(
+        "api/special-projects/",
+        SpecialProjectListCreateAPIView.as_view(),
+        name="special-projects-list",
+    ),
+    path(
+        "api/special-projects/<int:pk>/",
+        SpecialProjectDetailAPIView.as_view(),
+        name="special-projects-detail",
+    ),
+    path(
+        "api/special-projects/<int:project_id>/activities/",
+        SpecialProjectActivityListCreateAPIView.as_view(),
+        name="special-project-activities-list",
+    ),
+    path(
+        "api/special-projects/<int:project_id>/activities/<int:pk>/",
+        SpecialProjectActivityDetailAPIView.as_view(),
+        name="special-project-activities-detail",
+    ),
+    path(
+        "api/special-projects/<int:project_id>/documents/",
+        SpecialProjectDocumentListCreateAPIView.as_view(),
+        name="special-project-documents-list",
+    ),
+    path(
+        "api/special-projects/<int:project_id>/documents/<int:document_id>/",
+        SpecialProjectDocumentDetailAPIView.as_view(),
+        name="special-project-documents-detail",
+    ),
     path("api/apolices/", ApoliceListCreateAPIView.as_view(), name="apolices-list"),
     path(
         "api/apolices/<int:pk>/",
@@ -276,3 +326,6 @@ urlpatterns = [
     # Finance bounded context: receivables/payables + fiscal APIs (tenant-scoped)
     path("api/finance/", include("finance.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

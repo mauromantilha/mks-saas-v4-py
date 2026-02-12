@@ -7,15 +7,15 @@
   </div>
 
   <div style="display: flex; gap: 8px; margin-top: 12px;">
-    <button type="button" (click)="load()" [disabled]="loading()">Carregar</button>
-    <button
+    <button pButton type="button" (click)="load()" [disabled]="loading()">Carregar</button>
+    <button pButton
       type="button"
       (click)="saveReplace()"
       [disabled]="loading() || !canEdit()"
     >
       Salvar (PUT)
     </button>
-    <button
+    <button pButton
       type="button"
       (click)="savePatch()"
       [disabled]="loading() || !canEdit()"
@@ -31,7 +31,7 @@
 
   <div style="margin-top: 16px;">
     <h2>rbac_overrides (editável)</h2>
-    <textarea
+    <textarea pInputTextarea
       rows="14"
       style="width: 100%; font-family: monospace;"
       [disabled]="!canEdit()"

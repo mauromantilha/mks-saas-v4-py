@@ -6,6 +6,8 @@ import { environment } from "../../../environments/environment";
 import {
   CreateSalesGoalPayload,
   SalesGoalRecord,
+  TenantDashboardAIInsightsRequest,
+  TenantDashboardAIInsightsResponse,
   TenantDashboardSummary,
   UpdateSalesGoalPayload,
 } from "./tenant-dashboard.types";
@@ -20,6 +22,21 @@ export class TenantDashboardService {
 
   getSummary(): Observable<TenantDashboardSummary> {
     return this.http.get<TenantDashboardSummary>(`${this.apiBase}/dashboard/summary/`);
+  }
+
+  getLatestAIInsights(): Observable<TenantDashboardAIInsightsResponse> {
+    return this.http.get<TenantDashboardAIInsightsResponse>(
+      `${this.apiBase}/dashboard/ai-insights/`
+    );
+  }
+
+  generateAIInsights(
+    payload: TenantDashboardAIInsightsRequest
+  ): Observable<TenantDashboardAIInsightsResponse> {
+    return this.http.post<TenantDashboardAIInsightsResponse>(
+      `${this.apiBase}/dashboard/ai-insights/`,
+      payload
+    );
   }
 
   listSalesGoals(): Observable<SalesGoalRecord[]> {

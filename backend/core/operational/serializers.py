@@ -4,12 +4,17 @@ from operational.models import (
     Apolice,
     CommercialActivity,
     Customer,
+    CustomerContact,
     Endosso,
     Lead,
     Opportunity,
     PolicyRequest,
     ProposalOption,
     SalesGoal,
+    SpecialProject,
+    SpecialProjectActivity,
+    SpecialProjectDocument,
+    TenantAIInteraction,
 )
 from commission.models import (
     CommissionAccrual,
@@ -20,14 +25,60 @@ from commission.models import (
 
 
 class CustomerSerializer(serializers.ModelSerializer):
+    class CustomerContactSerializer(serializers.ModelSerializer):
+        id = serializers.IntegerField(required=False)
+
+        class Meta:
+            model = CustomerContact
+            fields = ("id", "name", "email", "phone", "role", "is_primary", "notes")
+
     assigned_to_username = serializers.CharField(
         source="assigned_to.username", read_only=True
     )
+    contacts = CustomerContactSerializer(many=True, required=False)
+
+    REQUIRED_ADDRESS_FIELDS = ("zip_code", "street", "street_number", "neighborhood", "city", "state")
+
+    @staticmethod
+    def _digits_only(value: str) -> str:
+        return "".join(ch for ch in (value or "") if ch.isdigit())
+
+    def _is_valid_cpf(self, value: str) -> bool:
+        digits = self._digits_only(value)
+        if len(digits) != 11 or len(set(digits)) == 1:
+            return False
+        for size in (9, 10):
+            total = sum(int(digits[idx]) * ((size + 1) - idx) for idx in range(size))
+            checker = (total * 10) % 11
+            checker = 0 if checker == 10 else checker
+            if checker != int(digits[size]):
+                return False
+        return True
+
+    def _is_valid_cnpj(self, value: str) -> bool:
+        digits = self._digits_only(value)
+        if len(digits) != 14 or len(set(digits)) == 1:
+            return False
+        weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+        weights2 = [6, *weights1]
+        for weights, pos in ((weights1, 12), (weights2, 13)):
+            total = sum(int(d) * w for d, w in zip(digits[:pos], weights))
+            rem = total % 11
+            checker = 0 if rem < 2 else 11 - rem
+            if checker != int(digits[pos]):
+                return False
+        return True
 
     def validate(self, attrs):
         request = self.context.get("request")
         company = getattr(request, "company", None)
         assigned_to = attrs.get("assigned_to", getattr(self.instance, "assigned_to", None))
+        customer_type = attrs.get("customer_type", getattr(self.instance, "customer_type", "COMPANY"))
+        cpf = attrs.get("cpf", getattr(self.instance, "cpf", ""))
+        cnpj = attrs.get("cnpj", getattr(self.instance, "cnpj", ""))
+        industry = attrs.get("industry", getattr(self.instance, "industry", ""))
+        lead_source = attrs.get("lead_source", getattr(self.instance, "lead_source", ""))
+        contacts = attrs.get("contacts")
 
         if company is not None and assigned_to is not None:
             from customers.models import CompanyMembership
@@ -42,7 +93,86 @@ class CustomerSerializer(serializers.ModelSerializer):
                     "Assigned user is not an active member of this tenant."
                 )
 
+        if self.instance is None:
+            for field_name in ("name", "email", *self.REQUIRED_ADDRESS_FIELDS):
+                value = attrs.get(field_name, "")
+                if not str(value or "").strip():
+                    raise serializers.ValidationError({field_name: "Campo obrigatório."})
+        else:
+            for field_name in ("name", "email", *self.REQUIRED_ADDRESS_FIELDS):
+                if field_name in attrs and not str(attrs.get(field_name) or "").strip():
+                    raise serializers.ValidationError({field_name: "Campo obrigatório."})
+
+        if customer_type == Customer.TYPE_INDIVIDUAL and (
+            self.instance is None or "cpf" in attrs or "customer_type" in attrs
+        ):
+            if not self._is_valid_cpf(cpf):
+                raise serializers.ValidationError({"cpf": "CPF inválido."})
+        if customer_type == Customer.TYPE_COMPANY and (
+            self.instance is None or "cnpj" in attrs or "customer_type" in attrs
+        ):
+            if not self._is_valid_cnpj(cnpj):
+                raise serializers.ValidationError({"cnpj": "CNPJ inválido."})
+
+        valid_industries = {value for value, _label in Customer.INDUSTRY_CHOICES}
+        if industry and industry not in valid_industries:
+            raise serializers.ValidationError({"industry": "Segmento inválido."})
+        valid_sources = {value for value, _label in Customer.LEAD_SOURCE_CHOICES}
+        if lead_source and lead_source not in valid_sources:
+            raise serializers.ValidationError({"lead_source": "Origem inválida."})
+
+        if customer_type == Customer.TYPE_COMPANY and contacts is not None:
+            if len(contacts) == 0:
+                raise serializers.ValidationError(
+                    {"contacts": "Pessoa Jurídica exige ao menos um contato."}
+                )
+            primary_count = sum(1 for c in contacts if c.get("is_primary"))
+            if primary_count == 0:
+                contacts[0]["is_primary"] = True
+            elif primary_count > 1:
+                raise serializers.ValidationError(
+                    {"contacts": "Defina somente um contato primário."}
+                )
+
         return attrs
+
+    def _sync_contacts(self, customer: Customer, contacts_data):
+        if contacts_data is None:
+            return
+        existing = {item.id: item for item in customer.contacts.all()}
+        keep_ids = set()
+        for row in contacts_data:
+            contact_id = row.pop("id", None)
+            if contact_id and contact_id in existing:
+                item = existing[contact_id]
+                for key, value in row.items():
+                    setattr(item, key, value)
+                item.company = customer.company
+                item.customer = customer
+                item.save()
+                keep_ids.add(item.id)
+            else:
+                item = CustomerContact.all_objects.create(
+                    company=customer.company,
+                    customer=customer,
+                    **row,
+                )
+                keep_ids.add(item.id)
+        for item_id, item in existing.items():
+            if item_id not in keep_ids:
+                item.delete()
+
+    def create(self, validated_data):
+        contacts_data = validated_data.pop("contacts", None)
+        customer = super().create(validated_data)
+        self._sync_contacts(customer, contacts_data)
+        return customer
+
+    def update(self, instance, validated_data):
+        contacts_data = validated_data.pop("contacts", None)
+        customer = super().update(instance, validated_data)
+        self._sync_contacts(customer, contacts_data)
+        return customer
 
     class Meta:
         model = Customer
@@ -83,6 +213,7 @@ class CustomerSerializer(serializers.ModelSerializer):
             "street",
             "street_number",
             "address_complement",
+            "contacts",
             "assigned_to",
             "assigned_to_username",
             "last_contact_at",
@@ -96,6 +227,206 @@ class CustomerSerializer(serializers.ModelSerializer):
             "id",
             "assigned_to_username",
             "ai_insights",
+            "created_at",
+            "updated_at",
+        )
+
+
+class SpecialProjectActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SpecialProjectActivity
+        fields = (
+            "id",
+            "project",
+            "title",
+            "description",
+            "due_date",
+            "status",
+            "done_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "done_at", "created_at", "updated_at")
+
+
+class SpecialProjectDocumentSerializer(serializers.ModelSerializer):
+    uploaded_by_username = serializers.CharField(source="uploaded_by.username", read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SpecialProjectDocument
+        fields = (
+            "id",
+            "project",
+            "title",
+            "file",
+            "file_url",
+            "uploaded_by",
+            "uploaded_by_username",
+            "notes",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "uploaded_by",
+            "uploaded_by_username",
+            "file_url",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_file_url(self, obj):
+        request = self.context.get("request")
+        if not obj.file:
+            return ""
+        if request:
+            return request.build_absolute_uri(obj.file.url)
+        return obj.file.url
+
+
+class SpecialProjectSerializer(serializers.ModelSerializer):
+    owner_username = serializers.CharField(source="owner.username", read_only=True)
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+    activities = SpecialProjectActivitySerializer(many=True, read_only=True)
+    documents = SpecialProjectDocumentSerializer(many=True, read_only=True)
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        company = getattr(request, "company", None)
+
+        customer = attrs.get("customer", getattr(self.instance, "customer", None))
+        owner = attrs.get("owner", getattr(self.instance, "owner", None))
+        status = attrs.get("status", getattr(self.instance, "status", SpecialProject.STATUS_OPEN))
+        loss_reason = attrs.get("loss_reason", getattr(self.instance, "loss_reason", ""))
+        prospect_name = attrs.get("prospect_name", getattr(self.instance, "prospect_name", ""))
+        prospect_email = attrs.get("prospect_email", getattr(self.instance, "prospect_email", ""))
+        prospect_document = attrs.get("prospect_document", getattr(self.instance, "prospect_document", ""))
+
+        if company is not None:
+            if customer is not None and customer.company_id != company.id:
+                raise serializers.ValidationError("Customer belongs to another tenant.")
+            if owner is not None:
+                from customers.models import CompanyMembership
+
+                is_member = CompanyMembership.objects.filter(
+                    company=company,
+                    user=owner,
+                    is_active=True,
+                ).exists()
+                if not is_member:
+                    raise serializers.ValidationError("Owner must be an active tenant member.")
+
+        if customer is None:
+            if not str(prospect_name or "").strip():
+                raise serializers.ValidationError(
+                    {"prospect_name": "Informe nome do cliente para o projeto."}
+                )
+            if not str(prospect_email or "").strip():
+                raise serializers.ValidationError(
+                    {"prospect_email": "Informe email do cliente para o projeto."}
+                )
+            if not str(prospect_document or "").strip():
+                raise serializers.ValidationError(
+                    {"prospect_document": "Informe CPF/CNPJ para o projeto."}
+                )
+
+        if status == SpecialProject.STATUS_CLOSED_LOST and not str(loss_reason or "").strip():
+            raise serializers.ValidationError(
+                {"loss_reason": "Motivo da perda é obrigatório para projeto perdido."}
+            )
+
+        return attrs
+
+    def _sync_customer_for_won_project(self, project: SpecialProject):
+        if project.status != SpecialProject.STATUS_CLOSED_WON:
+            return
+
+        customer = project.customer
+        if customer is None:
+            email = (project.prospect_email or "").strip().lower()
+            customer = Customer.all_objects.filter(
+                company=project.company,
+                email=email,
+            ).first()
+            if customer is None:
+                digits = "".join(ch for ch in (project.prospect_document or "") if ch.isdigit())
+                customer_type = (
+                    Customer.TYPE_INDIVIDUAL if len(digits) == 11 else Customer.TYPE_COMPANY
+                )
+                customer = Customer.all_objects.create(
+                    company=project.company,
+                    name=(project.prospect_name or "").strip() or f"Projeto {project.id}",
+                    email=email or f"projeto-{project.id}@placeholder.local",
+                    customer_type=customer_type,
+                    lifecycle_stage=Customer.STAGE_CUSTOMER,
+                    document=(project.prospect_document or "").strip(),
+                    cpf=(project.prospect_document or "").strip() if customer_type == Customer.TYPE_INDIVIDUAL else "",
+                    cnpj=(project.prospect_document or "").strip() if customer_type == Customer.TYPE_COMPANY else "",
+                    phone=(project.prospect_phone or "").strip(),
+                    lead_source=Customer.LEAD_SOURCE_CHOICES[-1][0],
+                    industry=Customer.INDUSTRY_CHOICES[-1][0],
+                )
+            else:
+                customer.lifecycle_stage = Customer.STAGE_CUSTOMER
+                customer.save(update_fields=("lifecycle_stage", "updated_at"))
+
+            project.customer = customer
+            project.save(update_fields=("customer", "updated_at"))
+        else:
+            customer.lifecycle_stage = Customer.STAGE_CUSTOMER
+            customer.save(update_fields=("lifecycle_stage", "updated_at"))
+
+    def create(self, validated_data):
+        project = super().create(validated_data)
+        self._sync_customer_for_won_project(project)
+        return project
+
+    def update(self, instance, validated_data):
+        project = super().update(instance, validated_data)
+        self._sync_customer_for_won_project(project)
+        return project
+
+    class Meta:
+        model = SpecialProject
+        fields = (
+            "id",
+            "customer",
+            "customer_name",
+            "prospect_name",
+            "prospect_document",
+            "prospect_phone",
+            "prospect_email",
+            "name",
+            "project_type",
+            "owner",
+            "owner_username",
+            "start_date",
+            "due_date",
+            "swot_strengths",
+            "swot_weaknesses",
+            "swot_opportunities",
+            "swot_threats",
+            "status",
+            "loss_reason",
+            "closed_at",
+            "won_at",
+            "lost_at",
+            "notes",
+            "activities",
+            "documents",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "customer_name",
+            "owner_username",
+            "closed_at",
+            "won_at",
+            "lost_at",
+            "activities",
+            "documents",
             "created_at",
             "updated_at",
         )
@@ -501,6 +832,60 @@ class OpportunityHistorySerializer(serializers.Serializer):
 class AIInsightRequestSerializer(serializers.Serializer):
     focus = serializers.CharField(required=False, allow_blank=True, max_length=500)
     include_cnpj_enrichment = serializers.BooleanField(required=False, default=True)
+
+
+class TenantAIAssistantRequestSerializer(serializers.Serializer):
+    prompt = serializers.CharField(max_length=4000)
+    focus = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    cnpj = serializers.CharField(required=False, allow_blank=True, max_length=18)
+    include_cnpj_enrichment = serializers.BooleanField(required=False, default=True)
+    include_market_research = serializers.BooleanField(required=False, default=True)
+    include_financial_context = serializers.BooleanField(required=False, default=True)
+    include_commercial_context = serializers.BooleanField(required=False, default=True)
+    learned_note = serializers.CharField(required=False, allow_blank=True, max_length=2000)
+    pin_learning = serializers.BooleanField(required=False, default=False)
+
+
+class TenantDashboardAIInsightsRequestSerializer(serializers.Serializer):
+    period_days = serializers.IntegerField(required=False, min_value=7, max_value=365, default=30)
+    focus = serializers.CharField(required=False, allow_blank=True, max_length=500)
+    weekly_plan = serializers.BooleanField(required=False, default=False)
+
+
+class TenantAIAssistantInteractionSerializer(serializers.ModelSerializer):
+    created_by_username = serializers.CharField(source="created_by.username", read_only=True)
+
+    class Meta:
+        model = TenantAIInteraction
+        fields = (
+            "id",
+            "query_text",
+            "focus",
+            "cnpj",
+            "context_snapshot",
+            "cnpj_profile",
+            "response_payload",
+            "learned_note",
+            "is_pinned_learning",
+            "provider",
+            "confidence_score",
+            "created_by",
+            "created_by_username",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "context_snapshot",
+            "cnpj_profile",
+            "response_payload",
+            "provider",
+            "confidence_score",
+            "created_by",
+            "created_by_username",
+            "created_at",
+            "updated_at",
+        )
 
 
 class CNPJEnrichmentRequestSerializer(serializers.Serializer):

@@ -9,14 +9,14 @@
     </div>
     <div class="header-actions">
       <div class="tabs">
-        <button
+        <button pButton
           type="button"
           (click)="setMode('KANBAN')"
           [class.active]="mode() === 'KANBAN'"
         >
           Kanban
         </button>
-        <button
+        <button pButton
           type="button"
           (click)="setMode('LIST')"
           [class.active]="mode() === 'LIST'"
@@ -24,7 +24,7 @@
           Lista
         </button>
       </div>
-      <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+      <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
     </div>
   </header>
 
@@ -42,7 +42,7 @@
     <div class="form-grid">
       <label>
         Origem (obrigatório)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="leadSource()"
           (ngModelChange)="leadSource.set($event)"
@@ -52,7 +52,7 @@
       </label>
       <label>
         Contato
-        <input
+        <input pInputText
           type="text"
           [ngModel]="leadFullName()"
           (ngModelChange)="leadFullName.set($event)"
@@ -62,7 +62,7 @@
       </label>
       <label>
         Empresa
-        <input
+        <input pInputText
           type="text"
           [ngModel]="leadCompanyName()"
           (ngModelChange)="leadCompanyName.set($event)"
@@ -72,7 +72,7 @@
       </label>
       <label>
         E-mail
-        <input
+        <input pInputText
           type="email"
           [ngModel]="leadEmail()"
           (ngModelChange)="leadEmail.set($event)"
@@ -81,7 +81,7 @@
       </label>
       <label>
         Telefone
-        <input
+        <input pInputText
           type="text"
           [ngModel]="leadPhone()"
           (ngModelChange)="leadPhone.set($event)"
@@ -90,7 +90,7 @@
       </label>
       <label>
         CNPJ
-        <input
+        <input pInputText
           type="text"
           [ngModel]="leadCnpj()"
           (ngModelChange)="leadCnpj.set($event)"
@@ -100,7 +100,7 @@
       </label>
       <label>
         Produtos de interesse
-        <input
+        <input pInputText
           type="text"
           [ngModel]="leadProductsOfInterest()"
           (ngModelChange)="leadProductsOfInterest.set($event)"
@@ -110,7 +110,7 @@
       </label>
       <label>
         Orçamento estimado
-        <input
+        <input pInputText
           type="number"
           [ngModel]="leadEstimatedBudget()"
           (ngModelChange)="leadEstimatedBudget.set($event)"
@@ -119,7 +119,7 @@
       </label>
       <label class="field-full">
         Observações
-        <textarea
+        <textarea pInputTextarea
           rows="2"
           [ngModel]="leadNotes()"
           (ngModelChange)="leadNotes.set($event)"
@@ -129,7 +129,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="createLead()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="createLead()" [disabled]="loading() || !canWrite()">
         Criar lead
       </button>
     </div>
@@ -171,14 +171,14 @@
             </p>
 
             <div class="actions compact">
-              <button
+              <button pButton
                 type="button"
                 (click)="generateInsights(lead)"
                 [disabled]="loading()"
               >
                 IA
               </button>
-              <button
+              <button pButton
                 type="button"
                 (click)="enrichCnpj(lead)"
                 [disabled]="loading() || !canWrite()"
@@ -217,10 +217,10 @@
             <td>{{ lead.cnpj || "-" }}</td>
             <td>
               <div class="actions compact">
-                <button type="button" (click)="generateInsights(lead)" [disabled]="loading()">
+                <button pButton type="button" (click)="generateInsights(lead)" [disabled]="loading()">
                   IA
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="enrichCnpj(lead)"
                   [disabled]="loading() || !canWrite()"

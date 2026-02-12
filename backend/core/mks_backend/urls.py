@@ -15,6 +15,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.urls import include, path
 from rest_framework.authtoken.views import obtain_auth_token
@@ -78,6 +80,12 @@ from operational.views import (
     ProposalOptionDetailAPIView,
     ProposalOptionListCreateAPIView,
     SalesMetricsAPIView,
+    SpecialProjectActivityDetailAPIView,
+    SpecialProjectActivityListCreateAPIView,
+    SpecialProjectDetailAPIView,
+    SpecialProjectDocumentDetailAPIView,
+    SpecialProjectDocumentListCreateAPIView,
+    SpecialProjectListCreateAPIView,
     TenantDashboardSummaryAPIView,
 )
 
@@ -299,6 +307,36 @@ urlpatterns = [
         name="activities-ai-insights",
     ),
     path("api/sales/metrics/", SalesMetricsAPIView.as_view(), name="sales-metrics"),
+    path(
+        "api/special-projects/",
+        SpecialProjectListCreateAPIView.as_view(),
+        name="special-projects-list",
+    ),
+    path(
+        "api/special-projects/<int:pk>/",
+        SpecialProjectDetailAPIView.as_view(),
+        name="special-projects-detail",
+    ),
+    path(
+        "api/special-projects/<int:project_id>/activities/",
+        SpecialProjectActivityListCreateAPIView.as_view(),
+        name="special-project-activities-list",
+    ),
+    path(
+        "api/special-projects/<int:project_id>/activities/<int:pk>/",
+        SpecialProjectActivityDetailAPIView.as_view(),
+        name="special-project-activities-detail",
+    ),
+    path(
+        "api/special-projects/<int:project_id>/documents/",
+        SpecialProjectDocumentListCreateAPIView.as_view(),
+        name="special-project-documents-list",
+    ),
+    path(
+        "api/special-projects/<int:project_id>/documents/<int:document_id>/",
+        SpecialProjectDocumentDetailAPIView.as_view(),
+        name="special-project-documents-detail",
+    ),
     path("api/apolices/", ApoliceListCreateAPIView.as_view(), name="apolices-list"),
     path(
         "api/apolices/<int:pk>/",
@@ -325,3 +363,6 @@ urlpatterns = [
     path("api/finance/", include("finance.urls")),
     path("api/commission/", include("commission.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

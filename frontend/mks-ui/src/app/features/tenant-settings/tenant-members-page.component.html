@@ -7,14 +7,14 @@
   </div>
 
   <div class="toolbar">
-    <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+    <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
   </div>
 
   <div class="upsert" *ngIf="isOwner()">
     <h2>Adicionar/Atualizar membro</h2>
     <label>
       Username
-      <input
+      <input pInputText
         type="text"
         [ngModel]="newUsername()"
         (ngModelChange)="newUsername.set($event)"
@@ -26,7 +26,7 @@
         <option *ngFor="let role of roles" [ngValue]="role">{{ role }}</option>
       </select>
     </label>
-    <button type="button" (click)="createOrUpdateMember()" [disabled]="loading()">
+    <button pButton type="button" (click)="createOrUpdateMember()" [disabled]="loading()">
       Salvar membro
     </button>
   </div>
@@ -59,7 +59,7 @@
             >
               <option *ngFor="let role of roles" [ngValue]="role">{{ role }}</option>
             </select>
-            <button
+            <button pButton
               type="button"
               (click)="deactivate(member)"
               [disabled]="loading() || !member.is_active"

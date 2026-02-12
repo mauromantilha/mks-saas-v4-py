@@ -9,14 +9,14 @@
     </div>
     <div class="header-actions">
       <div class="tabs">
-        <button
+        <button pButton
           type="button"
           (click)="setMode('KANBAN')"
           [class.active]="mode() === 'KANBAN'"
         >
           Kanban
         </button>
-        <button
+        <button pButton
           type="button"
           (click)="setMode('LIST')"
           [class.active]="mode() === 'LIST'"
@@ -24,7 +24,7 @@
           Lista
         </button>
       </div>
-      <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+      <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
     </div>
   </header>
 
@@ -54,7 +54,7 @@
       </label>
       <label class="field-full">
         Título
-        <input
+        <input pInputText
           type="text"
           [ngModel]="title()"
           (ngModelChange)="title.set($event)"
@@ -64,7 +64,7 @@
       </label>
       <label>
         Valor estimado
-        <input
+        <input pInputText
           type="number"
           [ngModel]="amount()"
           (ngModelChange)="amount.set($event)"
@@ -84,7 +84,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button
+      <button pButton
         type="button"
         (click)="createOpportunity()"
         [disabled]="loading() || !canWrite()"
@@ -124,7 +124,7 @@
               Cliente #{{ opp.customer }} | Prob. {{ opp.closing_probability }}%
             </p>
             <div class="actions compact">
-              <button type="button" (click)="generateInsights(opp)" [disabled]="loading()">
+              <button pButton type="button" (click)="generateInsights(opp)" [disabled]="loading()">
                 IA
               </button>
             </div>
@@ -159,7 +159,7 @@
             <td>#{{ opp.customer }}</td>
             <td>
               <div class="actions compact">
-                <button type="button" (click)="generateInsights(opp)" [disabled]="loading()">
+                <button pButton type="button" (click)="generateInsights(opp)" [disabled]="loading()">
                   IA
                 </button>
               </div>

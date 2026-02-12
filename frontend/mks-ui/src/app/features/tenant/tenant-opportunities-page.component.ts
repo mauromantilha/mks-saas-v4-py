@@ -1,4 +1,6 @@
 import { CommonModule } from "@angular/common";
+import { PrimeUiModule } from "../../shared/prime-ui.module";
+
 import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -35,7 +37,7 @@ const PIPELINE_COLUMNS: StageColumn[] = [
 @Component({
   selector: "app-tenant-opportunities-page",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [PrimeUiModule, CommonModule, FormsModule],
   templateUrl: "./tenant-opportunities-page.component.html",
   styleUrl: "./tenant-opportunities-page.component.scss",
 })

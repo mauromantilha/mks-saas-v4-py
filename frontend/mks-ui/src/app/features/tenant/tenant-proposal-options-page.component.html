@@ -7,7 +7,7 @@
         Opções por seguradora/plano com ranking e recomendação para negociação final.
       </p>
     </div>
-    <button type="button" (click)="bootstrap()" [disabled]="loading()">Atualizar</button>
+    <button pButton type="button" (click)="bootstrap()" [disabled]="loading()">Atualizar</button>
   </header>
 
   <p *ngIf="loading()" class="muted">Carregando...</p>
@@ -32,7 +32,7 @@
       </label>
       <label>
         Seguradora
-        <input
+        <input pInputText
           type="text"
           [ngModel]="insurerName()"
           (ngModelChange)="insurerName.set($event)"
@@ -41,7 +41,7 @@
       </label>
       <label>
         Plano
-        <input
+        <input pInputText
           type="text"
           [ngModel]="planName()"
           (ngModelChange)="planName.set($event)"
@@ -50,7 +50,7 @@
       </label>
       <label>
         Prêmio anual
-        <input
+        <input pInputText
           type="text"
           [ngModel]="annualPremium()"
           (ngModelChange)="annualPremium.set($event)"
@@ -59,7 +59,7 @@
       </label>
       <label>
         Prêmio mensal
-        <input
+        <input pInputText
           type="text"
           [ngModel]="monthlyPremium()"
           (ngModelChange)="monthlyPremium.set($event)"
@@ -68,7 +68,7 @@
       </label>
       <label>
         Comissão %
-        <input
+        <input pInputText
           type="text"
           [ngModel]="commissionPercent()"
           (ngModelChange)="commissionPercent.set($event)"
@@ -77,7 +77,7 @@
       </label>
       <label>
         Comissão valor
-        <input
+        <input pInputText
           type="text"
           [ngModel]="commissionAmount()"
           (ngModelChange)="commissionAmount.set($event)"
@@ -86,7 +86,7 @@
       </label>
       <label>
         Ranking
-        <input
+        <input pInputText
           type="number"
           [ngModel]="rankingScore()"
           (ngModelChange)="rankingScore.set($event ? +$event : 0)"
@@ -104,7 +104,7 @@
       </label>
       <label class="span-2">
         Cobertura resumida
-        <textarea
+        <textarea pInputTextarea
           rows="2"
           [ngModel]="coverageSummary()"
           (ngModelChange)="coverageSummary.set($event)"
@@ -113,7 +113,7 @@
       </label>
       <label class="span-2">
         Notas
-        <textarea
+        <textarea pInputTextarea
           rows="2"
           [ngModel]="notes()"
           (ngModelChange)="notes.set($event)"
@@ -122,7 +122,7 @@
       </label>
     </div>
     <div class="actions top-gap">
-      <button type="button" (click)="createOption()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="createOption()" [disabled]="loading() || !canWrite()">
         Criar proposta
       </button>
     </div>
@@ -157,7 +157,7 @@
             </span>
           </td>
           <td class="actions">
-            <button type="button" class="secondary" (click)="startEdit(row)">Editar</button>
+            <button pButton type="button" class="secondary" (click)="startEdit(row)">Editar</button>
           </td>
         </tr>
       </tbody>
@@ -172,7 +172,7 @@
     <div class="form-grid">
       <label>
         Seguradora
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editInsurerName()"
           (ngModelChange)="editInsurerName.set($event)"
@@ -181,7 +181,7 @@
       </label>
       <label>
         Plano
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editPlanName()"
           (ngModelChange)="editPlanName.set($event)"
@@ -190,7 +190,7 @@
       </label>
       <label>
         Franquia
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editDeductible()"
           (ngModelChange)="editDeductible.set($event)"
@@ -199,7 +199,7 @@
       </label>
       <label>
         Prêmio anual
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editAnnualPremium()"
           (ngModelChange)="editAnnualPremium.set($event)"
@@ -208,7 +208,7 @@
       </label>
       <label>
         Prêmio mensal
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editMonthlyPremium()"
           (ngModelChange)="editMonthlyPremium.set($event)"
@@ -217,7 +217,7 @@
       </label>
       <label>
         Comissão %
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editCommissionPercent()"
           (ngModelChange)="editCommissionPercent.set($event)"
@@ -226,7 +226,7 @@
       </label>
       <label>
         Comissão valor
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editCommissionAmount()"
           (ngModelChange)="editCommissionAmount.set($event)"
@@ -235,7 +235,7 @@
       </label>
       <label>
         Ranking
-        <input
+        <input pInputText
           type="number"
           [ngModel]="editRankingScore()"
           (ngModelChange)="editRankingScore.set($event ? +$event : 0)"
@@ -253,7 +253,7 @@
       </label>
       <label>
         Referência externa
-        <input
+        <input pInputText
           type="text"
           [ngModel]="editExternalReference()"
           (ngModelChange)="editExternalReference.set($event)"
@@ -262,7 +262,7 @@
       </label>
       <label class="span-2">
         Cobertura resumida
-        <textarea
+        <textarea pInputTextarea
           rows="2"
           [ngModel]="editCoverageSummary()"
           (ngModelChange)="editCoverageSummary.set($event)"
@@ -271,7 +271,7 @@
       </label>
       <label class="span-2">
         Notas de franquia
-        <textarea
+        <textarea pInputTextarea
           rows="2"
           [ngModel]="editFranchiseNotes()"
           (ngModelChange)="editFranchiseNotes.set($event)"
@@ -280,7 +280,7 @@
       </label>
       <label class="span-2">
         Notas internas
-        <textarea
+        <textarea pInputTextarea
           rows="2"
           [ngModel]="editNotes()"
           (ngModelChange)="editNotes.set($event)"
@@ -289,13 +289,13 @@
       </label>
     </div>
     <div class="actions top-gap">
-      <button type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="saveEdit()" [disabled]="loading() || !canWrite()">
         Salvar
       </button>
-      <button type="button" class="secondary" (click)="runAiInsights()" [disabled]="loading()">
+      <button pButton type="button" class="secondary" (click)="runAiInsights()" [disabled]="loading()">
         Gerar insights IA
       </button>
-      <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
+      <button pButton type="button" class="secondary" (click)="cancelEdit()" [disabled]="loading()">
         Fechar
       </button>
     </div>

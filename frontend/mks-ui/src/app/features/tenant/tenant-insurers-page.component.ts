@@ -1,4 +1,6 @@
 import { CommonModule } from "@angular/common";
+import { PrimeUiModule } from "../../shared/prime-ui.module";
+
 import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -28,7 +30,7 @@ type ContactDraft = {
 @Component({
   selector: "app-tenant-insurers-page",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [PrimeUiModule, CommonModule, FormsModule],
   templateUrl: "./tenant-insurers-page.component.html",
   styleUrl: "./tenant-insurers-page.component.scss",
 })

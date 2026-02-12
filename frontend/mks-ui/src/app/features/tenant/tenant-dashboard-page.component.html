@@ -9,7 +9,15 @@
     </div>
     <div class="hero-actions">
       <a class="ghost" routerLink="/sales/flow">Abrir Fluxo Comercial</a>
-      <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+      <button
+        pButton
+        type="button"
+        (click)="generateWeeklyActionPlan()"
+        [disabled]="loading() || aiLoading()"
+      >
+        {{ aiLoading() ? "Gerando plano..." : "Plano Semanal IA" }}
+      </button>
+      <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
     </div>
   </header>
 
@@ -21,6 +29,7 @@
 
   <p *ngIf="loading()" class="muted">Carregando...</p>
   <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="aiError()" class="error">{{ aiError() }}</p>
   <p *ngIf="notice()" class="notice">{{ notice() }}</p>
 
   <ng-container *ngIf="summary() as summary">
@@ -181,6 +190,37 @@
         </div>
       </article>
 
+      <article class="card" *ngIf="aiInsights() as ai">
+        <h2>IA Insights Automáticos</h2>
+        <p class="muted">{{ ai.insights.summary || "Sem resumo de IA." }}</p>
+        <div class="mini-grid">
+          <div class="mini-item">
+            <span class="mini-label">Período</span>
+            <strong class="mini-value">{{ ai.period_days }} dias</strong>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">Provider</span>
+            <strong class="mini-value">{{ ai.insights.provider || "-" }}</strong>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">Score</span>
+            <strong class="mini-value">{{ ai.insights.qualification_score ?? "-" }}</strong>
+          </div>
+        </div>
+        <h3>Riscos</h3>
+        <ul>
+          <li *ngFor="let risk of ai.insights.risks">{{ risk }}</li>
+        </ul>
+        <h3>Oportunidades</h3>
+        <ul>
+          <li *ngFor="let item of ai.insights.opportunities">{{ item }}</li>
+        </ul>
+        <h3>Plano de ação</h3>
+        <ol>
+          <li *ngFor="let action of ai.insights.next_actions">{{ action }}</li>
+        </ol>
+      </article>
+
       <article class="card" *ngIf="canWrite()">
         <h2>Metas do mês</h2>
         <p class="muted">
@@ -191,7 +231,8 @@
           <label>
             Meta produção (prêmio)
             <input
-              type="number"
+              pInputText
+              inputmode="decimal"
               [ngModel]="goalPremium()"
               (ngModelChange)="goalPremium.set(($event ?? '') + '')"
               [disabled]="loading()"
@@ -200,7 +241,8 @@
           <label>
             Meta comissão
             <input
-              type="number"
+              pInputText
+              inputmode="decimal"
               [ngModel]="goalCommission()"
               (ngModelChange)="goalCommission.set(($event ?? '') + '')"
               [disabled]="loading()"
@@ -209,7 +251,8 @@
           <label>
             Meta novos clientes
             <input
-              type="number"
+              pInputText
+              inputmode="numeric"
               min="0"
               [ngModel]="goalNewCustomers()"
               (ngModelChange)="goalNewCustomers.set(($event ?? '') + '')"
@@ -219,6 +262,7 @@
           <label class="field-full">
             Observações
             <textarea
+              pInputTextarea
               rows="2"
               [ngModel]="goalNotes()"
               (ngModelChange)="goalNotes.set(($event ?? '') + '')"
@@ -228,7 +272,7 @@
         </div>
 
         <div class="hero-actions">
-          <button type="button" (click)="saveGoals()" [disabled]="loading()">
+          <button pButton type="button" (click)="saveGoals()" [disabled]="loading()">
             Salvar metas
           </button>
         </div>

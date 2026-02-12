@@ -9,9 +9,11 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework import generics, status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from customers.models import CompanyMembership
 from ledger.services import append_ledger_entry
 from operational.address import lookup_cep
 from operational.ai import (
@@ -32,6 +34,10 @@ from operational.models import (
     PolicyRequest,
     ProposalOption,
     SalesGoal,
+    SpecialProject,
+    SpecialProjectActivity,
+    SpecialProjectDocument,
+    TenantAIInteraction,
 )
 from commission.models import (
     CommissionAccrual,
@@ -39,6 +45,7 @@ from commission.models import (
     CommissionPlanScope,
     InsurerSettlementBatch,
 )
+from finance.models import Payable, ReceivableInstallment
 from operational.serializers import (
     AIInsightRequestSerializer,
     ApoliceSerializer,
@@ -62,6 +69,12 @@ from operational.serializers import (
     ProposalOptionSerializer,
     SalesGoalSerializer,
     SalesMetricsSerializer,
+    SpecialProjectActivitySerializer,
+    SpecialProjectDocumentSerializer,
+    SpecialProjectSerializer,
+    TenantAIAssistantInteractionSerializer,
+    TenantAIAssistantRequestSerializer,
+    TenantDashboardAIInsightsRequestSerializer,
 )
 from operational.services import (
     approve_commission_payout_batch,
@@ -256,6 +269,151 @@ class CustomerDetailAPIView(TenantScopedAPIViewMixin, generics.RetrieveUpdateDes
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related("contacts")
+
+
+class SpecialProjectListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView):
+    model = SpecialProject
+    serializer_class = SpecialProjectSerializer
+    ordering = ("-created_at",)
+    tenant_resource_key = "special_projects"
+
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related("customer", "owner")
+        status_filter = (self.request.query_params.get("status") or "").strip()
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        project_type = (self.request.query_params.get("project_type") or "").strip()
+        if project_type:
+            queryset = queryset.filter(project_type=project_type)
+        search = (self.request.query_params.get("search") or "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(prospect_name__icontains=search)
+                | Q(customer__name__icontains=search)
+            )
+        return queryset.prefetch_related("activities", "documents")
+
+
+class SpecialProjectDetailAPIView(
+    TenantScopedAPIViewMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    model = SpecialProject
+    serializer_class = SpecialProjectSerializer
+    tenant_resource_key = "special_projects"
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("customer", "owner").prefetch_related(
+            "activities", "documents"
+        )
+
+
+class SpecialProjectActivityListCreateAPIView(TenantScopedAPIViewMixin, generics.ListCreateAPIView):
+    model = SpecialProjectActivity
+    serializer_class = SpecialProjectActivitySerializer
+    ordering = ("status", "due_date", "id")
+    tenant_resource_key = "special_projects.activities"
+
+    def get_project(self):
+        return get_object_or_404(
+            SpecialProject.objects.filter(company=self.request.company),
+            pk=self.kwargs["project_id"],
+        )
+
+    def get_queryset(self):
+        project = self.get_project()
+        return super().get_queryset().filter(project=project)
+
+    def perform_create(self, serializer):
+        project = self.get_project()
+        instance = serializer.save(company=self.request.company, project=project)
+        self._append_ledger(
+            "CREATE",
+            instance,
+            after=_instance_payload(instance),
+            metadata={"project_id": project.id},
+        )
+        return instance
+
+
+class SpecialProjectActivityDetailAPIView(
+    TenantScopedAPIViewMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    model = SpecialProjectActivity
+    serializer_class = SpecialProjectActivitySerializer
+    tenant_resource_key = "special_projects.activities"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(project_id=self.kwargs["project_id"])
+
+
+class SpecialProjectDocumentListCreateAPIView(TenantScopedAPIViewMixin, APIView):
+    parser_classes = (MultiPartParser, FormParser)
+    tenant_resource_key = "special_projects.documents"
+
+    def get_project(self):
+        return get_object_or_404(
+            SpecialProject.objects.filter(company=self.request.company),
+            pk=self.kwargs["project_id"],
+        )
+
+    def get(self, request, project_id):
+        project = self.get_project()
+        queryset = SpecialProjectDocument.objects.filter(company=request.company, project=project)
+        serializer = SpecialProjectDocumentSerializer(queryset, many=True, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, project_id):
+        project = self.get_project()
+        serializer = SpecialProjectDocumentSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save(
+            company=request.company,
+            project=project,
+            uploaded_by=request.user if request.user.is_authenticated else None,
+        )
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user if request.user.is_authenticated else None,
+            action="CREATE",
+            resource_label=instance._meta.label,
+            resource_pk=str(instance.pk),
+            request=request,
+            data_after=_instance_payload(instance),
+            metadata={"tenant_resource_key": self.tenant_resource_key, "project_id": project.id},
+        )
+        data = SpecialProjectDocumentSerializer(instance, context={"request": request}).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
+class SpecialProjectDocumentDetailAPIView(TenantScopedAPIViewMixin, APIView):
+    tenant_resource_key = "special_projects.documents"
+
+    def delete(self, request, project_id, document_id):
+        instance = get_object_or_404(
+            SpecialProjectDocument.objects.filter(
+                company=request.company,
+                project_id=project_id,
+            ),
+            pk=document_id,
+        )
+        before = _instance_payload(instance)
+        instance.delete()
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user if request.user.is_authenticated else None,
+            action="DELETE",
+            resource_label=SpecialProjectDocument._meta.label,
+            resource_pk=str(document_id),
+            request=request,
+            data_before=before,
+            metadata={"tenant_resource_key": self.tenant_resource_key, "project_id": project_id},
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CepLookupAPIView(APIView):
@@ -924,6 +1082,338 @@ class TenantDashboardSummaryAPIView(APIView):
         return Response(payload)
 
 
+class TenantDashboardAIInsightsAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "ai_assistant"
+
+    def get(self, request):
+        latest = (
+            TenantAIInteraction.objects.filter(
+                company=request.company,
+                query_text__startswith=AUTO_DASHBOARD_QUERY_PREFIX,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if latest is None:
+            return Response(
+                {
+                    "tenant_code": request.company.tenant_code,
+                    "detail": "No auto dashboard insights generated yet.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        payload = latest.response_payload if isinstance(latest.response_payload, dict) else {}
+        context = latest.context_snapshot if isinstance(latest.context_snapshot, dict) else {}
+        return Response(
+            {
+                "tenant_code": request.company.tenant_code,
+                "period_days": 30,
+                "weekly_plan": "weekly_plan=True" in latest.query_text,
+                "context": context,
+                "insights": payload,
+                "generated_at": latest.created_at.isoformat(),
+                "source": "auto_history",
+            }
+        )
+
+    def post(self, request):
+        serializer = TenantDashboardAIInsightsRequestSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+
+        period_days = serializer.validated_data["period_days"]
+        focus = serializer.validated_data.get("focus", "").strip()
+        weekly_plan = serializer.validated_data.get("weekly_plan", False)
+
+        context, insights = _compute_dashboard_ai_insights(
+            request.company,
+            period_days=period_days,
+            focus=focus,
+            weekly_plan=weekly_plan,
+        )
+        _save_dashboard_ai_interaction(
+            company=request.company,
+            actor=request.user,
+            period_days=period_days,
+            weekly_plan=weekly_plan,
+            focus=focus,
+            context=context,
+            insights=insights,
+            is_auto=False,
+        )
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="CREATE",
+            resource_label="operational.TenantDashboardAIInsights",
+            resource_pk=request.company.tenant_code,
+            request=request,
+            event_type="TenantDashboardAIInsights.GENERATE",
+            data_after={
+                "period_days": period_days,
+                "weekly_plan": weekly_plan,
+                "provider": insights.get("provider"),
+            },
+            metadata={"tenant_resource_key": "ai_assistant"},
+        )
+        return Response(
+            {
+                "tenant_code": request.company.tenant_code,
+                "period_days": period_days,
+                "weekly_plan": weekly_plan,
+                "context": context,
+                "insights": insights,
+            }
+        )
+
+
+class TenantAIAssistantConsultAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "ai_assistant"
+
+    def _build_context(self, request) -> dict:
+        today = timezone.localdate()
+        month_start = date(today.year, today.month, 1)
+
+        leads = Lead.objects.aggregate(
+            total=Count("id"),
+            hot=Count("id", filter=Q(lead_score_label=Lead.SCORE_HOT)),
+            warm=Count("id", filter=Q(lead_score_label=Lead.SCORE_WARM)),
+            cold=Count("id", filter=Q(lead_score_label=Lead.SCORE_COLD)),
+            converted=Count("id", filter=Q(status="CONVERTED")),
+        )
+        opportunities = Opportunity.objects.aggregate(
+            total=Count("id"),
+            won=Count("id", filter=Q(stage="WON")),
+            lost=Count("id", filter=Q(stage="LOST")),
+            pipeline_value=Sum("amount", filter=~Q(stage__in=("WON", "LOST"))),
+        )
+        activities = CommercialActivity.objects.aggregate(
+            open_total=Count("id", filter=Q(status=CommercialActivity.STATUS_PENDING)),
+            overdue_total=Count(
+                "id",
+                filter=Q(
+                    status=CommercialActivity.STATUS_PENDING,
+                    due_at__lt=timezone.now(),
+                ),
+            ),
+            sla_breached=Count(
+                "id",
+                filter=Q(
+                    status=CommercialActivity.STATUS_PENDING,
+                    sla_due_at__isnull=False,
+                    sla_due_at__lt=timezone.now(),
+                ),
+            ),
+        )
+        financial = {
+            "receivables_open_total": _safe_float(
+                ReceivableInstallment.objects.filter(status=ReceivableInstallment.STATUS_OPEN).aggregate(
+                    total=Sum("amount")
+                )["total"]
+            ),
+            "receivables_paid_total": _safe_float(
+                ReceivableInstallment.objects.filter(status=ReceivableInstallment.STATUS_PAID).aggregate(
+                    total=Sum("amount")
+                )["total"]
+            ),
+            "payables_open_total": _safe_float(
+                Payable.objects.filter(status=Payable.STATUS_OPEN).aggregate(total=Sum("amount"))[
+                    "total"
+                ]
+            ),
+            "payables_paid_total": _safe_float(
+                Payable.objects.filter(status=Payable.STATUS_PAID).aggregate(total=Sum("amount"))[
+                    "total"
+                ]
+            ),
+        }
+        financial["delinquency_overdue_total"] = _safe_float(
+            ReceivableInstallment.objects.filter(
+                status=ReceivableInstallment.STATUS_OPEN,
+                due_date__lt=today,
+            ).aggregate(total=Sum("amount"))["total"]
+        )
+
+        production = Endosso.objects.filter(data_emissao__gte=month_start).aggregate(
+            premium_total=Sum("premio_total"),
+            commission_total=Sum("valor_comissao"),
+        )
+        goal = SalesGoal.objects.filter(year=today.year, month=today.month).first()
+        members = CompanyMembership.objects.filter(company=request.company, is_active=True)
+        team = {
+            "total_members": members.count(),
+            "owners": members.filter(role=CompanyMembership.ROLE_OWNER).count(),
+            "managers": members.filter(role=CompanyMembership.ROLE_MANAGER).count(),
+            "members": members.filter(role=CompanyMembership.ROLE_MEMBER).count(),
+        }
+
+        return {
+            "tenant_code": request.company.tenant_code,
+            "as_of": timezone.now().isoformat(),
+            "commercial": {
+                "leads": leads,
+                "opportunities": {
+                    "total": opportunities.get("total", 0),
+                    "won": opportunities.get("won", 0),
+                    "lost": opportunities.get("lost", 0),
+                    "pipeline_value": _safe_float(opportunities.get("pipeline_value")),
+                },
+                "activities": activities,
+                "customers_total": Customer.objects.count(),
+                "policies_active": Apolice.objects.filter(status="ATIVA").count(),
+            },
+            "financial": financial,
+            "production_month": {
+                "premium_total": _safe_float(production.get("premium_total")),
+                "commission_total": _safe_float(production.get("commission_total")),
+            },
+            "goals_month": {
+                "premium_goal": _safe_float(getattr(goal, "premium_goal", 0)),
+                "commission_goal": _safe_float(getattr(goal, "commission_goal", 0)),
+                "new_customers_goal": int(getattr(goal, "new_customers_goal", 0) or 0),
+            },
+            "team": team,
+        }
+
+    def _load_learning_memory(self, company) -> dict:
+        pinned = list(
+            TenantAIInteraction.objects.filter(company=company, is_pinned_learning=True)
+            .order_by("-created_at")
+            .values("id", "learned_note", "query_text", "created_at")[:8]
+        )
+        recent = list(
+            TenantAIInteraction.objects.filter(company=company).order_by("-created_at").values(
+                "id",
+                "query_text",
+                "focus",
+                "created_at",
+                "response_payload",
+            )[:6]
+        )
+        compact_recent = []
+        for row in recent:
+            response_payload = row.get("response_payload") or {}
+            summary = ""
+            if isinstance(response_payload, dict):
+                summary = str(response_payload.get("summary") or "").strip()
+            compact_recent.append(
+                {
+                    "id": row.get("id"),
+                    "query_text": row.get("query_text"),
+                    "focus": row.get("focus"),
+                    "summary": summary[:450],
+                    "created_at": row.get("created_at"),
+                }
+            )
+        return {"pinned_learning": pinned, "recent_interactions": compact_recent}
+
+    def get(self, request):
+        limit_raw = request.query_params.get("limit", "20").strip()
+        try:
+            limit = max(1, min(100, int(limit_raw)))
+        except ValueError:
+            limit = 20
+        interactions = TenantAIInteraction.objects.filter(company=request.company).select_related(
+            "created_by"
+        )[:limit]
+        return Response(
+            {
+                "tenant_code": request.company.tenant_code,
+                "results": TenantAIAssistantInteractionSerializer(
+                    interactions,
+                    many=True,
+                ).data,
+            }
+        )
+
+    def post(self, request):
+        serializer = TenantAIAssistantRequestSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        cnpj = sanitize_cnpj(data.get("cnpj", ""))
+        cnpj_profile = None
+        if data.get("include_cnpj_enrichment", True) and cnpj:
+            cnpj_profile = lookup_cnpj_profile(cnpj)
+
+        context_snapshot = self._build_context(request)
+        learning_memory = self._load_learning_memory(request.company)
+
+        payload = {
+            "prompt": data["prompt"],
+            "focus": data.get("focus", ""),
+            "context_snapshot": context_snapshot,
+            "learning_memory": learning_memory,
+            "market_research_required": bool(data.get("include_market_research", True)),
+            "cnpj_profile": cnpj_profile,
+            "instructions": {
+                "domain": "Corretora de Seguros",
+                "goals": [
+                    "Analisar carteira, inadimplência, financeiro, parcelas, equipe e metas.",
+                    "Sugerir próximos passos comerciais e operacionais.",
+                    "Indicar hipóteses de pesquisa de mercado e benchmarking setorial.",
+                    "Quando houver CNPJ, orientar leitura de quadro societário e presença digital.",
+                ],
+                "compliance": [
+                    "Não expor dados sensíveis sem necessidade.",
+                    "Separar fatos dos dados e inferências.",
+                ],
+            },
+        }
+        insights = generate_commercial_insights(
+            entity_type="TENANT_AI_ASSISTANT",
+            payload=payload,
+            focus=(data.get("focus", "") or "consultoria comercial e seguros"),
+            cnpj_profile=cnpj_profile,
+        )
+
+        interaction = TenantAIInteraction.objects.create(
+            company=request.company,
+            query_text=data["prompt"],
+            focus=data.get("focus", ""),
+            cnpj=cnpj,
+            context_snapshot=context_snapshot,
+            cnpj_profile=cnpj_profile or {},
+            response_payload=insights,
+            learned_note=data.get("learned_note", "").strip(),
+            is_pinned_learning=bool(data.get("pin_learning", False)),
+            provider=str(insights.get("provider") or ""),
+            confidence_score=insights.get("qualification_score"),
+            created_by=request.user if getattr(request.user, "is_authenticated", False) else None,
+        )
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="CREATE",
+            resource_label=TenantAIInteraction._meta.label,
+            resource_pk=str(interaction.pk),
+            request=request,
+            event_type="TenantAIInteraction.CONSULT",
+            data_after={
+                "id": interaction.id,
+                "focus": interaction.focus,
+                "provider": interaction.provider,
+                "is_pinned_learning": interaction.is_pinned_learning,
+            },
+            metadata={"tenant_resource_key": "ai_assistant"},
+        )
+        return Response(
+            {
+                "tenant_code": request.company.tenant_code,
+                "interaction": TenantAIAssistantInteractionSerializer(interaction).data,
+                "assistant": insights,
+                "context_snapshot": context_snapshot,
+                "learning_memory": learning_memory,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class CommercialActivityListCreateAPIView(
     TenantScopedAPIViewMixin, generics.ListCreateAPIView
 ):
@@ -1104,6 +1594,157 @@ def _instance_payload(instance) -> dict:
             )
         )
     return payload
+
+
+def _safe_float(value) -> float:
+    if value is None:
+        return 0.0
+
+
+AUTO_DASHBOARD_QUERY_PREFIX = "[AUTO_DASHBOARD]"
+
+
+def _build_dashboard_ai_context(company, *, period_days: int, weekly_plan: bool) -> dict:
+    today = timezone.localdate()
+    period_start = today - timedelta(days=period_days)
+    now = timezone.now()
+
+    leads = Lead.objects.filter(created_at__date__gte=period_start).aggregate(
+        total=Count("id"),
+        qualified=Count("id", filter=Q(status="QUALIFIED")),
+        converted=Count("id", filter=Q(status="CONVERTED")),
+        hot=Count("id", filter=Q(lead_score_label=Lead.SCORE_HOT)),
+    )
+    opportunities = Opportunity.objects.filter(created_at__date__gte=period_start).aggregate(
+        total=Count("id"),
+        won=Count("id", filter=Q(stage="WON")),
+        lost=Count("id", filter=Q(stage="LOST")),
+        pipeline_value=Sum("amount", filter=~Q(stage__in=("WON", "LOST"))),
+    )
+    activities = CommercialActivity.objects.filter(created_at__date__gte=period_start).aggregate(
+        total=Count("id"),
+        overdue=Count(
+            "id",
+            filter=Q(
+                status=CommercialActivity.STATUS_PENDING,
+                due_at__lt=now,
+            ),
+        ),
+        sla_breached=Count(
+            "id",
+            filter=Q(
+                status=CommercialActivity.STATUS_PENDING,
+                sla_due_at__isnull=False,
+                sla_due_at__lt=now,
+            ),
+        ),
+    )
+    financial = {
+        "receivables_open": _safe_float(
+            ReceivableInstallment.objects.filter(status=ReceivableInstallment.STATUS_OPEN).aggregate(
+                total=Sum("amount")
+            )["total"]
+        ),
+        "receivables_overdue": _safe_float(
+            ReceivableInstallment.objects.filter(
+                status=ReceivableInstallment.STATUS_OPEN,
+                due_date__lt=today,
+            ).aggregate(total=Sum("amount"))["total"]
+        ),
+        "payables_open": _safe_float(
+            Payable.objects.filter(status=Payable.STATUS_OPEN).aggregate(total=Sum("amount"))[
+                "total"
+            ]
+        ),
+    }
+    production = Endosso.objects.filter(data_emissao__gte=period_start).aggregate(
+        premium=Sum("premio_total"),
+        commission=Sum("valor_comissao"),
+    )
+    goals = SalesGoal.objects.filter(year=today.year, month=today.month).values(
+        "premium_goal",
+        "commission_goal",
+        "new_customers_goal",
+    ).first() or {}
+
+    return {
+        "tenant_code": company.tenant_code,
+        "period_start": period_start.isoformat(),
+        "period_end": today.isoformat(),
+        "weekly_plan_requested": weekly_plan,
+        "leads": leads,
+        "opportunities": {
+            "total": opportunities.get("total", 0),
+            "won": opportunities.get("won", 0),
+            "lost": opportunities.get("lost", 0),
+            "pipeline_value": _safe_float(opportunities.get("pipeline_value")),
+        },
+        "activities": activities,
+        "financial": financial,
+        "production": {
+            "premium_total": _safe_float(production.get("premium")),
+            "commission_total": _safe_float(production.get("commission")),
+        },
+        "goals_month": {
+            "premium_goal": _safe_float(goals.get("premium_goal")),
+            "commission_goal": _safe_float(goals.get("commission_goal")),
+            "new_customers_goal": int(goals.get("new_customers_goal") or 0),
+        },
+    }
+
+
+def _compute_dashboard_ai_insights(company, *, period_days: int, focus: str, weekly_plan: bool):
+    context = _build_dashboard_ai_context(
+        company,
+        period_days=period_days,
+        weekly_plan=weekly_plan,
+    )
+    focus_text = focus or (
+        "gerar plano de ação semanal de seguros com foco em crescimento de produção, "
+        "redução de inadimplência e melhoria de conversão comercial"
+        if weekly_plan
+        else "resumo executivo de desempenho comercial e financeiro"
+    )
+    insights = generate_commercial_insights(
+        entity_type="TENANT_DASHBOARD",
+        payload=context,
+        focus=focus_text,
+        cnpj_profile=None,
+    )
+    return context, insights
+
+
+def _save_dashboard_ai_interaction(
+    *,
+    company,
+    actor,
+    period_days: int,
+    weekly_plan: bool,
+    focus: str,
+    context: dict,
+    insights: dict,
+    is_auto: bool,
+):
+    mode = "AUTO" if is_auto else "MANUAL"
+    query_text = f"{AUTO_DASHBOARD_QUERY_PREFIX} [{mode}] period_days={period_days} weekly_plan={weekly_plan}"
+    return TenantAIInteraction.objects.create(
+        company=company,
+        query_text=query_text,
+        focus=focus,
+        cnpj="",
+        context_snapshot=context,
+        cnpj_profile={},
+        response_payload=insights,
+        learned_note="",
+        is_pinned_learning=False,
+        provider=str(insights.get("provider") or ""),
+        confidence_score=insights.get("qualification_score"),
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 class BaseCommercialAIInsightsAPIView(APIView):

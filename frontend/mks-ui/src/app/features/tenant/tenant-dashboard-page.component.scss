@@ -136,6 +136,17 @@ button[disabled] {
   padding: 12px;
 }
 
+.card h3 {
+  margin: 10px 0 6px;
+  font-size: 0.95rem;
+}
+
+.card ul,
+.card ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

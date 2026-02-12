@@ -9,9 +9,9 @@
   <div class="actions">
     <label>
       Limite
-      <input type="number" [ngModel]="limit()" (ngModelChange)="limit.set($event)" />
+      <input pInputText type="number" [ngModel]="limit()" (ngModelChange)="limit.set($event)" />
     </label>
-    <button type="button" (click)="load()" [disabled]="loading()">Recarregar</button>
+    <button pButton type="button" (click)="load()" [disabled]="loading()">Recarregar</button>
   </div>
 
   <p *ngIf="loading()">Carregando...</p>

@@ -1,0 +1,134 @@
+<section class="tenant-wrap">
+  <header class="hero">
+    <div>
+      <p class="badge">Estratégia & Comercial</p>
+      <h1>IA Assistente</h1>
+      <p class="subtitle">
+        Consultor de seguros com análise comercial, financeira, carteira e memória por tenant.
+      </p>
+    </div>
+    <button pButton type="button" class="ghost" (click)="loadHistory()" [disabled]="loadingHistory()">
+      Atualizar histórico
+    </button>
+  </header>
+
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+
+  <section class="grid">
+    <article class="card">
+      <h2>Nova consulta</h2>
+      <label>
+        Pergunta / objetivo *
+        <textarea
+          pInputTextarea
+          rows="5"
+          [ngModel]="prompt()"
+          (ngModelChange)="prompt.set(($event ?? '').toString())"
+          placeholder="Ex.: Analise inadimplência, carteira e ações para subir conversão no ramo AUTO."
+        ></textarea>
+      </label>
+
+      <div class="two-cols">
+        <label>
+          Foco
+          <input
+            pInputText
+            type="text"
+            [ngModel]="focus()"
+            (ngModelChange)="focus.set(($event ?? '').toString())"
+          />
+        </label>
+        <label>
+          CNPJ (opcional)
+          <input
+            pInputText
+            type="text"
+            maxlength="18"
+            [ngModel]="cnpj()"
+            (ngModelChange)="cnpj.set(($event ?? '').toString())"
+            placeholder="00.000.000/0000-00"
+          />
+        </label>
+      </div>
+
+      <label>
+        Aprendizado para memória (opcional)
+        <textarea
+          pInputTextarea
+          rows="3"
+          [ngModel]="learnedNote()"
+          (ngModelChange)="learnedNote.set(($event ?? '').toString())"
+          placeholder="Ex.: Nosso foco em março é aumentar cross-sell em clientes PJ."
+        ></textarea>
+      </label>
+
+      <div class="flags">
+        <label><p-checkbox [binary]="true" [ngModel]="includeCnpj()" (ngModelChange)="includeCnpj.set(!!$event)"></p-checkbox> Enriquecer CNPJ</label>
+        <label><p-checkbox [binary]="true" [ngModel]="includeMarketResearch()" (ngModelChange)="includeMarketResearch.set(!!$event)"></p-checkbox> Pesquisa de mercado</label>
+        <label><p-checkbox [binary]="true" [ngModel]="includeFinancialContext()" (ngModelChange)="includeFinancialContext.set(!!$event)"></p-checkbox> Contexto financeiro</label>
+        <label><p-checkbox [binary]="true" [ngModel]="includeCommercialContext()" (ngModelChange)="includeCommercialContext.set(!!$event)"></p-checkbox> Contexto comercial</label>
+        <label><p-checkbox [binary]="true" [ngModel]="pinLearning()" (ngModelChange)="pinLearning.set(!!$event)"></p-checkbox> Fixar aprendizado</label>
+      </div>
+
+      <button pButton type="button" (click)="consult()" [disabled]="loading()">
+        {{ loading() ? "Analisando..." : "Consultar IA" }}
+      </button>
+    </article>
+
+    <article class="card" *ngIf="latestResponse() as response">
+      <h2>Resposta</h2>
+      <p class="muted">{{ response.assistant.summary || "Sem resumo." }}</p>
+
+      <div class="chips">
+        <span class="chip">Provider: {{ response.assistant.provider || "-" }}</span>
+        <span class="chip">Score: {{ response.assistant.qualification_score ?? "-" }}</span>
+      </div>
+
+      <h3>Riscos</h3>
+      <ul>
+        <li *ngFor="let risk of response.assistant.risks">{{ risk }}</li>
+      </ul>
+
+      <h3>Oportunidades</h3>
+      <ul>
+        <li *ngFor="let item of response.assistant.opportunities">{{ item }}</li>
+      </ul>
+
+      <h3>Próximas ações</h3>
+      <ul>
+        <li *ngFor="let action of response.assistant.next_actions">{{ action }}</li>
+      </ul>
+    </article>
+  </section>
+
+  <section class="card">
+    <h2>Memória e histórico</h2>
+    <p *ngIf="loadingHistory()" class="muted">Carregando histórico...</p>
+    <p *ngIf="!loadingHistory() && history().length === 0" class="muted">
+      Ainda não há interações registradas.
+    </p>
+    <p-table *ngIf="history().length > 0" [value]="history()" [tableStyle]="{ 'min-width': '50rem' }">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Quando</th>
+          <th>Foco</th>
+          <th>Pergunta</th>
+          <th>Provider</th>
+          <th>Ação</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-item>
+        <tr>
+          <td>{{ item.created_at | date: "dd/MM/yyyy HH:mm" }}</td>
+          <td>{{ item.focus || "-" }}</td>
+          <td>{{ item.query_text }}</td>
+          <td>{{ item.provider || "-" }}</td>
+          <td>
+            <button pButton type="button" class="ghost" (click)="useHistory(item)">Abrir</button>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </section>
+</section>

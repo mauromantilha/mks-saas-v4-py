@@ -1,0 +1,278 @@
+<section class="tenant-wrap">
+  <header class="page-header">
+    <div>
+      <p class="badge">Estratégia & Comercial</p>
+      <h1>Projetos Especiais</h1>
+      <p class="subtitle">Criação, execução e fechamento de projetos com atividades, SWOT e documentos.</p>
+    </div>
+    <button pButton type="button" (click)="bootstrap()" [disabled]="loading()">Atualizar</button>
+  </header>
+
+  <p *ngIf="loading()" class="muted">Carregando...</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+
+  <article class="card">
+    <h2>Criar Projeto</h2>
+    <div class="toggle-row">
+      <label><input type="radio" [checked]="useExistingCustomer()" (change)="changeCustomerMode(true)" /> Cliente existente</label>
+      <label><input type="radio" [checked]="!useExistingCustomer()" (change)="changeCustomerMode(false)" /> Novo cliente (simplificado)</label>
+    </div>
+
+    <div class="form-grid">
+      <label *ngIf="useExistingCustomer()">
+        Cliente
+        <select [ngModel]="customerId()" (ngModelChange)="customerId.set($event ? +$event : null)">
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let c of customers()" [value]="c.id">#{{ c.id }} - {{ c.name }}</option>
+        </select>
+      </label>
+
+      <label *ngIf="!useExistingCustomer()">
+        Nome cliente
+        <input pInputText type="text" [ngModel]="newCustomerName()" (ngModelChange)="newCustomerName.set($event)" />
+      </label>
+      <label *ngIf="!useExistingCustomer()">
+        CPF/CNPJ
+        <input pInputText type="text" [ngModel]="newCustomerDocument()" (ngModelChange)="newCustomerDocument.set($event)" />
+      </label>
+      <label *ngIf="!useExistingCustomer()">
+        Telefone
+        <input pInputText type="text" [ngModel]="newCustomerPhone()" (ngModelChange)="newCustomerPhone.set($event)" />
+      </label>
+      <label *ngIf="!useExistingCustomer()">
+        E-mail
+        <input pInputText type="email" [ngModel]="newCustomerEmail()" (ngModelChange)="newCustomerEmail.set($event)" />
+      </label>
+
+      <label>
+        Nome do projeto
+        <input pInputText type="text" [ngModel]="projectName()" (ngModelChange)="projectName.set($event)" />
+      </label>
+      <label>
+        Tipo de projeto
+        <select [ngModel]="projectType()" (ngModelChange)="projectType.set($event)">
+          <option value="TRANSFER_RISK">Transferência de Risco (Seguros)</option>
+          <option value="RISK_MANAGEMENT">Gestão de Riscos</option>
+        </select>
+      </label>
+      <label>
+        Owner
+        <select [ngModel]="ownerId()" (ngModelChange)="ownerId.set($event ? +$event : null)">
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let m of members()" [value]="m.user_id">{{ m.username }} ({{ m.role }})</option>
+        </select>
+      </label>
+      <label>
+        Data início
+        <input pInputText type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" />
+      </label>
+      <label>
+        Data entrega
+        <input pInputText type="date" [ngModel]="dueDate()" (ngModelChange)="dueDate.set($event)" />
+      </label>
+
+      <label>
+        SWOT - Strengths
+        <textarea pInputTextarea rows="2" [ngModel]="swotStrengths()" (ngModelChange)="swotStrengths.set($event)"></textarea>
+      </label>
+      <label>
+        SWOT - Weaknesses
+        <textarea pInputTextarea rows="2" [ngModel]="swotWeaknesses()" (ngModelChange)="swotWeaknesses.set($event)"></textarea>
+      </label>
+      <label>
+        SWOT - Opportunities
+        <textarea pInputTextarea rows="2" [ngModel]="swotOpportunities()" (ngModelChange)="swotOpportunities.set($event)"></textarea>
+      </label>
+      <label>
+        SWOT - Threats
+        <textarea pInputTextarea rows="2" [ngModel]="swotThreats()" (ngModelChange)="swotThreats.set($event)"></textarea>
+      </label>
+      <label class="field-full">
+        Notas
+        <textarea pInputTextarea rows="2" [ngModel]="notes()" (ngModelChange)="notes.set($event)"></textarea>
+      </label>
+    </div>
+
+    <div class="actions top-gap">
+      <button pButton type="button" (click)="createProject()" [disabled]="loading() || !canWrite()">Criar projeto</button>
+    </div>
+  </article>
+
+  <article class="card">
+    <h2>Projetos</h2>
+    <div class="form-grid one-line">
+      <label>
+        Status
+        <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+          <option value="">Todos</option>
+          <option value="OPEN">Aberto</option>
+          <option value="CLOSED">Fechado</option>
+          <option value="CLOSED_WON">Ganho</option>
+          <option value="CLOSED_LOST">Perdido</option>
+        </select>
+      </label>
+      <div class="actions align-end">
+        <button pButton type="button" (click)="loadProjects()" [disabled]="loading()">Filtrar</button>
+      </div>
+    </div>
+
+    <table class="table" *ngIf="projects().length > 0; else noProjects">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Projeto</th>
+          <th>Cliente</th>
+          <th>Tipo</th>
+          <th>Status</th>
+          <th>Entrega</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of projects()">
+          <td>#{{ p.id }}</td>
+          <td>{{ p.name }}</td>
+          <td>{{ p.customer_name || p.prospect_name || '-' }}</td>
+          <td>{{ p.project_type }}</td>
+          <td><span class="pill" [class.warn]="p.status==='CLOSED_LOST'" [class.ok]="p.status==='CLOSED_WON'">{{ p.status }}</span></td>
+          <td>{{ p.due_date | date:'shortDate' }}</td>
+          <td>
+            <div class="actions compact">
+              <button pButton type="button" class="secondary" (click)="openProject(p.id)">Detalhes</button>
+              <button pButton type="button" class="danger" (click)="deleteProject(p)" [disabled]="loading() || !canWrite()">Excluir</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noProjects><p class="muted">Nenhum projeto cadastrado.</p></ng-template>
+  </article>
+
+  <article class="card" *ngIf="selectedProject() as project">
+    <header class="detail-header">
+      <div>
+        <h2>Projeto #{{ project.id }} - {{ project.name }}</h2>
+        <p class="muted">Cliente: {{ project.customer_name || project.prospect_name || '-' }} | Status: {{ project.status }}</p>
+      </div>
+      <div class="actions">
+        <button pButton type="button" (click)="saveProjectChanges(project)" [disabled]="loading() || !canWrite()">Salvar</button>
+        <button pButton type="button" class="warning" (click)="updateProjectStatus('CLOSED')" [disabled]="loading() || !canWrite()">Fechar</button>
+        <button pButton type="button" class="ok-btn" (click)="updateProjectStatus('CLOSED_WON')" [disabled]="loading() || !canWrite()">Ganho</button>
+        <button pButton type="button" class="danger" (click)="updateProjectStatus('CLOSED_LOST')" [disabled]="loading() || !canWrite()">Perdido</button>
+        <button pButton type="button" class="secondary" (click)="closeProject()" [disabled]="loading()">Fechar painel</button>
+      </div>
+    </header>
+
+    <div class="form-grid">
+      <label>
+        Nome projeto
+        <input pInputText type="text" [(ngModel)]="project.name" [disabled]="loading() || !canWrite()" />
+      </label>
+      <label>
+        Tipo
+        <select [(ngModel)]="project.project_type" [disabled]="loading() || !canWrite()">
+          <option value="TRANSFER_RISK">Transferência de Risco (Seguros)</option>
+          <option value="RISK_MANAGEMENT">Gestão de Riscos</option>
+        </select>
+      </label>
+      <label>
+        Owner
+        <select [(ngModel)]="project.owner" [disabled]="loading() || !canWrite()">
+          <option [ngValue]="null">Selecione...</option>
+          <option *ngFor="let m of members()" [ngValue]="m.user_id">{{ m.username }}</option>
+        </select>
+      </label>
+      <label>
+        Início
+        <input pInputText type="date" [(ngModel)]="project.start_date" [disabled]="loading() || !canWrite()" />
+      </label>
+      <label>
+        Entrega
+        <input pInputText type="date" [(ngModel)]="project.due_date" [disabled]="loading() || !canWrite()" />
+      </label>
+      <label class="field-full" *ngIf="project.status === 'CLOSED_LOST'">
+        Motivo perda
+        <textarea pInputTextarea rows="2" [ngModel]="lossReason()" (ngModelChange)="lossReason.set($event)" [disabled]="loading() || !canWrite()"></textarea>
+      </label>
+      <label>
+        SWOT - Strengths
+        <textarea pInputTextarea rows="2" [(ngModel)]="project.swot_strengths" [disabled]="loading() || !canWrite()"></textarea>
+      </label>
+      <label>
+        SWOT - Weaknesses
+        <textarea pInputTextarea rows="2" [(ngModel)]="project.swot_weaknesses" [disabled]="loading() || !canWrite()"></textarea>
+      </label>
+      <label>
+        SWOT - Opportunities
+        <textarea pInputTextarea rows="2" [(ngModel)]="project.swot_opportunities" [disabled]="loading() || !canWrite()"></textarea>
+      </label>
+      <label>
+        SWOT - Threats
+        <textarea pInputTextarea rows="2" [(ngModel)]="project.swot_threats" [disabled]="loading() || !canWrite()"></textarea>
+      </label>
+      <label class="field-full">
+        Notas
+        <textarea pInputTextarea rows="2" [(ngModel)]="project.notes" [disabled]="loading() || !canWrite()"></textarea>
+      </label>
+    </div>
+
+    <div class="split-grid top-gap">
+      <section class="card inner">
+        <h3>Atividades</h3>
+        <div class="form-grid">
+          <label>
+            Título
+            <input pInputText type="text" [ngModel]="activityTitle()" (ngModelChange)="activityTitle.set($event)" [disabled]="loading() || !canWrite()" />
+          </label>
+          <label>
+            Entrega
+            <input pInputText type="date" [ngModel]="activityDueDate()" (ngModelChange)="activityDueDate.set($event)" [disabled]="loading() || !canWrite()" />
+          </label>
+          <label class="field-full">
+            Descrição
+            <textarea pInputTextarea rows="2" [ngModel]="activityDescription()" (ngModelChange)="activityDescription.set($event)" [disabled]="loading() || !canWrite()"></textarea>
+          </label>
+        </div>
+        <div class="actions top-gap">
+          <button pButton type="button" (click)="addActivity()" [disabled]="loading() || !canWrite()">Adicionar atividade</button>
+        </div>
+
+        <table class="table compact-table" *ngIf="project.activities.length > 0">
+          <thead><tr><th>Título</th><th>Entrega</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let a of project.activities">
+              <td>{{ a.title }}</td>
+              <td>{{ a.due_date ? (a.due_date | date:'shortDate') : '-' }}</td>
+              <td>{{ a.status }}</td>
+              <td>
+                <div class="actions compact">
+                  <button pButton type="button" class="secondary" (click)="toggleActivityDone(a)" [disabled]="loading() || !canWrite()">{{ a.status === 'DONE' ? 'Reabrir' : 'Concluir' }}</button>
+                  <button pButton type="button" class="danger" (click)="removeActivity(a)" [disabled]="loading() || !canWrite()">Excluir</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card inner">
+        <h3>Documentos</h3>
+        <input type="file" multiple (change)="uploadDocuments($event)" [disabled]="loading() || !canWrite()" />
+        <table class="table compact-table" *ngIf="project.documents.length > 0">
+          <thead><tr><th>Título</th><th>Arquivo</th><th>Enviado por</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let d of project.documents">
+              <td>{{ d.title }}</td>
+              <td><a [href]="d.file_url || d.file" target="_blank" rel="noopener">Abrir</a></td>
+              <td>{{ d.uploaded_by_username || '-' }}</td>
+              <td>
+                <button pButton type="button" class="danger" (click)="removeDocument(d)" [disabled]="loading() || !canWrite()">Excluir</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </article>
+</section>

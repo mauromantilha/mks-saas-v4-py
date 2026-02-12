@@ -3,17 +3,28 @@ import { Component, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
 import { forkJoin } from "rxjs";
+import { catchError } from "rxjs/operators";
+import { of } from "rxjs";
 
 import { SalesFlowService } from "../../core/api/sales-flow.service";
 import { SalesMetricsRecord } from "../../core/api/sales-flow.types";
 import { TenantDashboardService } from "../../core/api/tenant-dashboard.service";
-import { TenantDashboardSummary } from "../../core/api/tenant-dashboard.types";
+import {
+  TenantDashboardAIInsightsResponse,
+  TenantDashboardSummary,
+} from "../../core/api/tenant-dashboard.types";
 import { SessionService } from "../../core/auth/session.service";
+import { PrimeUiModule } from "../../shared/prime-ui.module";
 
 @Component({
   selector: "app-tenant-dashboard-page",
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [
+    CommonModule,
+    RouterLink,
+    FormsModule,
+    PrimeUiModule,
+  ],
   templateUrl: "./tenant-dashboard-page.component.html",
   styleUrl: "./tenant-dashboard-page.component.scss",
 })
@@ -35,6 +46,9 @@ export class TenantDashboardPageComponent {
 
   summary = signal<TenantDashboardSummary | null>(null);
   metrics = signal<SalesMetricsRecord | null>(null);
+  aiInsights = signal<TenantDashboardAIInsightsResponse | null>(null);
+  aiLoading = signal(false);
+  aiError = signal("");
 
   readonly dailySeries = computed(() => this.summary()?.series.daily_mtd ?? []);
   readonly monthlySeries = computed(() => this.summary()?.series.monthly_ytd ?? []);
@@ -70,10 +84,19 @@ export class TenantDashboardPageComponent {
     forkJoin({
       summary: this.dashboardService.getSummary(),
       metrics: this.salesFlowService.getSalesMetrics(),
+      ai: this.dashboardService.getLatestAIInsights().pipe(
+        catchError(() =>
+          this.dashboardService
+            .generateAIInsights({ period_days: 30 })
+            .pipe(catchError(() => of(null)))
+        )
+      ),
     }).subscribe({
-      next: ({ summary, metrics }) => {
+      next: ({ summary, metrics, ai }) => {
         this.summary.set(summary);
         this.metrics.set(metrics);
+        this.aiInsights.set(ai);
+        this.aiError.set("");
         this.goalPremium.set(String(summary.goals.premium_goal_mtd ?? 0));
         this.goalCommission.set(String(summary.goals.commission_goal_mtd ?? 0));
         this.goalNewCustomers.set(String(summary.goals.new_customers_goal_mtd ?? 0));
@@ -89,6 +112,29 @@ export class TenantDashboardPageComponent {
         this.loading.set(false);
       },
     });
+  }
+
+  generateWeeklyActionPlan(): void {
+    this.aiLoading.set(true);
+    this.aiError.set("");
+    this.dashboardService
+      .generateAIInsights({
+        period_days: 7,
+        weekly_plan: true,
+        focus:
+          "Monte um plano de ação semanal para corretora de seguros com prioridades comerciais, financeiras e operacionais.",
+      })
+      .subscribe({
+        next: (ai) => {
+          this.aiInsights.set(ai);
+          this.notice.set("Plano de ação semanal atualizado.");
+          this.aiLoading.set(false);
+        },
+        error: (err) => {
+          this.aiError.set(err?.error?.detail || "Falha ao gerar plano de ação semanal.");
+          this.aiLoading.set(false);
+        },
+      });
   }
 
   saveGoals(): void {

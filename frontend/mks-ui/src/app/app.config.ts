@@ -4,6 +4,8 @@ import { ApplicationConfig, ErrorHandler } from "@angular/core";
 import { MatSnackBarModule } from "@angular/material/snack-bar";
 import { provideAnimations } from "@angular/platform-browser/animations";
 import { provideRouter } from "@angular/router";
+import { providePrimeNG } from "primeng/config";
+import Aura from "@primeuix/themes/aura";
 
 import { authorizationInterceptor } from "./core/auth/authorization.interceptor";
 import { provideApiConfig } from "./core/config/api-config";
@@ -17,6 +19,12 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     provideAnimations(),
+    providePrimeNG({
+      theme: {
+        preset: Aura,
+      },
+      ripple: true,
+    }),
     importProvidersFrom(MatSnackBarModule),
     {
       provide: ErrorHandler,

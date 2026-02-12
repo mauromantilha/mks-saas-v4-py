@@ -7,7 +7,7 @@
         Tarefas comerciais com SLA, lembretes e histórico por lead/oportunidade.
       </p>
     </div>
-    <button type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+    <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
   </header>
 
   <p *ngIf="loading()" class="muted">Carregando...</p>
@@ -44,7 +44,7 @@
       </label>
       <label class="field-full">
         Título (obrigatório)
-        <input
+        <input pInputText
           type="text"
           [ngModel]="title()"
           (ngModelChange)="title.set($event)"
@@ -54,7 +54,7 @@
       </label>
       <label class="field-full">
         Descrição
-        <textarea
+        <textarea pInputTextarea
           rows="2"
           [ngModel]="description()"
           (ngModelChange)="description.set($event)"
@@ -63,7 +63,7 @@
       </label>
       <label>
         Vencimento
-        <input
+        <input pInputText
           type="datetime-local"
           [ngModel]="dueAt()"
           (ngModelChange)="dueAt.set($event)"
@@ -72,7 +72,7 @@
       </label>
       <label>
         Lembrete
-        <input
+        <input pInputText
           type="datetime-local"
           [ngModel]="reminderAt()"
           (ngModelChange)="reminderAt.set($event)"
@@ -81,7 +81,7 @@
       </label>
       <label>
         SLA (horas)
-        <input
+        <input pInputText
           type="number"
           min="1"
           [ngModel]="slaHours()"
@@ -124,7 +124,7 @@
     </div>
 
     <div class="actions top-gap">
-      <button type="button" (click)="createActivity()" [disabled]="loading() || !canWrite()">
+      <button pButton type="button" (click)="createActivity()" [disabled]="loading() || !canWrite()">
         Criar atividade
       </button>
     </div>
@@ -161,20 +161,20 @@
             <td>{{ a.sla_due_at || "-" }}</td>
             <td>
               <div class="actions compact">
-                <button type="button" (click)="completeActivity(a)" [disabled]="loading() || !canWrite()">
+                <button pButton type="button" (click)="completeActivity(a)" [disabled]="loading() || !canWrite()">
                   Concluir
                 </button>
-                <button type="button" (click)="reopenActivity(a)" [disabled]="loading() || !canWrite()">
+                <button pButton type="button" (click)="reopenActivity(a)" [disabled]="loading() || !canWrite()">
                   Reabrir
                 </button>
-                <button
+                <button pButton
                   type="button"
                   (click)="markReminderSent(a)"
                   [disabled]="loading() || !canWrite() || a.reminder_sent"
                 >
                   Lembrete
                 </button>
-                <button type="button" (click)="generateInsights(a)" [disabled]="loading()">
+                <button pButton type="button" (click)="generateInsights(a)" [disabled]="loading()">
                   IA
                 </button>
               </div>
@@ -206,7 +206,7 @@
             <td>{{ a.reminder_at || "-" }}</td>
             <td>
               <div class="actions compact">
-                <button
+                <button pButton
                   type="button"
                   (click)="markReminderSent(a)"
                   [disabled]="loading() || !canWrite() || a.reminder_sent"
