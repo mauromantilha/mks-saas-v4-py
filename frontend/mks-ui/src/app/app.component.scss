@@ -146,7 +146,13 @@
   gap: 6px;
   flex: 1 1 auto;
   overflow-y: auto;
+  scrollbar-width: none;
   padding-right: 4px;
+}
+
+.menu::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .menu-group {
@@ -189,18 +195,6 @@
 
 .menu .label {
   line-height: 1.1;
-}
-
-.menu .dev-badge {
-  margin-left: auto;
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border-color));
-  color: color-mix(in srgb, var(--accent) 70%, var(--sidebar-text));
-  background: color-mix(in srgb, var(--accent) 11%, var(--mks-surface));
-  white-space: nowrap;
 }
 
 .menu a:hover {

@@ -13,7 +13,6 @@ interface NavItem {
   path: string;
   exact?: boolean;
   accent?: string;
-  inDevelopment?: boolean;
 }
 
 interface NavGroup {
@@ -60,49 +59,20 @@ export class AppComponent {
     {
       label: "Estratégia & Comercial",
       items: [
-        {
-          label: "IA Assistente",
-          path: "/tenant/ai-assistant",
-          accent: "#7c3aed",
-          inDevelopment: true,
-        },
+        { label: "IA Assistente", path: "/tenant/ai-assistant", accent: "#7c3aed" },
         { label: "Fluxo Comercial", path: "/sales/flow", accent: "#38bdf8" },
         { label: "Leads/Funil", path: "/tenant/leads", accent: "#f59e0b" },
-        {
-          label: "Radar de Leads",
-          path: "/tenant/radar-leads",
-          accent: "#f97316",
-          inDevelopment: true,
-        },
+        { label: "Radar de Leads", path: "/tenant/radar-leads", accent: "#f97316" },
         {
           label: "Projetos Especiais",
           path: "/tenant/special-projects",
           accent: "#8b5cf6",
         },
         { label: "Clientes", path: "/tenant/customers", accent: "#14b8a6" },
-        {
-          label: "Equipe/Produtores",
-          path: "/tenant/members",
-          accent: "#64748b",
-        },
-        {
-          label: "Metas",
-          path: "/tenant/goals",
-          accent: "#0ea5e9",
-          inDevelopment: true,
-        },
-        {
-          label: "Visão Gestor",
-          path: "/tenant/manager-view",
-          accent: "#0f766e",
-          inDevelopment: true,
-        },
-        {
-          label: "Mensageria",
-          path: "/tenant/messaging",
-          accent: "#22c55e",
-          inDevelopment: true,
-        },
+        { label: "Equipe/Produtores", path: "/tenant/members", accent: "#64748b" },
+        { label: "Metas", path: "/tenant/goals", accent: "#0ea5e9" },
+        { label: "Visão Gestor", path: "/tenant/manager-view", accent: "#0f766e" },
+        { label: "Mensageria", path: "/tenant/messaging", accent: "#22c55e" },
         { label: "Atividade/Agenda", path: "/tenant/activities", accent: "#a855f7" },
       ],
     },
@@ -118,71 +88,38 @@ export class AppComponent {
     {
       label: "Financeiro",
       items: [
-        {
-          label: "Comissões/Fluxo",
-          path: "/tenant/commissions-flow",
-          accent: "#0284c7",
-          inDevelopment: true,
-        },
+        { label: "Comissões/Fluxo", path: "/tenant/commissions-flow", accent: "#0284c7" },
         {
           label: "Parcelas (Clientes)",
           path: "/tenant/installments-clients",
           accent: "#14b8a6",
-          inDevelopment: true,
         },
-        {
-          label: "Contas a Pagar",
-          path: "/tenant/accounts-payable",
-          accent: "#b45309",
-          inDevelopment: true,
-        },
+        { label: "Contas a Pagar", path: "/tenant/accounts-payable", accent: "#b45309" },
         {
           label: "Conciliação Bancos (OFX)",
           path: "/tenant/bank-reconciliation",
           accent: "#475569",
-          inDevelopment: true,
         },
         {
           label: "Fechamento Comissão",
           path: "/tenant/commission-closing",
           accent: "#0369a1",
-          inDevelopment: true,
         },
         { label: "Notas Fiscais", path: "/tenant/fiscal", accent: "#16a34a" },
-        {
-          label: "Fiscal",
-          path: "/tenant/fiscal-settings",
-          accent: "#15803d",
-          inDevelopment: true,
-        },
+        { label: "Fiscal", path: "/tenant/fiscal-settings", accent: "#15803d" },
       ],
     },
     {
       label: "Ferramentas",
       items: [
-        {
-          label: "Documentos",
-          path: "/tenant/documents",
-          accent: "#2563eb",
-          inDevelopment: true,
-        },
-        {
-          label: "Importar Clientes",
-          path: "/tenant/import-customers",
-          accent: "#0891b2",
-          inDevelopment: true,
-        },
+        { label: "Documentos", path: "/tenant/documents", accent: "#2563eb" },
+        { label: "Importar Clientes", path: "/tenant/import-customers", accent: "#0891b2" },
       ],
     },
     {
       label: "Admin",
       items: [
-        {
-          label: "Sistema/Monitor",
-          path: "/tenant/system-monitor",
-          accent: "#475569",
-          inDevelopment: true,
-        },
+        { label: "Sistema/Monitor", path: "/tenant/system-monitor", accent: "#475569" },
         { label: "Usuários", path: "/tenant/members", accent: "#334155" },
         { label: "Auditoria", path: "/tenant/ledger", accent: "#94a3b8" },
         { label: "RBAC", path: "/tenant/rbac", accent: "#475569" },

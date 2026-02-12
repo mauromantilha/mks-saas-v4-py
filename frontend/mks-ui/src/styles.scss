@@ -93,6 +93,40 @@ body {
   transition: background-color 180ms ease, color 180ms ease;
 }
 
+/* PrimeNG + native form controls: keep tenant UI clear/light with black fields. */
+html:not(.dark-theme) input,
+html:not(.dark-theme) textarea,
+html:not(.dark-theme) select,
+html:not(.dark-theme) .p-inputtext,
+html:not(.dark-theme) .p-inputtextarea,
+html:not(.dark-theme) .p-select,
+html:not(.dark-theme) .p-dropdown,
+html:not(.dark-theme) .p-multiselect {
+  color: #000 !important;
+  background: #fff !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark-theme) input::placeholder,
+html:not(.dark-theme) textarea::placeholder,
+html:not(.dark-theme) .p-inputtext::placeholder,
+html:not(.dark-theme) .p-inputtextarea::placeholder {
+  color: #4b5563 !important;
+  opacity: 1;
+}
+
+/* Remove browser/extension decorative icons that can appear on address fields. */
+input[pInputText] {
+  background-image: none !important;
+}
+
+input[pInputText]::-webkit-contacts-auto-fill-button,
+input[pInputText]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}
+
 html.dark-theme body {
   background: var(--mks-bg);
   color: var(--mks-text);

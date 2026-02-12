@@ -112,7 +112,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Radar de Leads",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -122,7 +122,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Projetos Especiais",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -132,7 +132,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Metas",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -142,7 +142,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Visão Gestor",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -152,7 +152,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Mensageria",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -184,7 +184,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Comissões/Fluxo",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -194,7 +194,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Parcelas (Clientes)",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -204,7 +204,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Contas a Pagar",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -214,7 +214,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Conciliação Bancos (OFX)",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -224,7 +224,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Fechamento Comissão",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -267,7 +267,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Documentos",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -277,7 +277,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Importar Clientes",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -287,7 +287,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Sistema/Monitor",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
@@ -363,7 +363,7 @@ export const routes: Routes = [
     data: {
       portal: "TENANT",
       title: "Fiscal",
-      description: "Módulo em desenvolvimento.",
+      description: "Funcionalidade em evolução contínua.",
     },
   },
   {
