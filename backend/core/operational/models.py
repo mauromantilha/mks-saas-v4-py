@@ -777,22 +777,60 @@ class PolicyRequest(BaseTenantModel):
 
 
 class CommercialActivity(BaseTenantModel):
-    KIND_TASK = "TASK"
-    KIND_FOLLOW_UP = "FOLLOW_UP"
-    KIND_NOTE = "NOTE"
-    KIND_CHOICES = [
-        (KIND_TASK, "Task"),
-        (KIND_FOLLOW_UP, "Follow-up"),
-        (KIND_NOTE, "Note"),
+    TYPE_TASK = "TASK"
+    TYPE_FOLLOW_UP = "FOLLOW_UP"
+    TYPE_NOTE = "NOTE"
+    TYPE_MEETING = "MEETING"
+    TYPE_CHOICES = [
+        (TYPE_TASK, "Task"),
+        (TYPE_FOLLOW_UP, "Follow-up"),
+        (TYPE_NOTE, "Note"),
+        (TYPE_MEETING, "Meeting"),
     ]
 
-    STATUS_PENDING = "PENDING"
-    STATUS_DONE = "DONE"
+    # Backwards-compatible aliases used across older frontend/backend paths.
+    KIND_TASK = TYPE_TASK
+    KIND_FOLLOW_UP = TYPE_FOLLOW_UP
+    KIND_NOTE = TYPE_NOTE
+    KIND_MEETING = TYPE_MEETING
+    KIND_CHOICES = TYPE_CHOICES
+
+    ORIGIN_LEAD = "LEAD"
+    ORIGIN_OPPORTUNITY = "OPPORTUNITY"
+    ORIGIN_PROJECT = "PROJECT"
+    ORIGIN_CUSTOMER = "CUSTOMER"
+    ORIGIN_CHOICES = [
+        (ORIGIN_LEAD, "Lead"),
+        (ORIGIN_OPPORTUNITY, "Opportunity"),
+        (ORIGIN_PROJECT, "Project"),
+        (ORIGIN_CUSTOMER, "Customer"),
+    ]
+
+    STATUS_OPEN = "OPEN"
+    STATUS_COMPLETED = "COMPLETED"
     STATUS_CANCELED = "CANCELED"
+    STATUS_CONFIRMED = "CONFIRMED"
+    # Backwards-compatible aliases used across older code paths.
+    STATUS_PENDING = STATUS_OPEN
+    STATUS_DONE = STATUS_COMPLETED
+    LEGACY_STATUS_PENDING = "PENDING"
+    LEGACY_STATUS_DONE = "DONE"
     STATUS_CHOICES = [
-        (STATUS_PENDING, "Pending"),
-        (STATUS_DONE, "Done"),
+        (STATUS_OPEN, "Open"),
+        (STATUS_COMPLETED, "Completed"),
         (STATUS_CANCELED, "Canceled"),
+        (STATUS_CONFIRMED, "Confirmed"),
+        (LEGACY_STATUS_PENDING, "Pending (Legacy)"),
+        (LEGACY_STATUS_DONE, "Done (Legacy)"),
+    ]
+
+    REMINDER_PENDING = "PENDING"
+    REMINDER_SENT = "SENT"
+    REMINDER_ACKED = "ACKED"
+    REMINDER_STATE_CHOICES = [
+        (REMINDER_PENDING, "Pending"),
+        (REMINDER_SENT, "Sent"),
+        (REMINDER_ACKED, "Acknowledged"),
     ]
 
     PRIORITY_LOW = "LOW"
@@ -842,7 +880,9 @@ class CommercialActivity(BaseTenantModel):
         (OUTCOME_CLOSED_LOST, "Closed lost"),
     ]
 
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_TASK)
     kind = models.CharField(max_length=20, choices=KIND_CHOICES, default=KIND_TASK)
+    origin = models.CharField(max_length=20, choices=ORIGIN_CHOICES, default=ORIGIN_LEAD)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     channel = models.CharField(
@@ -851,15 +891,23 @@ class CommercialActivity(BaseTenantModel):
         default=CHANNEL_EMAIL,
     )
     outcome = models.CharField(max_length=30, choices=OUTCOME_CHOICES, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
     priority = models.CharField(
         max_length=20,
         choices=PRIORITY_CHOICES,
         default=PRIORITY_MEDIUM,
     )
+    start_at = models.DateTimeField(null=True, blank=True)
+    end_at = models.DateTimeField(null=True, blank=True)
+    remind_at = models.DateTimeField(null=True, blank=True)
     due_at = models.DateTimeField(null=True, blank=True)
     reminder_at = models.DateTimeField(null=True, blank=True)
     reminder_sent = models.BooleanField(default=False)
+    reminder_state = models.CharField(
+        max_length=20,
+        choices=REMINDER_STATE_CHOICES,
+        default=REMINDER_PENDING,
+    )
     sla_hours = models.PositiveIntegerField(null=True, blank=True)
     sla_due_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -868,6 +916,11 @@ class CommercialActivity(BaseTenantModel):
     duration_minutes = models.PositiveIntegerField(null=True, blank=True)
     meeting_url = models.URLField(blank=True)
     location = models.CharField(max_length=255, blank=True)
+    attendee_name = models.CharField(max_length=255, blank=True)
+    attendee_email = models.EmailField(blank=True)
+    invite_sent_at = models.DateTimeField(null=True, blank=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    canceled_at = models.DateTimeField(null=True, blank=True)
 
     lead = models.ForeignKey(
         Lead,
@@ -879,6 +932,20 @@ class CommercialActivity(BaseTenantModel):
     opportunity = models.ForeignKey(
         Opportunity,
         related_name="activities",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    project = models.ForeignKey(
+        SpecialProject,
+        related_name="commercial_activities",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    customer = models.ForeignKey(
+        Customer,
+        related_name="commercial_activities",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -899,49 +966,179 @@ class CommercialActivity(BaseTenantModel):
     )
 
     class Meta:
-        ordering = ("status", "due_at", "-created_at")
+        ordering = ("status", "start_at", "due_at", "-created_at")
         constraints = [
             models.CheckConstraint(
-                check=models.Q(lead__isnull=False) | models.Q(opportunity__isnull=False),
-                name="ck_activity_requires_lead_or_opportunity",
+                check=(
+                    models.Q(
+                        origin="LEAD",
+                        lead__isnull=False,
+                        opportunity__isnull=True,
+                        project__isnull=True,
+                        customer__isnull=True,
+                    )
+                    | models.Q(
+                        origin="OPPORTUNITY",
+                        lead__isnull=True,
+                        opportunity__isnull=False,
+                        project__isnull=True,
+                        customer__isnull=True,
+                    )
+                    | models.Q(
+                        origin="PROJECT",
+                        lead__isnull=True,
+                        opportunity__isnull=True,
+                        project__isnull=False,
+                        customer__isnull=True,
+                    )
+                    | models.Q(
+                        origin="CUSTOMER",
+                        lead__isnull=True,
+                        opportunity__isnull=True,
+                        project__isnull=True,
+                        customer__isnull=False,
+                    )
+                ),
+                name="ck_activity_origin_matches_relation",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("company", "status", "start_at"),
+                name="idx_act_company_st_start",
+            ),
+            models.Index(
+                fields=("company", "remind_at"),
+                name="idx_activity_company_remind",
             ),
         ]
 
     def __str__(self):
-        return f"{self.kind} - {self.title}"
+        return f"{self.type} - {self.title}"
+
+    def _active_origin_fields(self):
+        return {
+            self.ORIGIN_LEAD: self.lead_id,
+            self.ORIGIN_OPPORTUNITY: self.opportunity_id,
+            self.ORIGIN_PROJECT: self.project_id,
+            self.ORIGIN_CUSTOMER: self.customer_id,
+        }
+
+    def _infer_origin(self):
+        for candidate, relation_id in self._active_origin_fields().items():
+            if relation_id:
+                return candidate
+        return None
 
     @property
     def is_overdue(self):
+        status_open = {self.STATUS_OPEN, self.STATUS_PENDING}
+        due_anchor = self.start_at or self.due_at
         return (
-            self.status == self.STATUS_PENDING
-            and self.due_at is not None
-            and self.due_at < timezone.now()
+            self.status in status_open
+            and due_anchor is not None
+            and due_anchor < timezone.now()
         )
 
     @property
     def is_sla_breached(self):
+        status_open = {self.STATUS_OPEN, self.STATUS_PENDING}
         return (
-            self.status == self.STATUS_PENDING
+            self.status in status_open
             and self.sla_due_at is not None
             and self.sla_due_at < timezone.now()
         )
 
     def clean(self):
         super().clean()
+        if self.customer_id and self.customer.company_id != self.company_id:
+            raise ValidationError("Activity and Customer must belong to the same company.")
         if self.lead_id and self.lead.company_id != self.company_id:
             raise ValidationError("Activity and Lead must belong to the same company.")
         if self.opportunity_id and self.opportunity.company_id != self.company_id:
             raise ValidationError("Activity and Opportunity must belong to the same company.")
+        if self.project_id and self.project.company_id != self.company_id:
+            raise ValidationError("Activity and Project must belong to the same company.")
+
+        active_fields = {
+            key: bool(value) for key, value in self._active_origin_fields().items()
+        }
+        active_total = sum(1 for is_active in active_fields.values() if is_active)
+        if active_total != 1:
+            raise ValidationError("Activity must have exactly one active origin relation.")
+        if not active_fields.get(self.origin, False):
+            raise ValidationError("Activity origin must match the active relation.")
+
+        if self.remind_at and self.start_at and self.remind_at > self.start_at:
+            raise ValidationError("Remind date must be before start date.")
         if self.reminder_at and self.due_at and self.reminder_at > self.due_at:
             raise ValidationError("Reminder must be before due date.")
+        if self.start_at and self.end_at and self.end_at < self.start_at:
+            raise ValidationError("Activity end date must be after start date.")
         if self.started_at and self.ended_at and self.ended_at < self.started_at:
             raise ValidationError("Activity end date must be after start date.")
 
     def save(self, *args, **kwargs):
-        if self.status == self.STATUS_DONE and self.completed_at is None:
+        # Keep legacy and canonical fields synchronized while migration is in progress.
+        if self.type and self.kind != self.type:
+            self.kind = self.type
+        if self.kind and self.type != self.kind:
+            self.type = self.kind
+
+        if self.start_at is None:
+            self.start_at = self.started_at or self.due_at
+        if self.end_at is None and self.ended_at is not None:
+            self.end_at = self.ended_at
+        if self.remind_at is None and self.reminder_at is not None:
+            self.remind_at = self.reminder_at
+        if self.started_at is None and self.start_at is not None:
+            self.started_at = self.start_at
+        if self.ended_at is None and self.end_at is not None:
+            self.ended_at = self.end_at
+        if self.reminder_at is None and self.remind_at is not None:
+            self.reminder_at = self.remind_at
+
+        inferred_origin = self._infer_origin()
+        if inferred_origin and self.origin != inferred_origin:
+            self.origin = inferred_origin
+        if self.origin == self.ORIGIN_LEAD:
+            self.opportunity_id = None
+            self.project_id = None
+            self.customer_id = None
+        elif self.origin == self.ORIGIN_OPPORTUNITY:
+            self.lead_id = None
+            self.project_id = None
+            self.customer_id = None
+        elif self.origin == self.ORIGIN_PROJECT:
+            self.lead_id = None
+            self.opportunity_id = None
+            self.customer_id = None
+        elif self.origin == self.ORIGIN_CUSTOMER:
+            self.lead_id = None
+            self.opportunity_id = None
+            self.project_id = None
+
+        if self.status == self.LEGACY_STATUS_PENDING:
+            self.status = self.STATUS_OPEN
+        if self.status == self.LEGACY_STATUS_DONE:
+            self.status = self.STATUS_COMPLETED
+
+        if self.status == self.STATUS_COMPLETED and self.completed_at is None:
             self.completed_at = timezone.now()
-        if self.status != self.STATUS_DONE:
+        if self.status != self.STATUS_COMPLETED:
             self.completed_at = None
+        if self.status == self.STATUS_CONFIRMED and self.confirmed_at is None:
+            self.confirmed_at = timezone.now()
+        if self.status == self.STATUS_CANCELED and self.canceled_at is None:
+            self.canceled_at = timezone.now()
+
+        if self.reminder_state == self.REMINDER_SENT:
+            self.reminder_sent = True
+        if self.reminder_sent and self.reminder_state == self.REMINDER_PENDING:
+            self.reminder_state = self.REMINDER_SENT
+
+        self.clean()
+
         if self.sla_hours and self.sla_due_at is None:
             self.sla_due_at = timezone.now() + timedelta(hours=self.sla_hours)
         if self.started_at and self.ended_at:
@@ -950,12 +1147,12 @@ class CommercialActivity(BaseTenantModel):
         return super().save(*args, **kwargs)
 
     def mark_done(self):
-        self.status = self.STATUS_DONE
+        self.status = self.STATUS_COMPLETED
         self.completed_at = timezone.now()
         self.save(update_fields=("status", "completed_at", "updated_at"))
 
     def reopen(self):
-        self.status = self.STATUS_PENDING
+        self.status = self.STATUS_OPEN
         self.completed_at = None
         self.save(update_fields=("status", "completed_at", "updated_at"))
 

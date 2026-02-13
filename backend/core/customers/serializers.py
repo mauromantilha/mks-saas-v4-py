@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from customers.models import CompanyMembership, ProducerProfile
+from customers.models import CompanyMembership, ProducerProfile, TenantEmailConfig
 
 
 class CompanyMembershipReadSerializer(serializers.ModelSerializer):
@@ -203,3 +203,55 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         if attrs.get("new_password") != attrs.get("new_password_confirm"):
             raise serializers.ValidationError({"new_password_confirm": ["Passwords do not match."]})
         return attrs
+
+
+class TenantEmailConfigSerializer(serializers.ModelSerializer):
+    smtp_password = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=False,
+        write_only=True,
+    )
+    has_smtp_password = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = TenantEmailConfig
+        fields = (
+            "smtp_host",
+            "smtp_port",
+            "smtp_username",
+            "smtp_password",
+            "has_smtp_password",
+            "smtp_use_tls",
+            "smtp_use_ssl",
+            "default_from_email",
+            "default_from_name",
+            "reply_to_email",
+            "is_enabled",
+            "last_tested_at",
+            "last_test_status",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("last_tested_at", "last_test_status", "created_at", "updated_at")
+
+    def get_has_smtp_password(self, obj) -> bool:
+        return bool(getattr(obj, "smtp_password", ""))
+
+    def validate(self, attrs):
+        use_tls = attrs.get("smtp_use_tls")
+        use_ssl = attrs.get("smtp_use_ssl")
+        if self.instance is not None:
+            if use_tls is None:
+                use_tls = self.instance.smtp_use_tls
+            if use_ssl is None:
+                use_ssl = self.instance.smtp_use_ssl
+        if use_tls and use_ssl:
+            raise serializers.ValidationError(
+                {"smtp_use_ssl": "SSL and TLS cannot be enabled together."}
+            )
+        return attrs
+
+
+class TenantEmailConfigTestSerializer(serializers.Serializer):
+    to_email = serializers.EmailField(required=False, allow_blank=True)

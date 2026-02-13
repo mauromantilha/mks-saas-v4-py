@@ -21,6 +21,26 @@ export const PERMISSION_ALIAS_MAP: PermissionAliasMap = {
   "tenant.leads.view": ["leads.list"],
   "tenant.opportunities.view": ["opportunities.list"],
   "tenant.activities.view": ["activities.list"],
+  "tenant.sales_flow.read": [
+    "tenant.sales_flow.read.list",
+    "tenant.sales_flow.read.retrieve",
+    "metrics.list",
+  ],
+  "tenant.activities.manage": [
+    "tenant.activities.manage.create",
+    "tenant.activities.manage.update",
+    "tenant.activities.manage.partial_update",
+    "activities.create",
+    "activities.update",
+    "activities.partial_update",
+  ],
+  "tenant.agenda.manage": [
+    "tenant.agenda.manage.list",
+    "tenant.agenda.manage.retrieve",
+    "tenant.agenda.manage.create",
+    "tenant.agenda.manage.update",
+    "tenant.agenda.manage.partial_update",
+  ],
 
   // IA assistant canonical matrix.
   "tenant.ai.use": ["ai_assistant.create", "ai_assistant.write"],

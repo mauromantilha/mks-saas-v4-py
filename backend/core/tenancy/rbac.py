@@ -120,6 +120,22 @@ DEFAULT_RESOURCE_ROLE_MATRICES = {
     "invoices": build_role_matrix(),
     "installments": build_role_matrix(),
     "payables": build_role_matrix(),
+    "tenant.sales_flow.read": build_role_matrix(
+        read_roles=READ_ROLES,
+        post_roles=NO_ROLES,
+        put_roles=NO_ROLES,
+        patch_roles=NO_ROLES,
+        delete_roles=NO_ROLES,
+    ),
+    "tenant.activities.manage": build_role_matrix(),
+    "tenant.agenda.manage": build_role_matrix(),
+    "tenant.email.manage": build_role_matrix(
+        read_roles=OWNER_ROLES,
+        post_roles=OWNER_ROLES,
+        put_roles=OWNER_ROLES,
+        patch_roles=OWNER_ROLES,
+        delete_roles=OWNER_ROLES,
+    ),
 }
 
 DEFAULT_TENANT_ROLE_MATRIX = build_role_matrix()

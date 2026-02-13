@@ -35,6 +35,8 @@ from customers.views import (
     PasswordResetRequestAPIView,
     TenantCapabilitiesAPIView,
     TenantMemberDetailAPIView,
+    TenantEmailConfigAPIView,
+    TenantEmailConfigTestAPIView,
     TenantMembersAPIView,
     TenantProducerDetailAPIView,
     TenantProducerPerformanceAPIView,
@@ -44,6 +46,11 @@ from customers.views import (
 )
 from ledger.views import PlatformLedgerEntryListAPIView, TenantLedgerEntryListAPIView
 from operational.views import (
+    AgendaAckReminderAPIView,
+    AgendaCancelAPIView,
+    AgendaConfirmAPIView,
+    AgendaListCreateAPIView,
+    AgendaRemindersAPIView,
     ApoliceDetailAPIView,
     ApoliceAIInsightsAPIView,
     ApoliceListCreateAPIView,
@@ -61,6 +68,7 @@ from operational.views import (
     CustomerListCreateAPIView,
     SalesGoalDetailAPIView,
     SalesGoalListCreateAPIView,
+    SalesFlowSummaryAPIView,
     EndossoDetailAPIView,
     EndossoAIInsightsAPIView,
     EndossoListCreateAPIView,
@@ -193,6 +201,16 @@ urlpatterns = [
         "api/utils/banks/",
         BankCatalogAPIView.as_view(),
         name="utils-banks-catalog",
+    ),
+    path(
+        "api/admin/email-config/",
+        TenantEmailConfigAPIView.as_view(),
+        name="tenant-email-config",
+    ),
+    path(
+        "api/admin/email-config/test/",
+        TenantEmailConfigTestAPIView.as_view(),
+        name="tenant-email-config-test",
     ),
     path("api/ledger/", TenantLedgerEntryListAPIView.as_view(), name="tenant-ledger-list"),
     path("api/customers/", CustomerListCreateAPIView.as_view(), name="customers-list"),
@@ -363,6 +381,32 @@ urlpatterns = [
         name="activities-ai-insights",
     ),
     path("api/sales/metrics/", SalesMetricsAPIView.as_view(), name="sales-metrics"),
+    path(
+        "api/sales-flow/summary/",
+        SalesFlowSummaryAPIView.as_view(),
+        name="sales-flow-summary",
+    ),
+    path("api/agenda/", AgendaListCreateAPIView.as_view(), name="agenda-list-create"),
+    path(
+        "api/agenda/reminders/",
+        AgendaRemindersAPIView.as_view(),
+        name="agenda-reminders",
+    ),
+    path(
+        "api/agenda/<int:agenda_id>/confirm/",
+        AgendaConfirmAPIView.as_view(),
+        name="agenda-confirm",
+    ),
+    path(
+        "api/agenda/<int:agenda_id>/cancel/",
+        AgendaCancelAPIView.as_view(),
+        name="agenda-cancel",
+    ),
+    path(
+        "api/agenda/<int:agenda_id>/ack-reminder/",
+        AgendaAckReminderAPIView.as_view(),
+        name="agenda-ack-reminder",
+    ),
     path(
         "api/special-projects/",
         SpecialProjectListCreateAPIView.as_view(),

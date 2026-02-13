@@ -1,0 +1,399 @@
+<p-toast position="top-right"></p-toast>
+
+<section class="sales-flow-page sales-flow-aura-light">
+  <header class="sales-flow-header">
+    <div class="title-wrap">
+      <p class="eyebrow">Estratégia & Comercial</p>
+      <h1>Fluxo Comercial</h1>
+      <p class="subtitle">
+        Gestão diária de indicadores, atividades e agenda comercial do tenant.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button
+        pButton
+        type="button"
+        class="btn-secondary"
+        [disabled]="loadingSummary() || loadingAgenda() || loadingEntities()"
+        (click)="refreshPage()"
+      >
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="session() as s" class="session-strip">
+    <span><strong>Tenant:</strong> {{ s.tenantCode }}</span>
+    <span><strong>Usuário:</strong> {{ s.username }}</span>
+    <span><strong>Perfil:</strong> {{ s.role || "-" }}</span>
+  </div>
+
+  <ng-container *ngIf="permissionsLoading(); else permissionsReady">
+    <section class="kpi-grid">
+      <p-card class="kpi-card" *ngFor="let _ of [1, 2, 3, 4, 5, 6, 7, 8]">
+        <p-skeleton width="3rem" height="3rem"></p-skeleton>
+        <p-skeleton width="9rem" height="1rem" styleClass="mt-2"></p-skeleton>
+        <p-skeleton width="7rem" height="1.5rem" styleClass="mt-2"></p-skeleton>
+      </p-card>
+    </section>
+  </ng-container>
+
+  <ng-template #permissionsReady>
+    <p-card *ngIf="!canReadSalesFlow()" styleClass="state-card state-error">
+      <h2>Acesso bloqueado</h2>
+      <p>Seu usuário não possui capability para visualizar o Fluxo Comercial.</p>
+      <p class="muted" *ngIf="permissionError()">{{ permissionError() }}</p>
+    </p-card>
+
+    <ng-container *ngIf="canReadSalesFlow()">
+      <section class="kpi-grid" *ngIf="loadingSummary(); else kpiLoaded">
+        <p-card class="kpi-card" *ngFor="let _ of [1, 2, 3, 4, 5, 6, 7, 8]">
+          <p-skeleton width="3rem" height="3rem"></p-skeleton>
+          <p-skeleton width="9rem" height="1rem" styleClass="mt-2"></p-skeleton>
+          <p-skeleton width="7rem" height="1.5rem" styleClass="mt-2"></p-skeleton>
+        </p-card>
+      </section>
+
+      <ng-template #kpiLoaded>
+        <section class="kpi-grid" *ngIf="kpiCards().length > 0; else emptyKpi">
+          <p-card styleClass="kpi-card" *ngFor="let card of kpiCards()">
+            <div class="kpi-head">
+              <i [class]="card.icon"></i>
+              <span class="kpi-label">{{ card.label }}</span>
+            </div>
+            <strong class="kpi-value">{{ card.value }}</strong>
+          </p-card>
+        </section>
+      </ng-template>
+
+      <ng-template #emptyKpi>
+        <p-card styleClass="state-card state-empty">
+          <h2>Sem indicadores</h2>
+          <p>Nenhum dado de resumo retornado para o tenant no momento.</p>
+        </p-card>
+      </ng-template>
+
+      <section class="workspace-grid">
+        <p-card styleClass="panel-card">
+          <h2>Criar atividade</h2>
+          <p class="muted panel-note">
+            Permissão necessária: <code>tenant.activities.manage</code>
+          </p>
+
+          <form class="form-grid" [formGroup]="activityForm" (ngSubmit)="submitActivity()">
+            <label>
+              Tipo
+              <p-select
+                formControlName="type"
+                [options]="activityTypeOptions"
+                optionLabel="label"
+                optionValue="value"
+                [disabled]="savingActivity() || !canManageActivities()"
+              ></p-select>
+            </label>
+
+            <label>
+              Prioridade
+              <p-select
+                formControlName="priority"
+                [options]="activityPriorityOptions"
+                optionLabel="label"
+                optionValue="value"
+                [disabled]="savingActivity() || !canManageActivities()"
+              ></p-select>
+            </label>
+
+            <label>
+              Origem
+              <p-select
+                formControlName="origin"
+                [options]="originOptions"
+                optionLabel="label"
+                optionValue="value"
+                [disabled]="savingActivity() || loadingEntities() || !canManageActivities()"
+              ></p-select>
+            </label>
+
+            <label class="field-full">
+              Lead/Oportunidade/Projeto/Cliente
+              <p-autocomplete
+                formControlName="target"
+                [suggestions]="targetSuggestions()"
+                (completeMethod)="onTargetSearch($event)"
+                [dropdown]="true"
+                [forceSelection]="true"
+                optionLabel="label"
+                [placeholder]="targetPlaceholder()"
+                [disabled]="savingActivity() || loadingEntities() || !canManageActivities()"
+              ></p-autocomplete>
+            </label>
+
+            <label>
+              Início
+              <p-datepicker
+                formControlName="startAt"
+                [showIcon]="true"
+                [showTime]="true"
+                hourFormat="24"
+                appendTo="body"
+                [disabled]="savingActivity() || !canManageActivities()"
+              ></p-datepicker>
+            </label>
+
+            <label>
+              Fim
+              <p-datepicker
+                formControlName="endAt"
+                [showIcon]="true"
+                [showTime]="true"
+                hourFormat="24"
+                appendTo="body"
+                [disabled]="savingActivity() || !canManageActivities()"
+              ></p-datepicker>
+            </label>
+
+            <label class="field-full">
+              Título
+              <input
+                pInputText
+                type="text"
+                formControlName="title"
+                [disabled]="savingActivity() || !canManageActivities()"
+                placeholder="Ex.: Follow-up cotação transportes"
+              />
+            </label>
+
+            <label class="field-full">
+              Nota
+              <textarea
+                pInputTextarea
+                rows="3"
+                formControlName="note"
+                [disabled]="savingActivity() || !canManageActivities()"
+                placeholder="Observações da atividade"
+              ></textarea>
+            </label>
+
+            <div class="panel-actions field-full">
+              <button
+                pButton
+                type="submit"
+                class="btn-primary"
+                [disabled]="savingActivity() || !canManageActivities()"
+              >
+                {{ savingActivity() ? "Salvando..." : "Salvar atividade" }}
+              </button>
+            </div>
+          </form>
+        </p-card>
+
+        <p-card styleClass="panel-card">
+          <h2>Agenda</h2>
+          <p class="muted panel-note">
+            Convites por email seguem a configuração SMTP do tenant.
+          </p>
+
+          <form class="form-grid" [formGroup]="agendaForm" (ngSubmit)="submitAgenda()">
+            <label class="field-full">
+              Título
+              <input
+                pInputText
+                type="text"
+                formControlName="title"
+                [disabled]="savingAgenda() || !canManageAgenda()"
+              />
+            </label>
+
+            <label>
+              Data
+              <p-datepicker
+                formControlName="date"
+                dateFormat="dd/mm/yy"
+                [showIcon]="true"
+                appendTo="body"
+                [disabled]="savingAgenda() || !canManageAgenda()"
+              ></p-datepicker>
+            </label>
+
+            <label>
+              Horário
+              <input
+                pInputText
+                type="time"
+                formControlName="time"
+                [disabled]="savingAgenda() || !canManageAgenda()"
+              />
+            </label>
+
+            <label>
+              Nome
+              <input
+                pInputText
+                type="text"
+                formControlName="attendeeName"
+                [disabled]="savingAgenda() || !canManageAgenda()"
+              />
+            </label>
+
+            <label>
+              Email
+              <input
+                pInputText
+                type="email"
+                formControlName="attendeeEmail"
+                [disabled]="savingAgenda() || !canManageAgenda()"
+              />
+            </label>
+
+            <label class="field-full">
+              Assunto
+              <input
+                pInputText
+                type="text"
+                formControlName="subject"
+                [disabled]="savingAgenda() || !canManageAgenda()"
+              />
+            </label>
+
+            <label class="toggle-row field-full">
+              <span>Enviar convite</span>
+              <p-toggleswitch
+                formControlName="sendInvite"
+                [disabled]="savingAgenda() || !canManageAgenda()"
+              ></p-toggleswitch>
+            </label>
+
+            <div class="panel-actions field-full">
+              <button
+                pButton
+                type="submit"
+                class="btn-primary"
+                [disabled]="savingAgenda() || !canManageAgenda()"
+              >
+                {{ savingAgenda() ? "Salvando..." : "Salvar agenda" }}
+              </button>
+            </div>
+          </form>
+        </p-card>
+      </section>
+
+      <p-card styleClass="panel-card table-card">
+        <div class="table-header">
+          <h2>Próximos compromissos</h2>
+          <span class="muted">Atualização automática a cada 60s</span>
+        </div>
+
+        <p-table
+          [value]="agendaItems()"
+          [loading]="loadingAgenda()"
+          [paginator]="agendaItems().length > 10"
+          [rows]="10"
+          responsiveLayout="scroll"
+          size="small"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Título</th>
+              <th>Data</th>
+              <th>Horário</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-item>
+            <tr>
+              <td>{{ item.title }}</td>
+              <td>{{ item.start_at | date: "dd/MM/yyyy" }}</td>
+              <td>{{ item.start_at | date: "HH:mm" }}</td>
+              <td>
+                <p-tag
+                  [value]="statusLabel(item.status)"
+                  [severity]="statusSeverity(item.status)"
+                ></p-tag>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button
+                    pButton
+                    type="button"
+                    size="small"
+                    severity="success"
+                    [disabled]="
+                      !canManageAgenda()
+                      || item.status !== 'OPEN'
+                      || handlingReminderAction()
+                    "
+                    (click)="confirmAgenda(item)"
+                  >
+                    Confirmar
+                  </button>
+                  <button
+                    pButton
+                    type="button"
+                    size="small"
+                    severity="danger"
+                    [disabled]="
+                      !canManageAgenda()
+                      || (item.status !== 'OPEN' && item.status !== 'CONFIRMED')
+                      || handlingReminderAction()
+                    "
+                    (click)="cancelAgenda(item)"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="empty-row">Nenhum compromisso encontrado para o período.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </ng-container>
+  </ng-template>
+</section>
+
+<p-dialog
+  header="Compromisso em 30 minutos"
+  [modal]="true"
+  [visible]="reminderDialogVisible()"
+  [closable]="false"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '30rem' }"
+>
+  <ng-container *ngIf="reminderInFocus() as reminder">
+    <div class="reminder-content">
+      <p><strong>{{ reminder.title }}</strong></p>
+      <p>{{ reminder.start_at | date: "dd/MM/yyyy 'às' HH:mm" }}</p>
+      <p class="muted" *ngIf="reminder.subject">{{ reminder.subject }}</p>
+    </div>
+
+    <div class="reminder-actions">
+      <button
+        pButton
+        type="button"
+        severity="success"
+        [disabled]="handlingReminderAction()"
+        (click)="handleReminderConfirm()"
+      >
+        Confirmar
+      </button>
+      <button
+        pButton
+        type="button"
+        severity="danger"
+        [disabled]="handlingReminderAction()"
+        (click)="handleReminderCancel()"
+      >
+        Cancelar
+      </button>
+    </div>
+  </ng-container>
+</p-dialog>

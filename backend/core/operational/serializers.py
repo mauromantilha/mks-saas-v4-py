@@ -821,6 +821,125 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
         return attrs
 
 
+class SalesFlowSummarySerializer(serializers.Serializer):
+    leads_new = serializers.IntegerField()
+    leads_qualified = serializers.IntegerField()
+    leads_converted = serializers.IntegerField()
+    opportunities_won = serializers.IntegerField()
+    winrate = serializers.FloatField()
+    pipeline_open = serializers.FloatField()
+    activities_open = serializers.IntegerField()
+    activities_overdue = serializers.IntegerField()
+
+
+class AgendaCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=255)
+    subject = serializers.CharField(required=False, allow_blank=True, max_length=2000)
+    start_at = serializers.DateTimeField()
+    end_at = serializers.DateTimeField(required=False, allow_null=True)
+    attendee_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    attendee_email = serializers.EmailField(required=False, allow_blank=True)
+    send_invite = serializers.BooleanField(required=False, default=False)
+    priority = serializers.ChoiceField(
+        choices=CommercialActivity.PRIORITY_CHOICES,
+        required=False,
+        default=CommercialActivity.PRIORITY_MEDIUM,
+    )
+
+    lead = serializers.PrimaryKeyRelatedField(
+        queryset=Lead.objects.none(),
+        required=False,
+        allow_null=True,
+    )
+    opportunity = serializers.PrimaryKeyRelatedField(
+        queryset=Opportunity.objects.none(),
+        required=False,
+        allow_null=True,
+    )
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=SpecialProject.objects.none(),
+        required=False,
+        allow_null=True,
+    )
+    customer = serializers.PrimaryKeyRelatedField(
+        queryset=Customer.objects.none(),
+        required=False,
+        allow_null=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        company = getattr(request, "company", None)
+        if company is None:
+            return
+        self.fields["lead"].queryset = Lead.objects.filter(company=company)
+        self.fields["opportunity"].queryset = Opportunity.objects.filter(company=company)
+        self.fields["project"].queryset = SpecialProject.objects.filter(company=company)
+        self.fields["customer"].queryset = Customer.objects.filter(company=company)
+
+    def validate(self, attrs):
+        start_at = attrs["start_at"]
+        end_at = attrs.get("end_at")
+        if end_at is not None and end_at < start_at:
+            raise serializers.ValidationError({"end_at": "end_at must be greater than or equal to start_at."})
+
+        links = {
+            "lead": attrs.get("lead"),
+            "opportunity": attrs.get("opportunity"),
+            "project": attrs.get("project"),
+            "customer": attrs.get("customer"),
+        }
+        active_links = [name for name, value in links.items() if value is not None]
+        if len(active_links) != 1:
+            raise serializers.ValidationError(
+                "Agenda event must be linked to exactly one origin entity: lead, opportunity, project or customer."
+            )
+
+        send_invite = attrs.get("send_invite", False)
+        attendee_email = (attrs.get("attendee_email") or "").strip()
+        if send_invite and not attendee_email:
+            raise serializers.ValidationError(
+                {"attendee_email": "attendee_email is required when send_invite=true."}
+            )
+        return attrs
+
+
+class AgendaEventSerializer(serializers.ModelSerializer):
+    subject = serializers.CharField(source="description", read_only=True)
+
+    class Meta:
+        model = CommercialActivity
+        fields = (
+            "id",
+            "title",
+            "subject",
+            "status",
+            "priority",
+            "origin",
+            "start_at",
+            "end_at",
+            "remind_at",
+            "attendee_name",
+            "attendee_email",
+            "invite_sent_at",
+            "confirmed_at",
+            "canceled_at",
+            "reminder_state",
+            "lead",
+            "opportunity",
+            "project",
+            "customer",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class AgendaStatusUpdateSerializer(serializers.Serializer):
+    send_email = serializers.BooleanField(required=False, default=False)
+
+
 class LeadHistorySerializer(serializers.Serializer):
     lead = LeadSerializer()
     activities = CommercialActivitySerializer(many=True)

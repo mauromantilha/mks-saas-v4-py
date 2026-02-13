@@ -1,10 +1,12 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.forms.models import model_to_dict
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -14,6 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from customers.models import CompanyMembership
+from customers.services import EmailService, TenantEmailServiceError
 from ledger.services import append_ledger_entry
 from operational.address import lookup_cep
 from operational.ai import (
@@ -48,6 +51,9 @@ from commission.models import (
 )
 from finance.models import Payable, ReceivableInstallment
 from operational.serializers import (
+    AgendaCreateSerializer,
+    AgendaEventSerializer,
+    AgendaStatusUpdateSerializer,
     AIInsightRequestSerializer,
     ApoliceSerializer,
     CNPJEnrichmentRequestSerializer,
@@ -69,6 +75,7 @@ from operational.serializers import (
     OpportunitySerializer,
     ProposalOptionSerializer,
     SalesGoalSerializer,
+    SalesFlowSummarySerializer,
     SalesMetricsSerializer,
     SpecialProjectActivitySerializer,
     SpecialProjectDocumentSerializer,
@@ -1421,7 +1428,7 @@ class CommercialActivityListCreateAPIView(
     model = CommercialActivity
     serializer_class = CommercialActivitySerializer
     ordering = ("status", "due_at", "-created_at")
-    tenant_resource_key = "activities"
+    tenant_resource_key = "tenant.activities.manage"
 
     def perform_create(self, serializer):
         activity = serializer.save(
@@ -1442,12 +1449,12 @@ class CommercialActivityDetailAPIView(
 ):
     model = CommercialActivity
     serializer_class = CommercialActivitySerializer
-    tenant_resource_key = "activities"
+    tenant_resource_key = "tenant.activities.manage"
 
 
 class CommercialActivityCompleteAPIView(APIView):
     permission_classes = [IsTenantRoleAllowed]
-    tenant_resource_key = "activities"
+    tenant_resource_key = "tenant.activities.manage"
 
     def post(self, request, pk):
         activity = get_object_or_404(CommercialActivity.objects.filter(company=request.company), pk=pk)
@@ -1464,14 +1471,14 @@ class CommercialActivityCompleteAPIView(APIView):
             event_type="CommercialActivity.COMPLETE",
             data_before=before,
             data_after=_instance_payload(activity),
-            metadata={"tenant_resource_key": "activities"},
+            metadata={"tenant_resource_key": "tenant.activities.manage"},
         )
         return Response(CommercialActivitySerializer(activity).data)
 
 
 class CommercialActivityReopenAPIView(APIView):
     permission_classes = [IsTenantRoleAllowed]
-    tenant_resource_key = "activities"
+    tenant_resource_key = "tenant.activities.manage"
 
     def post(self, request, pk):
         activity = get_object_or_404(CommercialActivity.objects.filter(company=request.company), pk=pk)
@@ -1488,14 +1495,14 @@ class CommercialActivityReopenAPIView(APIView):
             event_type="CommercialActivity.REOPEN",
             data_before=before,
             data_after=_instance_payload(activity),
-            metadata={"tenant_resource_key": "activities"},
+            metadata={"tenant_resource_key": "tenant.activities.manage"},
         )
         return Response(CommercialActivitySerializer(activity).data)
 
 
 class CommercialActivityRemindersAPIView(APIView):
     permission_classes = [IsTenantRoleAllowed]
-    tenant_resource_key = "activities"
+    tenant_resource_key = "tenant.activities.manage"
 
     def get(self, request):
         now = timezone.now()
@@ -1515,7 +1522,7 @@ class CommercialActivityRemindersAPIView(APIView):
 
 class CommercialActivityMarkRemindedAPIView(APIView):
     permission_classes = [IsTenantRoleAllowed]
-    tenant_resource_key = "activities"
+    tenant_resource_key = "tenant.activities.manage"
 
     def post(self, request, pk):
         activity = get_object_or_404(CommercialActivity.objects.filter(company=request.company), pk=pk)
@@ -1533,9 +1540,410 @@ class CommercialActivityMarkRemindedAPIView(APIView):
             event_type="CommercialActivity.MARK_REMINDED",
             data_before=before,
             data_after=_instance_payload(activity),
-            metadata={"tenant_resource_key": "activities"},
+            metadata={"tenant_resource_key": "tenant.activities.manage"},
         )
         return Response(CommercialActivitySerializer(activity).data)
+
+
+def _resolve_agenda_origin(validated_data: dict) -> tuple[str, dict]:
+    if validated_data.get("lead") is not None:
+        return CommercialActivity.ORIGIN_LEAD, {"lead": validated_data["lead"]}
+    if validated_data.get("opportunity") is not None:
+        return CommercialActivity.ORIGIN_OPPORTUNITY, {"opportunity": validated_data["opportunity"]}
+    if validated_data.get("project") is not None:
+        return CommercialActivity.ORIGIN_PROJECT, {"project": validated_data["project"]}
+    if validated_data.get("customer") is not None:
+        return CommercialActivity.ORIGIN_CUSTOMER, {"customer": validated_data["customer"]}
+    raise ValidationError("Agenda event origin is required.")
+
+
+def _send_agenda_email(
+    *,
+    company,
+    to_list: list[str],
+    subject: str,
+    text: str,
+    html: str,
+):
+    normalized_list = [str(item).strip() for item in to_list if str(item or "").strip()]
+    if not normalized_list:
+        raise TenantEmailServiceError("Recipient list cannot be empty for agenda notification.")
+
+    EmailService().send_email(
+        company=company,
+        to_list=normalized_list,
+        subject=subject,
+        text=text,
+        html=html,
+    )
+
+
+class AgendaListCreateAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "tenant.agenda.manage"
+
+    def get(self, request):
+        date_from_raw = (request.query_params.get("date_from") or "").strip()
+        date_to_raw = (request.query_params.get("date_to") or "").strip()
+
+        date_from = parse_date(date_from_raw) if date_from_raw else None
+        date_to = parse_date(date_to_raw) if date_to_raw else None
+        if date_from_raw and date_from is None:
+            return Response(
+                {"detail": "Invalid date_from format. Use YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if date_to_raw and date_to is None:
+            return Response(
+                {"detail": "Invalid date_to format. Use YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if date_from and date_to and date_from > date_to:
+            return Response(
+                {"detail": "date_from cannot be greater than date_to."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = CommercialActivity.objects.filter(
+            company=request.company,
+            type=CommercialActivity.TYPE_MEETING,
+        ).order_by("start_at", "id")
+        if date_from:
+            queryset = queryset.filter(start_at__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(start_at__date__lte=date_to)
+
+        return Response(
+            {
+                "tenant_code": request.company.tenant_code,
+                "results": AgendaEventSerializer(queryset, many=True).data,
+            }
+        )
+
+    def post(self, request):
+        serializer = AgendaCreateSerializer(data=request.data or {}, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
+
+        user_email = str(getattr(request.user, "email", "") or "").strip()
+        if not user_email:
+            return Response(
+                {"detail": "Authenticated user must have an email to create agenda events."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        start_at = payload["start_at"]
+        end_at = payload.get("end_at") or (start_at + timedelta(hours=1))
+        remind_at = start_at - timedelta(minutes=30)
+        attendee_name = str(payload.get("attendee_name") or "").strip()
+        attendee_email = str(payload.get("attendee_email") or "").strip()
+        send_invite = bool(payload.get("send_invite", False))
+        origin, relation_kwargs = _resolve_agenda_origin(payload)
+
+        try:
+            with transaction.atomic():
+                activity = CommercialActivity.objects.create(
+                    company=request.company,
+                    type=CommercialActivity.TYPE_MEETING,
+                    kind=CommercialActivity.KIND_MEETING,
+                    origin=origin,
+                    title=str(payload["title"]).strip(),
+                    description=str(payload.get("subject") or "").strip(),
+                    status=CommercialActivity.STATUS_OPEN,
+                    priority=payload.get("priority", CommercialActivity.PRIORITY_MEDIUM),
+                    start_at=start_at,
+                    end_at=end_at,
+                    remind_at=remind_at,
+                    attendee_name=attendee_name,
+                    attendee_email=attendee_email,
+                    reminder_state=CommercialActivity.REMINDER_PENDING,
+                    assigned_to=request.user if request.user.is_authenticated else None,
+                    created_by=request.user if request.user.is_authenticated else None,
+                    **relation_kwargs,
+                )
+
+                _send_agenda_email(
+                    company=request.company,
+                    to_list=[user_email],
+                    subject=f"Agenda criada: {activity.title}",
+                    text=(
+                        f"Sua agenda '{activity.title}' foi criada para "
+                        f"{activity.start_at.isoformat()}."
+                    ),
+                    html=(
+                        "<p>Sua agenda foi criada.</p>"
+                        f"<p><strong>{activity.title}</strong></p>"
+                        f"<p>Inicio: {activity.start_at.isoformat()}</p>"
+                    ),
+                )
+
+                if send_invite:
+                    locked_activity = CommercialActivity.objects.select_for_update().get(
+                        pk=activity.pk
+                    )
+                    # Harden against duplicate invitation sends on retried requests.
+                    if locked_activity.invite_sent_at is None:
+                        _send_agenda_email(
+                            company=request.company,
+                            to_list=[attendee_email],
+                            subject=f"Convite de reuniao: {locked_activity.title}",
+                            text=(
+                                f"Voce foi convidado para a reuniao '{locked_activity.title}' em "
+                                f"{locked_activity.start_at.isoformat()}."
+                            ),
+                            html=(
+                                "<p>Voce foi convidado para uma reuniao.</p>"
+                                f"<p><strong>{locked_activity.title}</strong></p>"
+                                f"<p>Inicio: {locked_activity.start_at.isoformat()}</p>"
+                            ),
+                        )
+                        locked_activity.invite_sent_at = timezone.now()
+                        locked_activity.save(update_fields=("invite_sent_at", "updated_at"))
+                        activity = locked_activity
+        except TenantEmailServiceError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_424_FAILED_DEPENDENCY,
+            )
+        except Exception:
+            return Response(
+                {"detail": "Failed to send agenda email notifications."},
+                status=status.HTTP_424_FAILED_DEPENDENCY,
+            )
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="CREATE",
+            resource_label=CommercialActivity._meta.label,
+            resource_pk=str(activity.pk),
+            request=request,
+            event_type="Agenda.CREATE",
+            data_after=_instance_payload(activity),
+            metadata={
+                "tenant_resource_key": self.tenant_resource_key,
+                "send_invite": send_invite,
+            },
+        )
+        return Response(AgendaEventSerializer(activity).data, status=status.HTTP_201_CREATED)
+
+
+class AgendaConfirmAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "tenant.agenda.manage"
+
+    def post(self, request, agenda_id):
+        serializer = AgendaStatusUpdateSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        send_email = serializer.validated_data.get("send_email", False)
+
+        user_email = str(getattr(request.user, "email", "") or "").strip()
+        if send_email and not user_email:
+            return Response(
+                {"detail": "Authenticated user must have an email to send confirmations."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            with transaction.atomic():
+                activity = get_object_or_404(
+                    CommercialActivity.objects.select_for_update().filter(
+                        company=request.company,
+                        type=CommercialActivity.TYPE_MEETING,
+                    ),
+                    pk=agenda_id,
+                )
+                before = _instance_payload(activity)
+
+                if activity.status == CommercialActivity.STATUS_CANCELED:
+                    return Response(
+                        {"detail": "Canceled agenda event cannot be confirmed."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if activity.status == CommercialActivity.STATUS_CONFIRMED:
+                    return Response(
+                        {"detail": "Agenda event is already confirmed."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+                recipients = [user_email] if send_email else []
+                if send_email and activity.attendee_email:
+                    recipients.append(activity.attendee_email)
+
+                activity.status = CommercialActivity.STATUS_CONFIRMED
+                activity.confirmed_at = timezone.now()
+                activity.save(update_fields=("status", "confirmed_at", "updated_at"))
+
+                if send_email:
+                    _send_agenda_email(
+                        company=request.company,
+                        to_list=list(dict.fromkeys(recipients)),
+                        subject=f"Agenda confirmada: {activity.title}",
+                        text=f"A reuniao '{activity.title}' foi confirmada.",
+                        html=(
+                            "<p>Reuniao confirmada.</p>"
+                            f"<p><strong>{activity.title}</strong></p>"
+                        ),
+                    )
+        except TenantEmailServiceError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_424_FAILED_DEPENDENCY)
+        except Http404:
+            raise
+        except Exception:
+            return Response(
+                {"detail": "Failed to send confirmation email."},
+                status=status.HTTP_424_FAILED_DEPENDENCY,
+            )
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="UPDATE",
+            resource_label=CommercialActivity._meta.label,
+            resource_pk=str(activity.pk),
+            request=request,
+            event_type="Agenda.CONFIRM",
+            data_before=before,
+            data_after=_instance_payload(activity),
+            metadata={
+                "tenant_resource_key": self.tenant_resource_key,
+                "send_email": send_email,
+            },
+        )
+        return Response(AgendaEventSerializer(activity).data)
+
+
+class AgendaCancelAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "tenant.agenda.manage"
+
+    def post(self, request, agenda_id):
+        user_email = str(getattr(request.user, "email", "") or "").strip()
+        if not user_email:
+            return Response(
+                {"detail": "Authenticated user must have an email to cancel agenda events."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            with transaction.atomic():
+                activity = get_object_or_404(
+                    CommercialActivity.objects.select_for_update().filter(
+                        company=request.company,
+                        type=CommercialActivity.TYPE_MEETING,
+                    ),
+                    pk=agenda_id,
+                )
+                before = _instance_payload(activity)
+
+                if activity.status == CommercialActivity.STATUS_CANCELED:
+                    return Response(
+                        {"detail": "Agenda event is already canceled."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+                recipients = [user_email]
+                if activity.attendee_email:
+                    recipients.append(activity.attendee_email)
+
+                activity.status = CommercialActivity.STATUS_CANCELED
+                activity.canceled_at = timezone.now()
+                activity.save(update_fields=("status", "canceled_at", "updated_at"))
+
+                _send_agenda_email(
+                    company=request.company,
+                    to_list=list(dict.fromkeys(recipients)),
+                    subject=f"Agenda cancelada: {activity.title}",
+                    text=f"A reuniao '{activity.title}' foi cancelada.",
+                    html=(
+                        "<p>Reuniao cancelada.</p>"
+                        f"<p><strong>{activity.title}</strong></p>"
+                    ),
+                )
+        except TenantEmailServiceError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_424_FAILED_DEPENDENCY)
+        except Http404:
+            raise
+        except Exception:
+            return Response(
+                {"detail": "Failed to send cancellation email."},
+                status=status.HTTP_424_FAILED_DEPENDENCY,
+            )
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="UPDATE",
+            resource_label=CommercialActivity._meta.label,
+            resource_pk=str(activity.pk),
+            request=request,
+            event_type="Agenda.CANCEL",
+            data_before=before,
+            data_after=_instance_payload(activity),
+            metadata={"tenant_resource_key": self.tenant_resource_key},
+        )
+        return Response(AgendaEventSerializer(activity).data)
+
+
+class AgendaRemindersAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "tenant.agenda.manage"
+
+    def get(self, request):
+        now = timezone.now()
+        queryset = CommercialActivity.objects.filter(
+            company=request.company,
+            type=CommercialActivity.TYPE_MEETING,
+            status=CommercialActivity.STATUS_OPEN,
+            remind_at__isnull=False,
+            remind_at__lte=now,
+            reminder_state=CommercialActivity.REMINDER_PENDING,
+        ).order_by("remind_at", "id")
+        return Response(
+            {
+                "tenant_code": request.company.tenant_code,
+                "results": AgendaEventSerializer(queryset, many=True).data,
+            }
+        )
+
+
+class AgendaAckReminderAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "tenant.agenda.manage"
+
+    def post(self, request, agenda_id):
+        with transaction.atomic():
+            activity = get_object_or_404(
+                CommercialActivity.objects.select_for_update().filter(
+                    company=request.company,
+                    type=CommercialActivity.TYPE_MEETING,
+                ),
+                pk=agenda_id,
+            )
+            before = _instance_payload(activity)
+
+            if activity.reminder_state != CommercialActivity.REMINDER_ACKED:
+                activity.reminder_state = CommercialActivity.REMINDER_ACKED
+                activity.save(update_fields=("reminder_state", "updated_at"))
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=request.company,
+            actor=request.user,
+            action="UPDATE",
+            resource_label=CommercialActivity._meta.label,
+            resource_pk=str(activity.pk),
+            request=request,
+            event_type="Agenda.ACK_REMINDER",
+            data_before=before,
+            data_after=_instance_payload(activity),
+            metadata={"tenant_resource_key": self.tenant_resource_key},
+        )
+        return Response(AgendaEventSerializer(activity).data)
 
 
 class LeadHistoryAPIView(APIView):
@@ -1598,7 +2006,9 @@ def _instance_payload(instance) -> dict:
 
 
 def _safe_float(value) -> float:
-    if value is None:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
         return 0.0
 
 
@@ -1742,10 +2152,6 @@ def _save_dashboard_ai_interaction(
         confidence_score=insights.get("qualification_score"),
         created_by=actor if getattr(actor, "is_authenticated", False) else None,
     )
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return 0.0
 
 
 class BaseCommercialAIInsightsAPIView(APIView):
@@ -2351,4 +2757,66 @@ class SalesMetricsAPIView(APIView):
                 "conversion": conversion,
             }
         ).data
+        return Response(payload)
+
+
+class SalesFlowSummaryAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "tenant.sales_flow.read"
+
+    def get(self, request):
+        company = request.company
+        now = timezone.now()
+
+        leads_new = Lead.objects.filter(company=company, status="NEW").count()
+        leads_qualified = Lead.objects.filter(company=company, status="QUALIFIED").count()
+        leads_converted = Lead.objects.filter(company=company, status="CONVERTED").count()
+
+        opportunities_won = Opportunity.objects.filter(company=company, stage="WON").count()
+        opportunities_lost = Opportunity.objects.filter(company=company, stage="LOST").count()
+        won_lost_total = opportunities_won + opportunities_lost
+        winrate = (
+            float(Decimal(opportunities_won) / Decimal(won_lost_total))
+            if won_lost_total > 0
+            else 0.0
+        )
+
+        pipeline_open = _safe_float(
+            Opportunity.objects.filter(company=company).exclude(stage__in=("WON", "LOST")).aggregate(
+                total=Sum("amount")
+            )["total"]
+        )
+
+        open_statuses = (CommercialActivity.STATUS_OPEN, CommercialActivity.LEGACY_STATUS_PENDING)
+        open_activities = CommercialActivity.objects.filter(company=company, status__in=open_statuses)
+        activities_open = open_activities.count()
+        activities_overdue = open_activities.filter(
+            Q(start_at__lt=now) | (Q(start_at__isnull=True) & Q(due_at__lt=now))
+        ).count()
+
+        payload = SalesFlowSummarySerializer(
+            {
+                "leads_new": leads_new,
+                "leads_qualified": leads_qualified,
+                "leads_converted": leads_converted,
+                "opportunities_won": opportunities_won,
+                "winrate": round(winrate, 4),
+                "pipeline_open": round(pipeline_open, 2),
+                "activities_open": activities_open,
+                "activities_overdue": activities_overdue,
+            }
+        ).data
+
+        append_ledger_entry(
+            scope="TENANT",
+            company=company,
+            actor=request.user,
+            action="SYSTEM",
+            resource_label="operational.SalesFlowSummary",
+            resource_pk=company.tenant_code,
+            request=request,
+            event_type="SalesFlowSummary.READ",
+            data_after=payload,
+            metadata={"tenant_resource_key": self.tenant_resource_key},
+        )
         return Response(payload)

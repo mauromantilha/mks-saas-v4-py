@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from customers.models import Company, CompanyMembership, Domain, ProducerProfile
+from customers.models import (
+    Company,
+    CompanyMembership,
+    Domain,
+    ProducerProfile,
+    TenantEmailConfig,
+)
 
 
 @admin.register(Company)
@@ -72,3 +78,19 @@ class ProducerProfileAdmin(admin.ModelAdmin):
     )
     list_filter = ("company", "is_active", "is_team_manager", "team_name")
     search_fields = ("full_name", "cpf", "membership__user__username", "team_name")
+
+
+@admin.register(TenantEmailConfig)
+class TenantEmailConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        "company",
+        "smtp_host",
+        "smtp_port",
+        "smtp_use_tls",
+        "smtp_use_ssl",
+        "is_enabled",
+        "last_tested_at",
+        "last_test_status",
+    )
+    list_filter = ("is_enabled", "smtp_use_tls", "smtp_use_ssl", "last_test_status")
+    search_fields = ("company__name", "company__tenant_code", "smtp_host", "smtp_username")

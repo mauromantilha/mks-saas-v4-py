@@ -1,0 +1,242 @@
+:host {
+  display: block;
+  --aura-surface-ground: var(--surface-ground, var(--p-surface-ground, #f8fafc));
+  --aura-surface-card: var(--surface-card, var(--p-surface-card, #ffffff));
+  --aura-surface-border: var(--surface-border, var(--p-surface-border, #d9e2ec));
+  --aura-text-color: var(--text-color, var(--p-text-color, #0f172a));
+  --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
+  --aura-primary: var(--primary-color, var(--p-primary-color, #0b57d0));
+}
+
+.sales-flow-page {
+  max-width: 1320px;
+  margin: 20px auto;
+  padding: 0 16px 30px;
+  background: var(--aura-surface-ground);
+  color: var(--aura-text-color);
+}
+
+.sales-flow-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--aura-surface-border);
+  border-radius: 16px;
+  background: radial-gradient(
+    circle at top left,
+    color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card)),
+    var(--aura-surface-card) 62%
+  );
+}
+
+.title-wrap h1 {
+  margin: 6px 0;
+  font-size: 1.7rem;
+}
+
+.eyebrow {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--aura-primary) 35%, var(--aura-surface-border));
+  background: color-mix(in srgb, var(--aura-primary) 10%, var(--aura-surface-card));
+  color: var(--aura-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--aura-text-muted);
+}
+
+.session-strip {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--aura-surface-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--aura-primary) 3%, var(--aura-surface-card));
+  color: var(--aura-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.kpi-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.kpi-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kpi-head i {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--aura-primary);
+  background: color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card));
+}
+
+.kpi-label {
+  display: block;
+  color: var(--aura-text-muted);
+  font-size: 0.8rem;
+}
+
+.kpi-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.2rem;
+}
+
+.workspace-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.field-full {
+  grid-column: 1 / -1;
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--aura-surface-border);
+  border-radius: 10px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--aura-primary) 2%, var(--aura-surface-card));
+}
+
+.panel-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.panel-note {
+  margin-top: 6px;
+  margin-bottom: 10px;
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.table-card {
+  margin-top: 12px;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.table-header h2 {
+  margin: 0;
+  font-size: 1.03rem;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.empty-row {
+  text-align: center;
+  color: var(--aura-text-muted);
+}
+
+.reminder-content p {
+  margin: 0 0 6px;
+}
+
+.reminder-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.muted {
+  color: var(--aura-text-muted);
+}
+
+.btn-primary,
+.btn-secondary {
+  min-width: 130px;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+:host ::ng-deep .sales-flow-aura-light .panel-card,
+:host ::ng-deep .sales-flow-aura-light .kpi-card,
+:host ::ng-deep .sales-flow-aura-light .state-card {
+  border: 1px solid var(--aura-surface-border);
+  border-radius: 14px;
+  background: var(--aura-surface-card);
+  color: var(--aura-text-color);
+}
+
+:host ::ng-deep .sales-flow-aura-light .state-error {
+  border-color: color-mix(in srgb, var(--p-red-500, #ef4444) 40%, var(--aura-surface-border));
+  background: color-mix(in srgb, var(--p-red-500, #ef4444) 6%, var(--aura-surface-card));
+}
+
+:host ::ng-deep .sales-flow-aura-light .state-empty {
+  background: color-mix(in srgb, var(--aura-primary) 2%, var(--aura-surface-card));
+}
+
+@media (max-width: 1080px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .sales-flow-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

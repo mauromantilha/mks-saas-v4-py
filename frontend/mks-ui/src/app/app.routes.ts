@@ -9,7 +9,7 @@ import { ResetPasswordPageComponent } from "./features/auth/reset-password-page.
 import { PlatformTenantsPageComponent } from "./features/platform/platform-tenants-page.component";
 import { PlatformMonitoringPageComponent } from "./features/platform/platform-monitoring-page.component";
 import { PlatformTenantMonitoringPageComponent } from "./features/platform/platform-tenant-monitoring-page.component";
-import { SalesFlowPageComponent } from "./features/sales/sales-flow-page.component";
+import { TenantSalesFlowPageComponent } from "./features/tenant/tenant-sales-flow-page.component";
 import { SectionPlaceholderPageComponent } from "./features/shared/section-placeholder-page.component";
 import { TenantActivitiesPageComponent } from "./features/tenant/tenant-activities-page.component";
 import { TenantAIAssistantPageComponent } from "./features/tenant/tenant-ai-assistant-page.component";
@@ -84,7 +84,7 @@ const tenantCanonicalRoutes: Route[] = [
   ),
   tenantRoute(
     "tenant/comercial/fluxo",
-    SalesFlowPageComponent,
+    TenantSalesFlowPageComponent,
     "Fluxo Comercial",
     "Pipeline comercial por etapa, com conversão e handover para emissão."
   ),

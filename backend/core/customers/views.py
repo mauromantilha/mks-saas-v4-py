@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import status
@@ -17,7 +18,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from customers.models import CompanyMembership, ProducerProfile
+from customers.models import CompanyMembership, ProducerProfile, TenantEmailConfig
 from customers.serializers import (
     CompanyMembershipReadSerializer,
     CompanyMembershipUpdateSerializer,
@@ -27,10 +28,17 @@ from customers.serializers import (
     ProducerProfilePatchSerializer,
     ProducerProfileReadSerializer,
     ProducerProfileUpsertSerializer,
+    TenantEmailConfigSerializer,
+    TenantEmailConfigTestSerializer,
 )
+from customers.services import EmailService, TenantEmailServiceError
 from finance.models import Payable
 from operational.models import SalesGoal
-from tenancy.permissions import IsAuthenticatedTenantMember, IsTenantOwner
+from tenancy.permissions import (
+    IsAuthenticatedTenantMember,
+    IsTenantOwner,
+    IsTenantRoleAllowed,
+)
 from tenancy.rbac import (
     get_resource_role_matrices,
     normalize_rbac_overrides,
@@ -305,6 +313,113 @@ class TenantRBACAPIView(APIView):
             "rbac_overrides": tenant_overrides,
             "effective_role_matrices": effective_matrices,
         }
+
+
+class TenantEmailConfigAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "tenant.email.manage"
+
+    def get(self, request):
+        config = TenantEmailConfig.objects.filter(company=request.company).first()
+        if config is None:
+            return Response({"tenant_code": request.company.tenant_code, "config": None})
+        return Response(
+            {
+                "tenant_code": request.company.tenant_code,
+                "config": TenantEmailConfigSerializer(config).data,
+            }
+        )
+
+    def post(self, request):
+        config = TenantEmailConfig.objects.filter(company=request.company).first()
+        serializer = TenantEmailConfigSerializer(
+            instance=config,
+            data=request.data,
+            partial=config is not None,
+        )
+        serializer.is_valid(raise_exception=True)
+        saved = serializer.save(company=request.company)
+        return Response(
+            {
+                "tenant_code": request.company.tenant_code,
+                "config": TenantEmailConfigSerializer(saved).data,
+            },
+            status=status.HTTP_201_CREATED if config is None else status.HTTP_200_OK,
+        )
+
+
+class TenantEmailConfigTestAPIView(APIView):
+    permission_classes = [IsTenantRoleAllowed]
+    tenant_resource_key = "tenant.email.manage"
+
+    def post(self, request):
+        config = TenantEmailConfig.objects.filter(company=request.company).first()
+        if config is None:
+            return Response(
+                {"detail": "Tenant email config not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = TenantEmailConfigTestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        to_email = (
+            serializer.validated_data.get("to_email")
+            or request.user.email
+            or config.reply_to_email
+            or config.default_from_email
+        )
+        if not to_email:
+            return Response(
+                {"detail": "Provide to_email or set a user email/default sender email."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        service = EmailService()
+        try:
+            service.send_email(
+                company=request.company,
+                to_list=[to_email],
+                subject="Teste de configuracao SMTP",
+                text=(
+                    "Este e um email de teste da configuracao SMTP do tenant "
+                    f"{request.company.tenant_code}."
+                ),
+                html=(
+                    "<p>Este e um email de teste da configuracao SMTP do tenant "
+                    f"<strong>{request.company.tenant_code}</strong>.</p>"
+                ),
+            )
+        except TenantEmailServiceError as exc:
+            config.last_tested_at = timezone.now()
+            config.last_test_status = TenantEmailConfig.TEST_STATUS_FAILED
+            config.save(update_fields=["last_tested_at", "last_test_status", "updated_at"])
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception:
+            config.last_tested_at = timezone.now()
+            config.last_test_status = TenantEmailConfig.TEST_STATUS_FAILED
+            config.save(update_fields=["last_tested_at", "last_test_status", "updated_at"])
+            return Response(
+                {"detail": "Failed to send test email with the tenant SMTP configuration."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        config.last_tested_at = timezone.now()
+        config.last_test_status = TenantEmailConfig.TEST_STATUS_SUCCESS
+        config.save(update_fields=["last_tested_at", "last_test_status", "updated_at"])
+
+        return Response(
+            {
+                "detail": "Test email sent.",
+                "tenant_code": request.company.tenant_code,
+                "to_email": to_email,
+                "last_tested_at": config.last_tested_at,
+                "last_test_status": config.last_test_status,
+            }
+        )
 
 
 class TenantMembersAPIView(APIView):

@@ -231,3 +231,54 @@ class ProducerProfile(models.Model):
         if self.membership_id and self.company_id is None:
             self.company = self.membership.company
         return super().save(*args, **kwargs)
+
+
+class TenantEmailConfig(models.Model):
+    TEST_STATUS_SUCCESS = "SUCCESS"
+    TEST_STATUS_FAILED = "FAILED"
+    TEST_STATUS_CHOICES = [
+        (TEST_STATUS_SUCCESS, "Success"),
+        (TEST_STATUS_FAILED, "Failed"),
+    ]
+
+    company = models.OneToOneField(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="email_config",
+    )
+    smtp_host = models.CharField(max_length=255)
+    smtp_port = models.PositiveIntegerField(
+        default=587,
+        validators=[MinValueValidator(1), MaxValueValidator(65535)],
+    )
+    smtp_username = models.CharField(max_length=255, blank=True)
+    smtp_password = models.CharField(max_length=255, blank=True)
+    smtp_use_tls = models.BooleanField(default=True)
+    smtp_use_ssl = models.BooleanField(default=False)
+    default_from_email = models.EmailField(blank=True)
+    default_from_name = models.CharField(max_length=150, blank=True)
+    reply_to_email = models.EmailField(blank=True)
+    is_enabled = models.BooleanField(default=True)
+    last_tested_at = models.DateTimeField(null=True, blank=True)
+    last_test_status = models.CharField(
+        max_length=20,
+        choices=TEST_STATUS_CHOICES,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("company__name",)
+        verbose_name = "Tenant Email Config"
+        verbose_name_plural = "Tenant Email Configs"
+
+    def clean(self):
+        super().clean()
+        if self.smtp_use_tls and self.smtp_use_ssl:
+            raise ValidationError(
+                {"smtp_use_ssl": "SSL and TLS cannot be enabled together."}
+            )
+
+    def __str__(self):
+        return f"Email config for {self.company.tenant_code}"
