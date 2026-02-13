@@ -175,13 +175,6 @@ export class AppComponent {
           pathV2: "/tenant/comercial/mensageria",
           accent: "#22c55e",
         },
-        {
-          label: "Atividade/Agenda",
-          pathLegacy: "/tenant/activities",
-          pathV2: "/tenant/comercial/atividades",
-          accent: "#a855f7",
-          permission: "tenant.activities.view",
-        },
       ],
     },
     {

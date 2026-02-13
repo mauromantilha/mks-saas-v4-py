@@ -122,6 +122,7 @@
                 [suggestions]="targetSuggestions()"
                 (completeMethod)="onTargetSearch($event)"
                 [dropdown]="true"
+                dropdownIcon="pi pi-chevron-down"
                 [forceSelection]="true"
                 optionLabel="label"
                 [placeholder]="targetPlaceholder()"
@@ -134,6 +135,7 @@
               <p-datepicker
                 formControlName="startAt"
                 [showIcon]="true"
+                iconDisplay="input"
                 [showTime]="true"
                 hourFormat="24"
                 appendTo="body"
@@ -146,6 +148,7 @@
               <p-datepicker
                 formControlName="endAt"
                 [showIcon]="true"
+                iconDisplay="input"
                 [showTime]="true"
                 hourFormat="24"
                 appendTo="body"
@@ -211,6 +214,7 @@
                 formControlName="date"
                 dateFormat="dd/mm/yy"
                 [showIcon]="true"
+                iconDisplay="input"
                 appendTo="body"
                 [disabled]="savingAgenda() || !canManageAgenda()"
               ></p-datepicker>

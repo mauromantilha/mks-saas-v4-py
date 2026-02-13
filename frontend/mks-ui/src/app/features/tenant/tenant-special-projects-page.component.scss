@@ -64,7 +64,7 @@ button[disabled] {
 
 .card {
   margin-top: 12px;
-  border: 1px solid var(--mks-border);
+  border: 1px solid color-mix(in srgb, #0f172a 18%, var(--mks-border));
   border-radius: 14px;
   background: var(--mks-surface);
 }

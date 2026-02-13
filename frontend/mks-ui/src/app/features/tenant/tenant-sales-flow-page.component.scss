@@ -231,46 +231,60 @@
   background: color-mix(in srgb, var(--aura-primary) 2%, var(--aura-surface-card));
 }
 
-/* Date fields: agenda style (not rounded) with green calendar button/icon. */
+/* Date fields: calendar icon inside input with green highlight. */
 :host ::ng-deep .sales-flow-aura-light .form-grid .p-datepicker {
   width: 100%;
 }
 
 :host ::ng-deep .sales-flow-aura-light .form-grid .p-datepicker .p-datepicker-input {
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
+  padding-right: 2.6rem;
 }
 
-:host
-  ::ng-deep
-  .sales-flow-aura-light
-  .form-grid
-  .p-datepicker
-  .p-datepicker-trigger.p-button {
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-datepicker .p-datepicker-input-icon-container,
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-datepicker .p-datepicker-dropdown {
+  color: var(--agenda-green);
+}
+
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-datepicker .p-datepicker-input-icon {
+  color: var(--agenda-green);
+}
+
+/* Lead/Oportunidade/Projeto/Cliente: keep dropdown arrow visually inside the field. */
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-autocomplete {
+  width: 100%;
+  position: relative;
+}
+
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-autocomplete .p-autocomplete-input {
+  width: 100%;
+  padding-right: 2.5rem;
+}
+
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-autocomplete .p-autocomplete-dropdown {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
   border-radius: 8px;
-  border-color: color-mix(in srgb, var(--agenda-green) 60%, var(--aura-surface-border));
-  background: color-mix(in srgb, var(--agenda-green) 92%, #ffffff);
+  padding: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--aura-text-color) 55%, var(--aura-surface-border));
+  box-shadow: none;
 }
 
-:host
-  ::ng-deep
-  .sales-flow-aura-light
-  .form-grid
-  .p-datepicker
-  .p-datepicker-trigger.p-button
-  .pi {
-  color: #ffffff;
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-autocomplete .p-autocomplete-dropdown:hover {
+  background: color-mix(in srgb, var(--aura-primary) 10%, var(--aura-surface-card));
 }
 
-:host
-  ::ng-deep
-  .sales-flow-aura-light
-  .form-grid
-  .p-datepicker
-  .p-datepicker-trigger.p-button:hover {
-  background: color-mix(in srgb, var(--agenda-green) 100%, #ffffff);
-  border-color: color-mix(in srgb, var(--agenda-green) 70%, var(--aura-surface-border));
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-autocomplete .p-autocomplete-dropdown:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--aura-primary) 45%, #ffffff);
+  outline-offset: 1px;
 }
+
 
 @media (max-width: 1080px) {
   .workspace-grid {

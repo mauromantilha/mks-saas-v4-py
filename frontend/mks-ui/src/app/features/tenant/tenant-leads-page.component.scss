@@ -85,7 +85,7 @@ button[disabled] {
 
 .card {
   background: var(--mks-surface);
-  border: 1px solid var(--mks-border);
+  border: 1px solid color-mix(in srgb, #0f172a 18%, var(--mks-border));
   border-radius: 14px;
   margin-top: 12px;
 }
@@ -149,7 +149,7 @@ textarea {
 
 .column {
   background: var(--mks-surface);
-  border: 1px solid var(--mks-border);
+  border: 1px solid color-mix(in srgb, #0f172a 18%, var(--mks-border));
   border-radius: 14px;
   padding: 10px;
   min-height: 220px;
@@ -183,7 +183,7 @@ textarea {
 }
 
 .lead-card {
-  border: 1px solid var(--mks-border);
+  border: 1px solid color-mix(in srgb, #0f172a 20%, var(--mks-border));
   background: linear-gradient(180deg, #ffffff, #f8fafc);
   border-radius: 14px;
   padding: 10px;
