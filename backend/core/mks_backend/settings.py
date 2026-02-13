@@ -77,6 +77,7 @@ ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 # Validate security settings only in actual production (not during management commands)
 import sys
 _is_management_command = any(cmd in sys.argv for cmd in ["check", "migrate", "makemigrations", "test", "runserver"])
+_is_test_command = "test" in sys.argv
 
 if not DEBUG and not _is_management_command:
     # Only validate in actual server runtime (gunicorn, uwsgi, etc.)
@@ -125,7 +126,9 @@ X_FRAME_OPTIONS = env("X_FRAME_OPTIONS", default="DENY").strip().upper()
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = env.bool("CSRF_COOKIE_HTTPONLY", default=True)
 
-if DEBUG:
+if DEBUG or _is_test_command:
+    # During tests we default to non-HTTPS redirects/cookies to avoid
+    # blanket 301 responses from SecurityMiddleware in CI.
     SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
     SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=False)
     CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=False)
