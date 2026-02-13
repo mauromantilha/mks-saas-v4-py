@@ -113,7 +113,7 @@ export class AppComponent {
       label: "Estratégia & Comercial",
       items: [
         {
-          label: "IA Assistente",
+          label: "MKS Advisor",
           pathLegacy: "/tenant/ai-assistant",
           pathV2: "/tenant/comercial/ai-assistente",
           accent: "#7c3aed",

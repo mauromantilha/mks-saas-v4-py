@@ -1,35 +1,39 @@
 import { CommonModule } from "@angular/common";
 import { Component, computed, signal } from "@angular/core";
-import { FormsModule } from "@angular/forms";
-import { Router, RouterLink } from "@angular/router";
-import { forkJoin } from "rxjs";
-import { catchError } from "rxjs/operators";
-import { of } from "rxjs";
-import { take } from "rxjs/operators";
+import { Router } from "@angular/router";
+import { forkJoin, of } from "rxjs";
+import { catchError, take } from "rxjs/operators";
 
 import { SalesFlowService } from "../../core/api/sales-flow.service";
 import { SalesMetricsRecord } from "../../core/api/sales-flow.types";
 import { TenantDashboardService } from "../../core/api/tenant-dashboard.service";
-import { DashboardAiSuggestionsCardComponent } from "./dashboard-ai-suggestions-card.component";
-import {
-  TenantDashboardAIInsightsResponse,
-  TenantDashboardSummary,
-} from "../../core/api/tenant-dashboard.types";
+import { TenantDashboardSummary } from "../../core/api/tenant-dashboard.types";
 import { PermissionService } from "../../core/auth/permission.service";
 import { SessionService } from "../../core/auth/session.service";
 import { ToastService } from "../../core/ui/toast.service";
 import { PrimeUiModule } from "../../shared/prime-ui.module";
 
+type DashboardCardKind = "currency" | "number" | "text";
+
+interface DashboardCard {
+  label: string;
+  value: number | string;
+  hint: string;
+  tone: string;
+  kind: DashboardCardKind;
+}
+
+interface DashboardProductionChart {
+  title: string;
+  current: number;
+  target: number;
+  tone: string;
+}
+
 @Component({
   selector: "app-tenant-dashboard-page",
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    FormsModule,
-    PrimeUiModule,
-    DashboardAiSuggestionsCardComponent,
-  ],
+  imports: [CommonModule, PrimeUiModule],
   templateUrl: "./tenant-dashboard-page.component.html",
   styleUrl: "./tenant-dashboard-page.component.scss",
 })
@@ -39,8 +43,11 @@ export class TenantDashboardPageComponent {
     currency: "BRL",
   });
 
+  private readonly decimalFormatter = new Intl.NumberFormat("pt-BR", {
+    maximumFractionDigits: 0,
+  });
+
   readonly session = computed(() => this.sessionService.session());
-  readonly canWrite = computed(() => this.canViewGoals());
   readonly canViewDashboard = computed(() =>
     this.permissionService.can("tenant.dashboard.view")
   );
@@ -55,21 +62,6 @@ export class TenantDashboardPageComponent {
       this.permissionService.can("tenant.finance.view")
       || this.permissionService.can("tenant.fiscal.view")
   );
-  readonly canViewGoals = computed(() => {
-    const role = this.session()?.role;
-    const roleAllowsWrite = role === "OWNER" || role === "MANAGER";
-    return roleAllowsWrite
-      && (
-        this.permissionService.can("tenant.role.owner")
-        || this.permissionService.can("tenant.role.manager")
-      );
-  });
-  readonly canViewAI = computed(() =>
-    this.permissionService.can("tenant.ai_assistant.view")
-  );
-  readonly canUseAISuggestions = computed(() =>
-    this.permissionService.can("tenant.ai.use")
-  );
   readonly permissionError = computed(() => this.permissionService.lastError());
 
   loading = signal(false);
@@ -79,67 +71,134 @@ export class TenantDashboardPageComponent {
 
   summary = signal<TenantDashboardSummary | null>(null);
   metrics = signal<SalesMetricsRecord | null>(null);
-  aiInsights = signal<TenantDashboardAIInsightsResponse | null>(null);
-  aiLoading = signal(false);
-  aiError = signal("");
 
-  readonly dailySeries = computed(() => this.summary()?.series.daily_mtd ?? []);
-  readonly monthlySeries = computed(() => this.summary()?.series.monthly_ytd ?? []);
-  readonly dailyMaxPremium = computed(() => this.maxOf(this.dailySeries(), "premium_total"));
-  readonly monthlyMaxPremium = computed(() =>
-    this.maxOf(this.monthlySeries(), "premium_total")
-  );
-  readonly goalRows = computed(() => {
-    const summary = this.summary();
-    if (!summary) {
-      return [];
-    }
+  readonly topCards = computed<DashboardCard[]>(() => {
+    const kpis = this.summary()?.kpis;
+
     return [
       {
-        label: "Produção (Mês)",
-        target: summary.goals.premium_goal_mtd,
-        current: summary.kpis.production_premium_mtd,
-        progress: summary.progress.premium_mtd_pct,
+        label: "Produção",
+        value: kpis?.production_premium_mtd ?? 0,
+        hint: "Mês corrente",
+        tone: "tone-green",
+        kind: "currency",
       },
       {
-        label: "Comissão (Mês)",
-        target: summary.goals.commission_goal_mtd,
-        current: summary.kpis.commission_mtd,
-        progress: summary.progress.commission_mtd_pct,
+        label: "Inadimplência",
+        value: kpis?.delinquency_open_total ?? 0,
+        hint: "Aberta no momento",
+        tone: "tone-red",
+        kind: "currency",
       },
       {
-        label: "Produção (Ano)",
-        target: summary.goals.premium_goal_ytd,
-        current: summary.kpis.production_premium_ytd,
-        progress: summary.progress.premium_ytd_pct,
+        label: "Renovações",
+        value: kpis?.renewals_mtd ?? 0,
+        hint: "No mês corrente",
+        tone: "tone-yellow",
+        kind: "number",
       },
       {
-        label: "Comissão (Ano)",
-        target: summary.goals.commission_goal_ytd,
-        current: summary.kpis.commission_ytd,
-        progress: summary.progress.commission_ytd_pct,
+        label: "Carteira ativa",
+        value: kpis?.customers_total ?? 0,
+        hint: "Clientes ativos",
+        tone: "tone-green",
+        kind: "number",
       },
     ];
   });
-  readonly activityRows = computed(() => {
+
+  readonly operationsCards = computed<DashboardCard[]>(() => {
     const metrics = this.metrics();
-    if (!metrics) {
-      return [];
-    }
+
     return [
-      { label: "Atividades em aberto", value: metrics.activities.open_total },
-      { label: "Vencidas", value: metrics.activities.overdue_total },
-      { label: "Vencem hoje", value: metrics.activities.due_today_total },
-      { label: "Lembretes hoje", value: metrics.activities.reminders_due_total },
-      { label: "SLA estourado", value: metrics.activities.sla_breached_total },
+      {
+        label: "Baixar parcela",
+        value: this.canViewFinance() ? "Em breve" : "Sem acesso",
+        hint: this.canViewFinance()
+          ? "Será integrado no módulo financeiro"
+          : "Permissão financeira necessária",
+        tone: "tone-yellow",
+        kind: "text",
+      },
+      {
+        label: "Atividades",
+        value: metrics?.activities.open_total ?? 0,
+        hint: "Atividades em aberto",
+        tone: "tone-blue",
+        kind: "number",
+      },
+      {
+        label: "Agenda",
+        value: metrics?.activities.due_today_total ?? 0,
+        hint: "Compromissos do dia",
+        tone: "tone-teal",
+        kind: "number",
+      },
     ];
   });
 
-  // Goals form (current month).
-  goalPremium = signal("");
-  goalCommission = signal("");
-  goalNewCustomers = signal("");
-  goalNotes = signal("");
+  readonly yearCards = computed<DashboardCard[]>(() => {
+    const kpis = this.summary()?.kpis;
+
+    return [
+      {
+        label: "Produção acumulada no ano",
+        value: kpis?.production_premium_ytd ?? 0,
+        hint: "Acumulado anual",
+        tone: "tone-green",
+        kind: "currency",
+      },
+      {
+        label: "Comissão acumulada no ano",
+        value: kpis?.commission_ytd ?? 0,
+        hint: "Acumulado anual",
+        tone: "tone-blue",
+        kind: "currency",
+      },
+    ];
+  });
+
+  readonly monthCards = computed<DashboardCard[]>(() => {
+    const kpis = this.summary()?.kpis;
+
+    return [
+      {
+        label: "Produção do mês corrente",
+        value: kpis?.production_premium_mtd ?? 0,
+        hint: "Mês atual",
+        tone: "tone-green",
+        kind: "currency",
+      },
+      {
+        label: "Comissão do mês corrente",
+        value: kpis?.commission_mtd ?? 0,
+        hint: "Mês atual",
+        tone: "tone-orange",
+        kind: "currency",
+      },
+    ];
+  });
+
+  readonly productionGoalCharts = computed<DashboardProductionChart[]>(() => {
+    const summary = this.summary();
+    const kpis = summary?.kpis;
+    const goals = summary?.goals;
+
+    return [
+      {
+        title: "Produção x meta anual",
+        current: kpis?.production_premium_ytd ?? 0,
+        target: goals?.premium_goal_ytd ?? 0,
+        tone: "tone-green",
+      },
+      {
+        title: "Produção x meta do mês",
+        current: kpis?.production_premium_mtd ?? 0,
+        target: goals?.premium_goal_mtd ?? 0,
+        tone: "tone-blue",
+      },
+    ];
+  });
 
   constructor(
     private readonly dashboardService: TenantDashboardService,
@@ -180,7 +239,6 @@ export class TenantDashboardPageComponent {
       this.loading.set(false);
       this.summary.set(null);
       this.metrics.set(null);
-      this.aiInsights.set(null);
       return;
     }
 
@@ -191,30 +249,14 @@ export class TenantDashboardPageComponent {
     const metrics$ = this.canViewMetrics()
       ? this.salesFlowService.getSalesMetrics().pipe(catchError(() => of(null)))
       : of(null);
-    const ai$ = this.canViewAI()
-      ? this.dashboardService.getLatestAIInsights().pipe(
-          catchError(() =>
-            this.dashboardService
-              .generateAIInsights({ period_days: 30 })
-              .pipe(catchError(() => of(null)))
-          )
-        )
-      : of(null);
 
     forkJoin({
       summary: this.dashboardService.getSummary(),
       metrics: metrics$,
-      ai: ai$,
     }).subscribe({
-      next: ({ summary, metrics, ai }) => {
+      next: ({ summary, metrics }) => {
         this.summary.set(summary);
         this.metrics.set(metrics ?? null);
-        this.aiInsights.set(ai);
-        this.aiError.set("");
-        this.goalPremium.set(String(summary.goals.premium_goal_mtd ?? 0));
-        this.goalCommission.set(String(summary.goals.commission_goal_mtd ?? 0));
-        this.goalNewCustomers.set(String(summary.goals.new_customers_goal_mtd ?? 0));
-        this.goalNotes.set("");
         if (!summary) {
           this.notice.set("Sem dados de dashboard para o período atual.");
         }
@@ -232,114 +274,29 @@ export class TenantDashboardPageComponent {
     });
   }
 
-  generateWeeklyActionPlan(): void {
-    if (!this.canViewAI()) {
-      this.toast.warning("Seu perfil não possui acesso ao assistente de IA.");
-      return;
+  formatCardValue(card: DashboardCard): string {
+    if (card.kind === "currency") {
+      return this.formatCurrency(Number(card.value));
     }
-
-    this.aiLoading.set(true);
-    this.aiError.set("");
-    this.dashboardService
-      .generateAIInsights({
-        period_days: 7,
-        weekly_plan: true,
-        focus:
-          "Monte um plano de ação semanal para corretora de seguros com prioridades comerciais, financeiras e operacionais.",
-      })
-      .subscribe({
-        next: (ai) => {
-          this.aiInsights.set(ai);
-          this.notice.set("Plano de ação semanal atualizado.");
-          this.toast.success("Plano semanal gerado com sucesso.");
-          this.aiLoading.set(false);
-        },
-        error: (err) => {
-          this.aiError.set(err?.error?.detail || "Falha ao gerar plano de ação semanal.");
-          this.toast.error("Falha ao gerar plano de ação semanal.");
-          this.aiLoading.set(false);
-        },
-      });
-  }
-
-  saveGoals(): void {
-    const summary = this.summary();
-    if (!summary) {
-      return;
+    if (card.kind === "number") {
+      return this.decimalFormatter.format(Number(card.value ?? 0));
     }
-    if (!this.canViewGoals()) {
-      this.error.set("Seu perfil é somente leitura.");
-      this.toast.warning("Seu perfil não permite editar metas.");
-      return;
-    }
-
-    const year = summary.period.year;
-    const month = summary.period.month;
-    const premiumGoal = this.goalPremium().trim();
-    const commissionGoal = this.goalCommission().trim();
-    const newCustomers = Number.parseInt(this.goalNewCustomers().trim() || "0", 10);
-    if (Number.isNaN(newCustomers) || newCustomers < 0) {
-      this.error.set("Meta de novos clientes deve ser um número inteiro >= 0.");
-      return;
-    }
-
-    const payload = {
-      year,
-      month,
-      premium_goal: premiumGoal || 0,
-      commission_goal: commissionGoal || 0,
-      new_customers_goal: newCustomers,
-      notes: this.goalNotes().trim() || undefined,
-    };
-
-    this.loading.set(true);
-    this.error.set("");
-    this.notice.set("");
-
-    const existingId = summary.goals.sales_goal_id_mtd;
-    const request$ = existingId
-      ? this.dashboardService.updateSalesGoal(existingId, payload)
-      : this.dashboardService.createSalesGoal(payload);
-
-    request$.subscribe({
-      next: () => {
-        this.notice.set("Metas do mês atualizadas.");
-        this.toast.success("Metas salvas com sucesso.");
-        this.load();
-      },
-      error: (err) => {
-        this.error.set(
-          err?.error?.detail ? JSON.stringify(err.error.detail) : "Erro ao salvar metas."
-        );
-        this.toast.error("Erro ao salvar metas.");
-        this.loading.set(false);
-      },
-    });
+    return String(card.value ?? "-");
   }
 
   formatCurrency(value: number | null | undefined): string {
     return this.brlFormatter.format(value ?? 0);
   }
 
-  clampPct(value: number | null | undefined): number {
-    const resolved = Number.isFinite(value as number) ? (value as number) : 0;
-    return Math.max(0, Math.min(100, resolved));
+  chartWidth(value: number, current: number, target: number): number {
+    const max = Math.max(current, target, 1);
+    return Math.max(5, Math.round((value / max) * 100));
   }
 
-  barHeight(value: number, max: number): number {
-    if (!max || max <= 0) {
+  chartProgress(current: number, target: number): number {
+    if (target <= 0) {
       return 0;
     }
-    return Math.max(2, Math.round((value / max) * 100));
-  }
-
-  private maxOf<T extends object>(rows: T[], key: keyof T): number {
-    if (!rows.length) {
-      return 1;
-    }
-    const values = rows
-      .map((row) => Number((row as any)[key] ?? 0))
-      .filter((value) => Number.isFinite(value));
-    return Math.max(...values, 1);
+    return Math.round((current / target) * 100);
   }
 }

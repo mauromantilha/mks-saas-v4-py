@@ -1,38 +1,23 @@
 <p-toast position="top-right"></p-toast>
 
-<section class="ai-page ai-assistant-aura-light">
-  <header class="ai-header">
+<section class="advisor-page advisor-aura-light">
+  <header class="advisor-header">
     <div class="title-wrap">
       <p class="eyebrow">Estratégia & Comercial</p>
-      <h1>IA Assistente</h1>
+      <h1>MKS Advisor</h1>
       <p class="subtitle">
-        Chat contextual por tenant com histórico, fontes rastreáveis e métricas usadas na resposta.
+        Faça uma pergunta única para internet e sistema interno. Ex.: como está a inadimplência essa semana?
       </p>
-    </div>
-
-    <div class="header-actions">
-      <button
-        pButton
-        type="button"
-        class="btn-secondary"
-        [disabled]="loadingConversations() || permissionsLoading() || !canUseAI()"
-        (click)="refreshConversations(selectedConversationId() || undefined)"
-      >
-        Atualizar
-      </button>
     </div>
   </header>
 
   <ng-container *ngIf="permissionsLoading(); else permissionsReady">
     <section class="state-grid">
-      <p-card>
-        <p-skeleton width="100%" height="5rem"></p-skeleton>
+      <p-card styleClass="state-card">
+        <p-skeleton width="100%" height="14rem"></p-skeleton>
       </p-card>
-      <p-card>
-        <p-skeleton width="100%" height="22rem"></p-skeleton>
-      </p-card>
-      <p-card>
-        <p-skeleton width="100%" height="18rem"></p-skeleton>
+      <p-card styleClass="state-card">
+        <p-skeleton width="100%" height="12rem"></p-skeleton>
       </p-card>
     </section>
   </ng-container>
@@ -40,256 +25,101 @@
   <ng-template #permissionsReady>
     <p-card *ngIf="!canUseAI()" styleClass="state-card state-error">
       <h2>Acesso bloqueado</h2>
-      <p>Seu usuário não possui a capability <code>tenant.ai.use</code> para usar o chat.</p>
+      <p>Seu usuário não possui a capability <code>tenant.ai.use</code> para usar o MKS Advisor.</p>
       <p *ngIf="permissionError()" class="muted">{{ permissionError() }}</p>
     </p-card>
 
     <ng-container *ngIf="canUseAI()">
       <p-card *ngIf="error()" styleClass="state-card state-error">
-        <h2>Falha no IA Assistente</h2>
+        <h2>Falha no MKS Advisor</h2>
         <p>{{ error() }}</p>
       </p-card>
 
-      <section class="ai-layout">
-        <aside class="column column-left">
-          <p-card styleClass="panel-card">
-            <div class="panel-title-row">
-              <h2>Conversas</h2>
-              <p-tag value="{{ conversations().length }}" severity="info"></p-tag>
-            </div>
-
-            <label class="field">
-              Buscar
-              <input
-                pInputText
-                type="text"
-                placeholder="Título ou usuário"
-                [ngModel]="conversationSearch()"
-                (ngModelChange)="conversationSearch.set(($event ?? '').toString())"
-              />
-            </label>
-
-            <ng-container *ngIf="loadingConversations() && conversations().length === 0">
-              <div class="list-skeletons">
-                <p-skeleton width="100%" height="3.2rem"></p-skeleton>
-                <p-skeleton width="100%" height="3.2rem"></p-skeleton>
-                <p-skeleton width="100%" height="3.2rem"></p-skeleton>
-              </div>
-            </ng-container>
-
-            <p *ngIf="!loadingConversations() && visibleConversations().length === 0" class="muted">
-              Nenhuma conversa encontrada.
-            </p>
-
-            <p-scrollPanel
-              *ngIf="visibleConversations().length > 0"
-              [style]="{ width: '100%', height: '20rem' }"
+      <p-card styleClass="panel-card prompt-card tone-blue">
+        <div class="panel-head">
+          <h2>Prompt único</h2>
+          <div class="prompt-actions">
+            <button
+              pButton
+              type="button"
+              class="btn-secondary"
+              [disabled]="consulting() || !prompt().trim()"
+              (click)="clearPrompt()"
             >
-              <div class="conversation-list">
-                <button
-                  type="button"
-                  class="conversation-item"
-                  *ngFor="let item of visibleConversations(); trackBy: trackByConversationId"
-                  [class.active]="item.id === selectedConversationId()"
-                  (click)="openConversation(item.id)"
-                >
-                  <div class="conversation-head">
-                    <strong>{{ item.title || ('Conversa #' + item.id) }}</strong>
-                    <span class="muted small">{{ item.updated_at | date: 'dd/MM HH:mm' }}</span>
-                  </div>
-                  <span class="muted small">{{ item.created_by_username || 'Usuário' }}</span>
-                </button>
-              </div>
-            </p-scrollPanel>
-          </p-card>
-
-          <p-card styleClass="panel-card">
-            <div class="panel-title-row">
-              <h2>Sugestões</h2>
-              <span class="muted small">Dashboard</span>
-            </div>
-
-            <ng-container *ngIf="loadingSuggestions()">
-              <div class="list-skeletons">
-                <p-skeleton width="100%" height="2.8rem"></p-skeleton>
-                <p-skeleton width="100%" height="2.8rem"></p-skeleton>
-              </div>
-            </ng-container>
-
-            <p *ngIf="!loadingSuggestions() && dashboardSuggestions().length === 0" class="muted">
-              Sem sugestões disponíveis no momento.
-            </p>
-
-            <div class="suggestions-list" *ngIf="dashboardSuggestions().length > 0">
-              <button
-                pButton
-                type="button"
-                class="suggestion-btn"
-                *ngFor="let suggestion of dashboardSuggestions()"
-                (click)="useDashboardSuggestion(suggestion)"
-              >
-                {{ suggestion.title }}
-              </button>
-            </div>
-          </p-card>
-        </aside>
-
-        <main class="column column-center">
-          <p-card styleClass="panel-card chat-card">
-            <div class="panel-title-row">
-              <h2>Chat</h2>
-              <span class="muted small" *ngIf="selectedConversationId() as id">Conversa #{{ id }}</span>
-            </div>
-
-            <ng-container *ngIf="loadingConversation() && messages().length === 0">
-              <div class="list-skeletons">
-                <p-skeleton width="85%" height="4.5rem"></p-skeleton>
-                <p-skeleton width="70%" height="4.5rem"></p-skeleton>
-                <p-skeleton width="88%" height="4.5rem"></p-skeleton>
-              </div>
-            </ng-container>
-
-            <p-scrollPanel
-              *ngIf="messages().length > 0"
-              [style]="{ width: '100%', height: '30rem' }"
-              styleClass="chat-scroll"
+              Limpar
+            </button>
+            <button
+              pButton
+              type="button"
+              class="btn-primary"
+              [disabled]="consulting() || !prompt().trim()"
+              (click)="sendPrompt()"
             >
-              <div class="messages-stack">
-                <article
-                  class="message"
-                  *ngFor="let message of messages(); trackBy: trackByMessageId"
-                  [class.message-user]="message.role === 'user'"
-                  [class.message-assistant]="message.role === 'assistant'"
-                  [class.message-system]="message.role === 'system' || message.role === 'tool'"
-                >
-                  <header class="message-head">
-                    <p-tag [value]="roleLabel(message.role)" [severity]="roleSeverity(message.role)"></p-tag>
-                    <small class="muted">{{ message.created_at | date: 'dd/MM/yyyy HH:mm' }}</small>
-                  </header>
+              {{ consulting() ? "Consultando..." : "Consultar" }}
+            </button>
+          </div>
+        </div>
 
-                  <p class="message-content">{{ message.content }}</p>
+        <textarea
+          pInputTextarea
+          rows="4"
+          [ngModel]="prompt()"
+          (ngModelChange)="prompt.set(($event ?? '').toString())"
+          [disabled]="consulting()"
+          placeholder="Ex.: como está a inadimplência essa semana considerando internet e dados do sistema?"
+        ></textarea>
 
-                  <button
-                    pButton
-                    type="button"
-                    class="btn-link"
-                    *ngIf="message.role === 'assistant'"
-                    (click)="selectAssistantMessage(message.id)"
-                  >
-                    Ver fontes desta resposta
-                  </button>
-                </article>
-              </div>
-            </p-scrollPanel>
+        <div class="answer-wrap" *ngIf="consulting()">
+          <p-skeleton width="100%" height="6rem"></p-skeleton>
+        </div>
 
-            <p *ngIf="messages().length === 0 && !loadingConversation()" class="muted empty-chat">
-              Inicie uma conversa com a IA para consultar mercado, CRM, financeiro, documentos e saúde do tenant.
-            </p>
+        <div class="answer-wrap" *ngIf="!consulting() && answer()">
+          <h3>Resposta do MKS Advisor</h3>
+          <p>{{ answer() }}</p>
+        </div>
+      </p-card>
 
-            <p-divider></p-divider>
+      <p-card styleClass="panel-card advisor-feed-card tone-green">
+        <div class="panel-head panel-head--compact">
+          <div>
+            <h2>Advisor em análise contínua</h2>
+            <p class="muted small">{{ suggestionsUpdatedLabel() }}</p>
+          </div>
+          <button pButton type="button" class="btn-secondary" [disabled]="loadingSuggestions()" (click)="refreshSuggestions()">
+            {{ loadingSuggestions() ? "Atualizando..." : "Atualizar" }}
+          </button>
+        </div>
 
-            <div class="composer">
-              <textarea
-                pInputTextarea
-                rows="4"
-                [ngModel]="prompt()"
-                (ngModelChange)="prompt.set(($event ?? '').toString())"
-                [disabled]="sending()"
-                placeholder="Ex.: Analise minha carteira e compare com tendências do mercado de seguros auto."
-              ></textarea>
-              <button
-                pButton
-                type="button"
-                class="btn-primary"
-                [disabled]="sending() || !prompt().trim()"
-                (click)="sendPrompt()"
-              >
-                {{ sending() ? "Enviando..." : "Enviar" }}
-              </button>
+        <div class="analysis-pills">
+          <p-tag
+            *ngFor="let row of analysisPills"
+            [value]="row.label"
+            [severity]="row.tone"
+          ></p-tag>
+        </div>
+
+        <ng-container *ngIf="loadingSuggestions() && advisorFeed().length === 0">
+          <div class="suggestion-skeletons">
+            <p-skeleton width="100%" height="3.8rem"></p-skeleton>
+            <p-skeleton width="100%" height="3.8rem"></p-skeleton>
+            <p-skeleton width="100%" height="3.8rem"></p-skeleton>
+          </div>
+        </ng-container>
+
+        <div class="advisor-feed" *ngIf="advisorFeed().length > 0">
+          <article
+            class="advisor-item"
+            [ngClass]="item.tone"
+            *ngFor="let item of advisorFeed(); trackBy: trackByFeedId"
+          >
+            <div class="advisor-item-head">
+              <h3>{{ item.title }}</h3>
+              <p-chip [label]="item.scope"></p-chip>
             </div>
-          </p-card>
-        </main>
-
-        <aside class="column column-right">
-          <p-card styleClass="panel-card">
-            <div class="panel-title-row">
-              <h2>Fontes e métricas</h2>
-              <button pButton type="button" class="btn-link" (click)="sourcesCollapsed.set(!sourcesCollapsed())">
-                {{ sourcesCollapsed() ? "Expandir" : "Recolher" }}
-              </button>
-            </div>
-
-            <ng-container *ngIf="!sourcesCollapsed()">
-              <p *ngIf="!selectedAssistantMessage()" class="muted">
-                Selecione uma resposta do assistente para ver fontes e métricas.
-              </p>
-
-              <ng-container *ngIf="selectedAssistantMessage()">
-                <section class="inspector-block">
-                  <h3>Fontes da internet</h3>
-                  <p *ngIf="inspector().webSources.length === 0" class="muted">Sem fontes públicas.</p>
-                  <ul *ngIf="inspector().webSources.length > 0" class="source-list">
-                    <li *ngFor="let source of inspector().webSources; trackBy: trackByWebSource">
-                      <a [href]="source.url" target="_blank" rel="noopener noreferrer">
-                        {{ source.title || source.url }}
-                      </a>
-                      <div class="meta-row">
-                        <p-chip [label]="domainFromUrl(source.url)"></p-chip>
-                      </div>
-                      <p class="muted" *ngIf="source.snippet">{{ source.snippet }}</p>
-                    </li>
-                  </ul>
-                </section>
-
-                <p-divider></p-divider>
-
-                <section class="inspector-block">
-                  <h3>Fontes internas</h3>
-                  <p *ngIf="inspector().internalSources.length === 0" class="muted">Sem documentos internos.</p>
-                  <ul *ngIf="inspector().internalSources.length > 0" class="source-list">
-                    <li *ngFor="let source of inspector().internalSources">
-                      <div>
-                        <strong>{{ sourceLabel(source) }}</strong>
-                        <p class="muted small">
-                          {{ source.source_type || 'generic_document' }}
-                          <ng-container *ngIf="source.source_id"> • {{ source.source_id }}</ng-container>
-                        </p>
-                      </div>
-                      <button pButton type="button" class="btn-link" (click)="openInternalSource(source)">
-                        Abrir
-                      </button>
-                    </li>
-                  </ul>
-                </section>
-
-                <p-divider></p-divider>
-
-                <section class="inspector-block">
-                  <h3>Métricas usadas</h3>
-                  <p *ngIf="inspector().metricsUsed.length === 0" class="muted">Sem métricas agregadas.</p>
-                  <div class="metrics-grid" *ngIf="inspector().metricsUsed.length > 0">
-                    <article class="metric-card" *ngFor="let metric of inspector().metricsUsed; trackBy: trackByMetric">
-                      <span class="metric-key">{{ metric.key }}</span>
-                      <strong class="metric-value">{{ formatMetricValue(metric.value) }}</strong>
-                      <span class="muted small" *ngIf="metric.period">{{ metric.period }}</span>
-                    </article>
-                  </div>
-                </section>
-
-                <p-divider></p-divider>
-
-                <section class="inspector-block">
-                  <h3>Sugestões da IA</h3>
-                  <p *ngIf="inspector().suggestions.length === 0" class="muted">Sem sugestões adicionais.</p>
-                  <div class="chips-wrap" *ngIf="inspector().suggestions.length > 0">
-                    <p-chip *ngFor="let action of inspector().suggestions" [label]="action"></p-chip>
-                  </div>
-                </section>
-              </ng-container>
-            </ng-container>
-          </p-card>
-        </aside>
-      </section>
+            <p>{{ item.body }}</p>
+          </article>
+        </div>
+      </p-card>
     </ng-container>
   </ng-template>
 </section>

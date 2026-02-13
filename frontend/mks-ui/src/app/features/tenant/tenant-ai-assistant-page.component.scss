@@ -2,38 +2,25 @@
   display: block;
   --aura-surface-ground: var(--surface-ground, var(--p-surface-ground, #f8fafc));
   --aura-surface-card: var(--surface-card, var(--p-surface-card, #ffffff));
-  --aura-surface-border: var(--surface-border, var(--p-surface-border, #d9e2ec));
+  --aura-surface-border: var(--surface-border, var(--p-surface-border, #d0d7e2));
   --aura-text-color: var(--text-color, var(--p-text-color, #0f172a));
   --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
-  --aura-primary: var(--primary-color, var(--p-primary-color, #0b57d0));
-  --aura-highlight-bg: var(
-    --highlight-bg,
-    color-mix(in srgb, var(--aura-primary) 10%, var(--aura-surface-card))
-  );
-  --aura-primary-50: var(--primary-50, var(--aura-highlight-bg));
+  --aura-primary: var(--primary-color, var(--p-primary-color, #2563eb));
 }
 
-.ai-page {
-  max-width: 1400px;
+.advisor-page {
+  max-width: 1100px;
   margin: 20px auto;
   padding: 0 16px 28px;
   background: var(--aura-surface-ground);
   color: var(--aura-text-color);
 }
 
-.ai-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
+.advisor-header {
   padding: 18px;
   border: 1px solid var(--aura-surface-border);
   border-radius: 16px;
-  background: radial-gradient(
-    circle at top right,
-    color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card)),
-    var(--aura-surface-card) 60%
-  );
+  background: var(--aura-surface-card);
 }
 
 .title-wrap h1 {
@@ -48,7 +35,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--aura-primary) 35%, var(--aura-surface-border));
-  background: color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card));
+  background: color-mix(in srgb, var(--aura-primary) 10%, var(--aura-surface-card));
   color: var(--aura-primary);
   font-size: 0.74rem;
   font-weight: 700;
@@ -64,233 +51,99 @@
 .state-grid {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 12px;
 }
 
-.ai-layout {
+.panel-card {
   margin-top: 12px;
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 320px;
-  gap: 12px;
-  align-items: start;
 }
 
-.column {
-  min-width: 0;
-}
-
-.panel-title-row {
+.panel-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
-.panel-title-row h2 {
+.panel-head h2 {
   margin: 0;
   font-size: 1.02rem;
 }
 
-.field {
-  display: grid;
-  gap: 6px;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.list-skeletons {
-  display: grid;
-  gap: 8px;
-}
-
-.conversation-list {
-  display: grid;
-  gap: 8px;
-  padding-right: 8px;
-}
-
-.conversation-item {
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--aura-surface-border);
-  border-radius: 10px;
-  background: var(--aura-surface-card);
-  color: var(--aura-text-color);
-  padding: 10px;
-  cursor: pointer;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
-}
-
-.conversation-item:hover {
-  border-color: color-mix(in srgb, var(--aura-primary) 45%, var(--aura-surface-border));
-  box-shadow: 0 8px 20px -16px color-mix(in srgb, var(--aura-primary) 40%, transparent);
-}
-
-.conversation-item.active {
-  border-color: var(--aura-primary);
-  background: color-mix(in srgb, var(--aura-primary) 8%, var(--aura-surface-card));
-}
-
-.conversation-head {
-  display: flex;
+.panel-head--compact {
   align-items: center;
-  justify-content: space-between;
+}
+
+.prompt-actions {
+  display: flex;
   gap: 8px;
 }
 
-.suggestions-list {
-  display: grid;
-  gap: 8px;
-}
-
-.suggestion-btn {
+.prompt-card textarea {
   width: 100%;
-  justify-content: flex-start;
-  text-align: left;
 }
 
-.chat-card {
-  min-height: 680px;
-}
-
-.messages-stack {
-  display: grid;
-  gap: 10px;
-  padding-right: 8px;
-}
-
-.message {
+.answer-wrap {
+  margin-top: 10px;
+  border: 1px solid var(--aura-surface-border);
   border-radius: 12px;
-  border: 1px solid var(--aura-surface-border);
-  padding: 10px;
-  background: var(--aura-surface-card);
-}
-
-.message-user {
-  border-color: color-mix(in srgb, var(--aura-primary) 35%, var(--aura-surface-border));
-  background: var(--aura-primary-50);
-}
-
-.message-assistant {
-  border-color: var(--aura-surface-border);
-  border-left: 4px solid var(--aura-primary);
-  background: var(--aura-surface-card);
-}
-
-.message-system {
-  border-color: var(--aura-surface-border);
   background: color-mix(in srgb, var(--aura-primary) 3%, var(--aura-surface-card));
+  padding: 12px;
 }
 
-.message-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
+.answer-wrap h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
 }
 
-.message-content {
+.answer-wrap p {
   margin: 0;
   white-space: pre-wrap;
   line-height: 1.45;
 }
 
-.empty-chat {
-  margin: 0;
-  padding: 10px;
-  border: 1px dashed var(--aura-surface-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--aura-primary) 2%, var(--aura-surface-card));
-}
-
-.composer {
-  display: grid;
-  gap: 10px;
-}
-
-.composer textarea {
-  width: 100%;
-}
-
-.btn-primary,
-.btn-secondary {
-  min-width: 120px;
-}
-
-.btn-link {
-  min-width: 0;
-}
-
-.inspector-block h3 {
-  margin: 0 0 8px;
-  font-size: 0.95rem;
-}
-
-.source-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 10px;
-}
-
-.source-list li {
-  border: 1px solid var(--aura-surface-border);
-  border-radius: 10px;
-  padding: 10px;
-  background: var(--aura-surface-card);
-  display: grid;
-  gap: 6px;
-}
-
-.source-list a {
-  color: var(--aura-primary);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.source-list a:hover {
-  text-decoration: underline;
-}
-
-.meta-row {
+.analysis-pills {
   display: flex;
-  gap: 6px;
   flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-.metrics-grid {
+.suggestion-skeletons {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
 }
 
-.metric-card {
+.advisor-feed {
+  display: grid;
+  gap: 8px;
+}
+
+.advisor-item {
   border: 1px solid var(--aura-surface-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--aura-primary) 3%, var(--aura-surface-card));
-  padding: 8px;
+  border-radius: 12px;
+  background: var(--aura-surface-card);
+  padding: 10px;
 }
 
-.metric-key {
-  display: block;
-  color: var(--aura-text-muted);
-  font-size: 0.76rem;
-}
-
-.metric-value {
-  display: block;
-  margin-top: 4px;
-  font-size: 1.02rem;
-}
-
-.chips-wrap {
+.advisor-item-head {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.advisor-item-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.advisor-item p {
+  margin: 0;
+  color: var(--aura-text-color);
+  line-height: 1.4;
 }
 
 .muted {
@@ -301,48 +154,47 @@
   font-size: 0.78rem;
 }
 
-:host ::ng-deep .ai-assistant-aura-light .p-card {
+:host ::ng-deep .advisor-aura-light .p-card {
   background: var(--aura-surface-card);
   color: var(--aura-text-color);
-  border: 1px solid var(--aura-surface-border);
+  border: 1.5px solid var(--aura-surface-border);
+  border-radius: 14px;
 }
 
-:host ::ng-deep .ai-assistant-aura-light .p-card .p-card-content {
+:host ::ng-deep .advisor-aura-light .p-card .p-card-content {
   padding: 12px;
 }
 
-:host ::ng-deep .ai-assistant-aura-light .p-scrollpanel,
-:host ::ng-deep .ai-assistant-aura-light .p-scrollpanel-content {
-  background: transparent;
+:host ::ng-deep .advisor-aura-light .tone-blue {
+  border-color: color-mix(in srgb, #2563eb 60%, var(--aura-surface-border));
 }
 
-@media (max-width: 1280px) {
-  .ai-layout {
-    grid-template-columns: 260px minmax(0, 1fr);
-  }
-
-  .column-right {
-    grid-column: 1 / -1;
-  }
+:host ::ng-deep .advisor-aura-light .tone-green {
+  border-color: color-mix(in srgb, #16a34a 60%, var(--aura-surface-border));
 }
 
-@media (max-width: 920px) {
-  .ai-header {
+:host ::ng-deep .advisor-aura-light .tone-orange {
+  border-color: color-mix(in srgb, #f59e0b 60%, var(--aura-surface-border));
+}
+
+:host ::ng-deep .advisor-aura-light .tone-red {
+  border-color: color-mix(in srgb, #dc2626 60%, var(--aura-surface-border));
+}
+
+:host ::ng-deep .advisor-aura-light .state-error {
+  border-color: color-mix(in srgb, #dc2626 50%, var(--aura-surface-border));
+  background: color-mix(in srgb, #dc2626 4%, var(--aura-surface-card));
+}
+
+@media (max-width: 900px) {
+  .panel-head,
+  .panel-head--compact {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .header-actions {
+  .prompt-actions {
     width: 100%;
-    display: flex;
     justify-content: flex-end;
-  }
-
-  .ai-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .chat-card {
-    min-height: auto;
   }
 }

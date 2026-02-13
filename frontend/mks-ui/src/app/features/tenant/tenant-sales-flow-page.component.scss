@@ -6,6 +6,7 @@
   --aura-text-color: var(--text-color, var(--p-text-color, #0f172a));
   --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
   --aura-primary: var(--primary-color, var(--p-primary-color, #0b57d0));
+  --agenda-green: #16a34a;
 }
 
 .sales-flow-page {
@@ -215,6 +216,12 @@
   color: var(--aura-text-color);
 }
 
+/* Slightly stronger outline for activity/agenda cards without making it heavy. */
+:host ::ng-deep .sales-flow-aura-light .panel-card {
+  border-color: color-mix(in srgb, var(--aura-text-color) 16%, var(--aura-surface-border));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--aura-text-color) 8%, transparent);
+}
+
 :host ::ng-deep .sales-flow-aura-light .state-error {
   border-color: color-mix(in srgb, var(--p-red-500, #ef4444) 40%, var(--aura-surface-border));
   background: color-mix(in srgb, var(--p-red-500, #ef4444) 6%, var(--aura-surface-card));
@@ -222,6 +229,47 @@
 
 :host ::ng-deep .sales-flow-aura-light .state-empty {
   background: color-mix(in srgb, var(--aura-primary) 2%, var(--aura-surface-card));
+}
+
+/* Date fields: agenda style (not rounded) with green calendar button/icon. */
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-datepicker {
+  width: 100%;
+}
+
+:host ::ng-deep .sales-flow-aura-light .form-grid .p-datepicker .p-datepicker-input {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+:host
+  ::ng-deep
+  .sales-flow-aura-light
+  .form-grid
+  .p-datepicker
+  .p-datepicker-trigger.p-button {
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--agenda-green) 60%, var(--aura-surface-border));
+  background: color-mix(in srgb, var(--agenda-green) 92%, #ffffff);
+}
+
+:host
+  ::ng-deep
+  .sales-flow-aura-light
+  .form-grid
+  .p-datepicker
+  .p-datepicker-trigger.p-button
+  .pi {
+  color: #ffffff;
+}
+
+:host
+  ::ng-deep
+  .sales-flow-aura-light
+  .form-grid
+  .p-datepicker
+  .p-datepicker-trigger.p-button:hover {
+  background: color-mix(in srgb, var(--agenda-green) 100%, #ffffff);
+  border-color: color-mix(in srgb, var(--agenda-green) 70%, var(--aura-surface-border));
 }
 
 @media (max-width: 1080px) {

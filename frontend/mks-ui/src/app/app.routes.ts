@@ -78,7 +78,7 @@ const tenantCanonicalRoutes: Route[] = [
   tenantRoute(
     "tenant/comercial/ai-assistente",
     TenantAIAssistantPageComponent,
-    "IA Assistente",
+    "MKS Advisor",
     "Consultoria comercial e de seguros com IA, contexto do tenant e memória de aprendizado.",
     "tenant.ai_assistant.view"
   ),
