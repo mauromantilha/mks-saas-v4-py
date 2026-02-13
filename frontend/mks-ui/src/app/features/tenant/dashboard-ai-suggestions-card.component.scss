@@ -1,5 +1,10 @@
 :host {
   display: block;
+  --aura-surface-card: var(--surface-card, var(--p-surface-card, #ffffff));
+  --aura-surface-border: var(--surface-border, var(--p-surface-border, #d9e2ec));
+  --aura-text-color: var(--text-color, var(--p-text-color, #0f172a));
+  --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
+  --aura-primary: var(--primary-color, var(--p-primary-color, #0b57d0));
 }
 
 .card-head {
@@ -30,10 +35,11 @@
 }
 
 .suggestion-item {
-  border: 1px solid var(--mks-border);
+  border: 1px solid var(--aura-surface-border);
   border-radius: 12px;
   padding: 10px;
-  background: #ffffff;
+  background: var(--aura-surface-card);
+  color: var(--aura-text-color);
 }
 
 .suggestion-head {
@@ -55,7 +61,7 @@
 
 .suggestion-body {
   margin: 8px 0 0;
-  color: #0f172a;
+  color: var(--aura-text-color);
   line-height: 1.45;
   white-space: pre-wrap;
 }
@@ -68,12 +74,22 @@
 }
 
 .muted {
-  color: var(--mks-muted);
+  color: var(--aura-text-muted);
 }
 
 .error-text {
   margin: 10px 0 0;
-  color: #b42318;
+  color: var(--p-red-600, #b42318);
+}
+
+:host ::ng-deep .ai-suggestions-aura-light.p-card {
+  background: var(--aura-surface-card);
+  border: 1px solid var(--aura-surface-border);
+  color: var(--aura-text-color);
+}
+
+:host ::ng-deep .ai-suggestions-aura-light .p-card-content {
+  padding: 12px;
 }
 
 @media (max-width: 960px) {

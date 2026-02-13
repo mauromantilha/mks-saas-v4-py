@@ -1,11 +1,19 @@
 :host {
   display: block;
+  --aura-surface-ground: var(--surface-ground, var(--p-surface-ground, #f8fafc));
+  --aura-surface-card: var(--surface-card, var(--p-surface-card, #ffffff));
+  --aura-surface-border: var(--surface-border, var(--p-surface-border, #d9e2ec));
+  --aura-text-color: var(--text-color, var(--p-text-color, #0f172a));
+  --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
+  --aura-primary: var(--primary-color, var(--p-primary-color, #0b57d0));
 }
 
 .dashboard-page {
   max-width: 1280px;
   margin: 20px auto;
   padding: 0 16px 32px;
+  background: var(--aura-surface-ground);
+  color: var(--aura-text-color);
 }
 
 .dashboard-header {
@@ -15,8 +23,12 @@
   gap: 16px;
   padding: 18px;
   border-radius: 18px;
-  border: 1px solid var(--mks-border);
-  background: radial-gradient(circle at top left, #eff6ff 0%, #ffffff 60%);
+  border: 1px solid var(--aura-surface-border);
+  background: radial-gradient(
+    circle at top left,
+    color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card)),
+    var(--aura-surface-card) 62%
+  );
 }
 
 .title-wrap h1 {
@@ -31,9 +43,9 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid #bfdbfe;
-  background: #dbeafe;
-  color: #1e3a8a;
+  border: 1px solid color-mix(in srgb, var(--aura-primary) 35%, var(--aura-surface-border));
+  background: color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card));
+  color: var(--aura-primary);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -42,7 +54,7 @@
 
 .subtitle {
   margin: 0;
-  color: var(--mks-muted);
+  color: var(--aura-text-muted);
 }
 
 .header-actions {
@@ -59,11 +71,15 @@
   min-height: 38px;
   padding: 0 12px;
   border-radius: 10px;
-  border: 1px solid var(--mks-border);
-  color: #1f2937;
-  background: #ffffff;
+  border: 1px solid var(--aura-surface-border);
+  color: var(--aura-text-color);
+  background: var(--aura-surface-card);
   text-decoration: none;
   font-weight: 600;
+}
+
+.btn-link:hover {
+  border-color: color-mix(in srgb, var(--aura-primary) 35%, var(--aura-surface-border));
 }
 
 .btn-primary,
@@ -74,13 +90,13 @@
 .session-strip {
   margin-top: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--mks-border);
+  border: 1px solid var(--aura-surface-border);
   border-radius: 12px;
-  background: var(--mks-surface-soft);
+  background: color-mix(in srgb, var(--aura-primary) 3%, var(--aura-surface-card));
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  color: var(--mks-muted);
+  color: var(--aura-text-muted);
 }
 
 .state-grid {
@@ -99,7 +115,7 @@
 
 .kpi-label {
   display: block;
-  color: var(--mks-muted);
+  color: var(--aura-text-muted);
   font-size: 0.83rem;
 }
 
@@ -113,7 +129,7 @@
 .kpi-hint {
   display: block;
   margin-top: 6px;
-  color: var(--mks-muted);
+  color: var(--aura-text-muted);
   font-size: 0.8rem;
 }
 
@@ -154,9 +170,9 @@
 }
 
 .mini-item {
-  border: 1px solid var(--mks-border);
+  border: 1px solid var(--aura-surface-border);
   border-radius: 10px;
-  background: var(--mks-surface-soft);
+  background: color-mix(in srgb, var(--aura-primary) 2.5%, var(--aura-surface-card));
   padding: 8px 10px;
 }
 
@@ -167,7 +183,7 @@
 .mini-label {
   display: block;
   margin-bottom: 4px;
-  color: var(--mks-muted);
+  color: var(--aura-text-muted);
   font-size: 0.78rem;
 }
 
@@ -182,14 +198,18 @@
   width: 120px;
   height: 8px;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-border));
   overflow: hidden;
 }
 
 .fill {
   display: inline-block;
   height: 100%;
-  background: linear-gradient(90deg, #0ea5e9, #0369a1);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--aura-primary) 70%, white),
+    var(--aura-primary)
+  );
 }
 
 .form-grid {
@@ -223,8 +243,10 @@
   grid-auto-columns: 1fr;
   gap: 4px;
   align-items: end;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--aura-surface-border);
   padding-bottom: 6px;
+  background: color-mix(in srgb, var(--aura-primary) 2%, var(--aura-surface-card));
+  border-radius: 12px;
 }
 
 .month-bars {
@@ -233,7 +255,11 @@
 
 .bar {
   border-radius: 8px 8px 2px 2px;
-  background: linear-gradient(180deg, #38bdf8, #0369a1);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--aura-primary) 58%, white),
+    var(--aura-primary)
+  );
   opacity: 0.9;
 }
 
@@ -246,11 +272,11 @@
 }
 
 .muted {
-  color: var(--mks-muted);
+  color: var(--aura-text-muted);
 }
 
 .error-text {
-  color: #b42318;
+  color: var(--p-red-600, #b42318);
 }
 
 .mt-2 {
@@ -261,49 +287,72 @@
   margin-top: 0.9rem;
 }
 
-:host ::ng-deep .kpi-card,
-:host ::ng-deep .panel-card,
-:host ::ng-deep .state-card,
-:host ::ng-deep .state-grid .p-card {
-  border: 1px solid var(--mks-border);
+:host ::ng-deep .dashboard-aura-light .kpi-card,
+:host ::ng-deep .dashboard-aura-light .panel-card,
+:host ::ng-deep .dashboard-aura-light .state-card,
+:host ::ng-deep .dashboard-aura-light .state-grid .p-card {
+  border: 1px solid var(--aura-surface-border);
   border-radius: 14px;
-  background: var(--mks-surface);
+  background: var(--aura-surface-card);
+  color: var(--aura-text-color);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--aura-primary) 8%, transparent);
 }
 
-:host ::ng-deep .kpi-highlight {
-  border-color: #bfdbfe;
-  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 75%);
+:host ::ng-deep .dashboard-aura-light .kpi-highlight {
+  border-color: color-mix(in srgb, var(--aura-primary) 36%, var(--aura-surface-border));
+  background: color-mix(in srgb, var(--aura-primary) 6%, var(--aura-surface-card));
 }
 
-:host ::ng-deep .state-error {
-  border-color: #fecaca;
-  background: #fef2f2;
+:host ::ng-deep .dashboard-aura-light .state-error {
+  border-color: color-mix(in srgb, var(--p-red-500, #ef4444) 40%, var(--aura-surface-border));
+  background: color-mix(in srgb, var(--p-red-500, #ef4444) 6%, var(--aura-surface-card));
 }
 
-:host ::ng-deep .state-info {
-  border-color: #bae6fd;
-  background: #f0f9ff;
+:host ::ng-deep .dashboard-aura-light .state-info {
+  border-color: color-mix(in srgb, var(--aura-primary) 35%, var(--aura-surface-border));
+  background: color-mix(in srgb, var(--aura-primary) 5%, var(--aura-surface-card));
 }
 
-:host ::ng-deep .state-empty {
-  border-color: #e2e8f0;
-  background: #f8fafc;
+:host ::ng-deep .dashboard-aura-light .state-empty {
+  background: color-mix(in srgb, var(--aura-primary) 2%, var(--aura-surface-card));
 }
 
-:host ::ng-deep .kpi-card .p-card-content,
-:host ::ng-deep .panel-card .p-card-content,
-:host ::ng-deep .state-card .p-card-content,
-:host ::ng-deep .state-grid .p-card .p-card-content {
+:host ::ng-deep .dashboard-aura-light .kpi-card .p-card-content,
+:host ::ng-deep .dashboard-aura-light .panel-card .p-card-content,
+:host ::ng-deep .dashboard-aura-light .state-card .p-card-content,
+:host ::ng-deep .dashboard-aura-light .state-grid .p-card .p-card-content {
   padding: 12px;
 }
 
-:host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-  font-size: 0.8rem;
-  color: #475569;
+:host ::ng-deep .dashboard-aura-light .p-datatable,
+:host ::ng-deep .dashboard-aura-light .p-datatable .p-datatable-wrapper,
+:host ::ng-deep .dashboard-aura-light .p-datatable .p-datatable-header,
+:host ::ng-deep .dashboard-aura-light .p-datatable .p-datatable-thead > tr > th,
+:host ::ng-deep .dashboard-aura-light .p-datatable .p-datatable-tbody > tr,
+:host ::ng-deep .dashboard-aura-light .p-datatable .p-datatable-tbody > tr > td,
+:host ::ng-deep .dashboard-aura-light .p-datatable .p-paginator {
+  background: var(--aura-surface-card);
+  color: var(--aura-text-color);
 }
 
-:host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+:host ::ng-deep .dashboard-aura-light .p-datatable .p-datatable-thead > tr > th {
+  font-size: 0.8rem;
+  color: var(--aura-text-muted);
+  border-bottom: 1px solid var(--aura-surface-border);
+}
+
+:host ::ng-deep .dashboard-aura-light .p-datatable .p-datatable-tbody > tr > td {
   font-size: 0.85rem;
+  border-bottom: 1px solid var(--aura-surface-border);
+}
+
+/*
+ * Legacy global dark-theme rules in styles.scss use !important on .mini-item/.bars.
+ * We keep Dashboard in Aura light by neutralizing those two selectors locally.
+ */
+:host-context(.dark-theme) .dashboard-aura-light .mini-item,
+:host-context(.dark-theme) .dashboard-aura-light .bars {
+  background: var(--aura-surface-card) !important;
 }
 
 @media (max-width: 900px) {
