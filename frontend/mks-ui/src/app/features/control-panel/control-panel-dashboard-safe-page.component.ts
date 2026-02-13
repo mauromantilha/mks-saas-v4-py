@@ -7,6 +7,7 @@ import { PlanDto, TenantDto } from "../../data-access/control-panel/control-pane
 import { MonitoringApi } from "../../data-access/control-panel/monitoring-api.service";
 import { PlansApi } from "../../data-access/control-panel/plans-api.service";
 import { TenantApi } from "../../data-access/control-panel/tenant-api.service";
+import { normalizeListResponse } from "../../shared/api/response-normalizers";
 
 type DashboardSafeStats = {
   tenants: number;
@@ -256,20 +257,25 @@ export class ControlPanelDashboardSafePageComponent implements OnInit {
         .getGlobalHealth({ period: "24h", page_size: 20 })
         .pipe(catchError(() => of(null))),
     })
-      .pipe(map((data) => ({
-        tenants: data.tenants?.total ?? 0,
-        activeTenants: data.activeTenants?.total ?? 0,
-        plans: Array.isArray(data.plans) ? data.plans.length : 0,
-        monitoringServices: Array.isArray(data.monitoring?.services) ? data.monitoring.services.length : 0,
-        monitoringTenants: Array.isArray(data.monitoring?.tenants) ? data.monitoring.tenants.length : 0,
-        cloudRunStatus: data.monitoring?.summary?.cloud_run_status || "-",
-        databaseStatus: data.monitoring?.summary?.database_status || "-",
-        storageStatus: data.monitoring?.summary?.storage_status || "-",
-        requestTraffic: data.monitoring?.summary?.request_traffic ?? 0,
-        loggedInUsers: data.monitoring?.summary?.logged_in_users ?? 0,
-        plansList: Array.isArray(data.plans) ? data.plans : [],
-        tenantsPreview: data.preview?.items || [],
-      })))
+      .pipe(
+        map((data) => {
+          const normalizedPlans = normalizeListResponse<PlanDto>(data.plans);
+          return {
+            tenants: data.tenants?.total ?? 0,
+            activeTenants: data.activeTenants?.total ?? 0,
+            plans: normalizedPlans.count ?? 0,
+            monitoringServices: Array.isArray(data.monitoring?.services) ? data.monitoring.services.length : 0,
+            monitoringTenants: Array.isArray(data.monitoring?.tenants) ? data.monitoring.tenants.length : 0,
+            cloudRunStatus: data.monitoring?.summary?.cloud_run_status || "-",
+            databaseStatus: data.monitoring?.summary?.database_status || "-",
+            storageStatus: data.monitoring?.summary?.storage_status || "-",
+            requestTraffic: data.monitoring?.summary?.request_traffic ?? 0,
+            loggedInUsers: data.monitoring?.summary?.logged_in_users ?? 0,
+            plansList: normalizedPlans.results,
+            tenantsPreview: data.preview?.items || [],
+          };
+        })
+      )
       .subscribe({
         next: (stats) => {
           this.stats.set({

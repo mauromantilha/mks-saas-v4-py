@@ -1,338 +1,370 @@
-<section class="dashboard-wrap">
-  <header class="hero">
-    <div>
-      <p class="badge">Portal Tenant</p>
-      <h1>Painel do Tenant</h1>
-      <p class="subtitle">
-        Produção, comissão, metas, funil e alertas operacionais consolidados.
-      </p>
+<section class="dashboard-page">
+  <header class="dashboard-header">
+    <div class="title-wrap">
+      <p class="eyebrow">MKS Tenant</p>
+      <h1>Dashboard</h1>
+      <p class="subtitle">Visão consolidada de produção, comercial, financeiro e operação.</p>
     </div>
-    <div class="hero-actions">
-      <a class="ghost" routerLink="/sales/flow">Abrir Fluxo Comercial</a>
+
+    <div class="header-actions">
+      <a class="btn-link" routerLink="/tenant/comercial/fluxo">Fluxo comercial</a>
       <button
         pButton
         type="button"
+        class="btn-secondary"
         (click)="generateWeeklyActionPlan()"
-        [disabled]="loading() || aiLoading()"
+        [disabled]="loading() || aiLoading() || !canViewAI()"
       >
-        {{ aiLoading() ? "Gerando plano..." : "Plano Semanal IA" }}
+        {{ aiLoading() ? "Gerando plano..." : "Plano semanal IA" }}
       </button>
-      <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
+      <button pButton type="button" class="btn-primary" (click)="load()" [disabled]="loading()">
+        Atualizar
+      </button>
     </div>
   </header>
 
-  <div *ngIf="session() as s" class="meta">
+  <div *ngIf="session() as s" class="session-strip">
     <span><strong>Tenant:</strong> {{ s.tenantCode }}</span>
     <span><strong>Usuário:</strong> {{ s.username }}</span>
-    <span><strong>Role:</strong> {{ s.role || "-" }}</span>
+    <span><strong>Perfil:</strong> {{ s.role || "-" }}</span>
   </div>
 
-  <p *ngIf="loading()" class="muted">Carregando...</p>
-  <p *ngIf="error()" class="error">{{ error() }}</p>
-  <p *ngIf="aiError()" class="error">{{ aiError() }}</p>
-  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
-
-  <ng-container *ngIf="summary() as summary">
-    <section class="kpi-grid">
-      <p-card styleClass="kpi kpi-strong">
-        <span class="label">Produção (Ano)</span>
-        <strong class="value">{{ formatCurrency(summary.kpis.production_premium_ytd) }}</strong>
-        <span class="hint">
-          Meta: {{ formatCurrency(summary.goals.premium_goal_ytd) }} ({{
-            summary.progress.premium_ytd_pct
-          }}%)
-        </span>
+  <ng-container *ngIf="permissionsLoading(); else permissionsReady">
+    <section class="state-grid">
+      <p-card>
+        <p-skeleton width="10rem" height="1.2rem"></p-skeleton>
+        <p-skeleton width="16rem" height="2rem" styleClass="mt-2"></p-skeleton>
+        <p-skeleton width="100%" height="4rem" styleClass="mt-3"></p-skeleton>
       </p-card>
-
-      <p-card styleClass="kpi kpi-strong">
-        <span class="label">Comissão (Ano)</span>
-        <strong class="value">{{ formatCurrency(summary.kpis.commission_ytd) }}</strong>
-        <span class="hint">
-          Meta: {{ formatCurrency(summary.goals.commission_goal_ytd) }} ({{
-            summary.progress.commission_ytd_pct
-          }}%)
-        </span>
+      <p-card>
+        <p-skeleton width="100%" height="12rem"></p-skeleton>
       </p-card>
-
-      <p-card styleClass="kpi">
-        <span class="label">Produção (Mês)</span>
-        <strong class="value">{{ formatCurrency(summary.kpis.production_premium_mtd) }}</strong>
-        <span class="hint">
-          Meta: {{ formatCurrency(summary.goals.premium_goal_mtd) }} ({{
-            summary.progress.premium_mtd_pct
-          }}%)
-        </span>
-      </p-card>
-
-      <p-card styleClass="kpi">
-        <span class="label">Comissão (Mês)</span>
-        <strong class="value">{{ formatCurrency(summary.kpis.commission_mtd) }}</strong>
-        <span class="hint">
-          Meta: {{ formatCurrency(summary.goals.commission_goal_mtd) }} ({{
-            summary.progress.commission_mtd_pct
-          }}%)
-        </span>
-      </p-card>
-
-      <p-card styleClass="kpi">
-        <span class="label">Renovações (30 dias)</span>
-        <strong class="value">{{ summary.kpis.renewals_due_next_30d }}</strong>
-        <span class="hint">Apólices com vencimento próximo</span>
-      </p-card>
-
-      <p-card styleClass="kpi">
-        <span class="label">Renovações (Mês)</span>
-        <strong class="value">{{ summary.kpis.renewals_mtd }}</strong>
-        <span class="hint">Endossos do tipo renovação</span>
-      </p-card>
-
-      <p-card styleClass="kpi">
-        <span class="label">Clientes</span>
-        <strong class="value">{{ summary.kpis.customers_total }}</strong>
-        <span class="hint">Lifecycle stage = CUSTOMER</span>
-      </p-card>
-
-      <p-card styleClass="kpi">
-        <span class="label">Inadimplência</span>
-        <strong class="value">{{ formatCurrency(summary.kpis.delinquency_open_total) }}</strong>
-        <span class="hint">Preparado para integrar parcelas/recebíveis</span>
-      </p-card>
-    </section>
-
-    <section class="grid">
-      <p-card styleClass="card">
-        <h2>Realizado vs Meta</h2>
-
-        <div class="progress-block">
-          <div class="progress-row">
-            <span class="progress-label">Produção (Mês)</span>
-            <span class="progress-value">{{ summary.progress.premium_mtd_pct }}%</span>
-          </div>
-          <div class="progress-bar">
-            <div class="fill" [style.width.%]="clampPct(summary.progress.premium_mtd_pct)"></div>
-          </div>
-        </div>
-
-        <div class="progress-block">
-          <div class="progress-row">
-            <span class="progress-label">Comissão (Mês)</span>
-            <span class="progress-value">{{ summary.progress.commission_mtd_pct }}%</span>
-          </div>
-          <div class="progress-bar">
-            <div
-              class="fill"
-              [style.width.%]="clampPct(summary.progress.commission_mtd_pct)"
-            ></div>
-          </div>
-        </div>
-
-        <div class="progress-block">
-          <div class="progress-row">
-            <span class="progress-label">Produção (Ano)</span>
-            <span class="progress-value">{{ summary.progress.premium_ytd_pct }}%</span>
-          </div>
-          <div class="progress-bar">
-            <div class="fill" [style.width.%]="clampPct(summary.progress.premium_ytd_pct)"></div>
-          </div>
-        </div>
-
-        <div class="progress-block">
-          <div class="progress-row">
-            <span class="progress-label">Comissão (Ano)</span>
-            <span class="progress-value">{{ summary.progress.commission_ytd_pct }}%</span>
-          </div>
-          <div class="progress-bar">
-            <div
-              class="fill"
-              [style.width.%]="clampPct(summary.progress.commission_ytd_pct)"
-            ></div>
-          </div>
-        </div>
-      </p-card>
-
-      <p-card styleClass="card" *ngIf="metrics() as metrics">
-        <h2>Funil e SLA</h2>
-        <div class="mini-grid">
-          <div class="mini-item">
-            <span class="mini-label">Leads novos</span>
-            <strong class="mini-value">{{ metrics.lead_funnel.NEW }}</strong>
-          </div>
-          <div class="mini-item">
-            <span class="mini-label">Leads qualificados</span>
-            <strong class="mini-value">{{ metrics.lead_funnel.QUALIFIED }}</strong>
-          </div>
-          <div class="mini-item">
-            <span class="mini-label">Leads convertidos</span>
-            <strong class="mini-value">{{ metrics.lead_funnel.CONVERTED }}</strong>
-          </div>
-          <div class="mini-item">
-            <span class="mini-label">Oportunidades ganhas</span>
-            <strong class="mini-value">{{ metrics.opportunity_funnel.WON }}</strong>
-          </div>
-          <div class="mini-item">
-            <span class="mini-label">Atividades em aberto</span>
-            <strong class="mini-value">{{ metrics.activities.open_total }}</strong>
-          </div>
-          <div class="mini-item">
-            <span class="mini-label">Atrasadas</span>
-            <strong class="mini-value">{{ metrics.activities.overdue_total }}</strong>
-          </div>
-          <div class="mini-item">
-            <span class="mini-label">SLA estourado</span>
-            <strong class="mini-value">{{ metrics.activities.sla_breached_total }}</strong>
-          </div>
-          <div class="mini-item">
-            <span class="mini-label">Pipeline aberto</span>
-            <strong class="mini-value">
-              {{ formatCurrency(metrics.pipeline_value.open_total_amount) }}
-            </strong>
-          </div>
-        </div>
-      </p-card>
-
-      <p-card styleClass="card" *ngIf="aiInsights() as ai">
-        <h2>IA Insights Automáticos</h2>
-        <p class="muted">{{ ai.insights.summary || "Sem resumo de IA." }}</p>
-        <div class="mini-grid">
-          <div class="mini-item">
-            <span class="mini-label">Período</span>
-            <strong class="mini-value">{{ ai.period_days }} dias</strong>
-          </div>
-          <div class="mini-item">
-            <span class="mini-label">Provider</span>
-            <strong class="mini-value">{{ ai.insights.provider || "-" }}</strong>
-          </div>
-          <div class="mini-item">
-            <span class="mini-label">Score</span>
-            <strong class="mini-value">{{ ai.insights.qualification_score ?? "-" }}</strong>
-          </div>
-        </div>
-        <h3>Riscos</h3>
-        <ul>
-          <li *ngFor="let risk of ai.insights.risks">{{ risk }}</li>
-        </ul>
-        <h3>Oportunidades</h3>
-        <ul>
-          <li *ngFor="let item of ai.insights.opportunities">{{ item }}</li>
-        </ul>
-        <h3>Plano de ação</h3>
-        <ol>
-          <li *ngFor="let action of ai.insights.next_actions">{{ action }}</li>
-        </ol>
-      </p-card>
-
-      <p-card styleClass="card" *ngIf="canWrite()">
-        <h2>Metas do mês</h2>
-        <p class="muted">
-          Ajuste as metas de produção/comissão. O painel recalcula o progresso automaticamente.
-        </p>
-
-        <div class="form-grid">
-          <label>
-            Meta produção (prêmio)
-            <input
-              pInputText
-              inputmode="decimal"
-              [ngModel]="goalPremium()"
-              (ngModelChange)="goalPremium.set(($event ?? '') + '')"
-              [disabled]="loading()"
-            />
-          </label>
-          <label>
-            Meta comissão
-            <input
-              pInputText
-              inputmode="decimal"
-              [ngModel]="goalCommission()"
-              (ngModelChange)="goalCommission.set(($event ?? '') + '')"
-              [disabled]="loading()"
-            />
-          </label>
-          <label>
-            Meta novos clientes
-            <input
-              pInputText
-              inputmode="numeric"
-              min="0"
-              [ngModel]="goalNewCustomers()"
-              (ngModelChange)="goalNewCustomers.set(($event ?? '') + '')"
-              [disabled]="loading()"
-            />
-          </label>
-          <label class="field-full">
-            Observações
-            <textarea
-              pInputTextarea
-              rows="2"
-              [ngModel]="goalNotes()"
-              (ngModelChange)="goalNotes.set(($event ?? '') + '')"
-              [disabled]="loading()"
-            ></textarea>
-          </label>
-        </div>
-
-        <div class="hero-actions">
-          <button pButton type="button" (click)="saveGoals()" [disabled]="loading()">
-            Salvar metas
-          </button>
-        </div>
-      </p-card>
-    </section>
-
-    <section class="grid wide">
-      <p-card styleClass="card">
-        <h2>Produção diária (Mês)</h2>
-        <div class="bars">
-          <div
-            *ngFor="let p of dailySeries()"
-            class="bar"
-            [style.height.%]="barHeight(p.premium_total, dailyMaxPremium())"
-            [title]="p.date + ' | ' + formatCurrency(p.premium_total)"
-          ></div>
-        </div>
-        <p class="muted">Barras representam o prêmio total por dia (endossos).</p>
-        <p-table [value]="dailySeries()" class="series-table top-gap" [paginator]="false" responsiveLayout="scroll">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Data</th>
-              <th>Prêmio</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-row>
-            <tr>
-              <td>{{ row.date }}</td>
-              <td>{{ formatCurrency(row.premium_total) }}</td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </p-card>
-
-      <p-card styleClass="card">
-        <h2>Produção mensal (Ano)</h2>
-        <div class="bars month-bars">
-          <div
-            *ngFor="let p of monthlySeries()"
-            class="bar"
-            [style.height.%]="barHeight(p.premium_total, monthlyMaxPremium())"
-            [title]="'Mês ' + p.month + ' | ' + formatCurrency(p.premium_total)"
-          ></div>
-        </div>
-        <p class="muted">Barras representam o prêmio total por mês (YTD).</p>
-        <p-table [value]="monthlySeries()" class="series-table top-gap" [paginator]="false" responsiveLayout="scroll">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Mês</th>
-              <th>Prêmio</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-row>
-            <tr>
-              <td>{{ row.month }}</td>
-              <td>{{ formatCurrency(row.premium_total) }}</td>
-            </tr>
-          </ng-template>
-        </p-table>
+      <p-card>
+        <p-skeleton width="100%" height="12rem"></p-skeleton>
       </p-card>
     </section>
   </ng-container>
+
+  <ng-template #permissionsReady>
+    <p-card *ngIf="!canViewDashboard()" styleClass="state-card state-error">
+      <h2>Acesso bloqueado</h2>
+      <p>Seu usuário não possui capability para visualizar o dashboard.</p>
+      <p *ngIf="notice()" class="muted">{{ notice() }}</p>
+    </p-card>
+
+    <ng-container *ngIf="canViewDashboard()">
+      <ng-container *ngIf="loading(); else dashboardLoaded">
+        <section class="state-grid">
+          <p-card>
+            <p-skeleton width="12rem" height="1.25rem"></p-skeleton>
+            <p-skeleton width="100%" height="9rem" styleClass="mt-3"></p-skeleton>
+          </p-card>
+          <p-card>
+            <p-skeleton width="100%" height="16rem"></p-skeleton>
+          </p-card>
+          <p-card>
+            <p-skeleton width="100%" height="16rem"></p-skeleton>
+          </p-card>
+        </section>
+      </ng-container>
+
+      <ng-template #dashboardLoaded>
+        <p-card *ngIf="error()" styleClass="state-card state-error">
+          <h2>Falha ao carregar dashboard</h2>
+          <p>{{ error() }}</p>
+          <button pButton type="button" class="btn-primary" (click)="load()">Tentar novamente</button>
+        </p-card>
+
+        <ng-container *ngIf="!error()">
+          <p-card *ngIf="notice()" styleClass="state-card state-info">
+            <p>{{ notice() }}</p>
+          </p-card>
+
+          <ng-container *ngIf="summary() as summary; else dashboardEmpty">
+            <section class="kpi-grid">
+              <p-card styleClass="kpi-card kpi-highlight">
+                <span class="kpi-label">Produção (Ano)</span>
+                <strong class="kpi-value">{{ formatCurrency(summary.kpis.production_premium_ytd) }}</strong>
+                <span class="kpi-hint">Meta: {{ formatCurrency(summary.goals.premium_goal_ytd) }}</span>
+              </p-card>
+
+              <p-card styleClass="kpi-card kpi-highlight">
+                <span class="kpi-label">Comissão (Ano)</span>
+                <strong class="kpi-value">{{ formatCurrency(summary.kpis.commission_ytd) }}</strong>
+                <span class="kpi-hint">Meta: {{ formatCurrency(summary.goals.commission_goal_ytd) }}</span>
+              </p-card>
+
+              <p-card styleClass="kpi-card">
+                <span class="kpi-label">Produção (Mês)</span>
+                <strong class="kpi-value">{{ formatCurrency(summary.kpis.production_premium_mtd) }}</strong>
+                <span class="kpi-hint">{{ summary.progress.premium_mtd_pct }}% da meta mensal</span>
+              </p-card>
+
+              <p-card styleClass="kpi-card">
+                <span class="kpi-label">Comissão (Mês)</span>
+                <strong class="kpi-value">{{ formatCurrency(summary.kpis.commission_mtd) }}</strong>
+                <span class="kpi-hint">{{ summary.progress.commission_mtd_pct }}% da meta mensal</span>
+              </p-card>
+
+              <p-card styleClass="kpi-card" *ngIf="canViewMetrics()">
+                <span class="kpi-label">Renovações (30 dias)</span>
+                <strong class="kpi-value">{{ summary.kpis.renewals_due_next_30d }}</strong>
+                <span class="kpi-hint">Apólices com vencimento próximo</span>
+              </p-card>
+
+              <p-card styleClass="kpi-card" *ngIf="canViewMetrics()">
+                <span class="kpi-label">Clientes ativos</span>
+                <strong class="kpi-value">{{ summary.kpis.customers_total }}</strong>
+                <span class="kpi-hint">Base total no tenant</span>
+              </p-card>
+
+              <p-card styleClass="kpi-card" *ngIf="canViewFinance()">
+                <span class="kpi-label">Inadimplência aberta</span>
+                <strong class="kpi-value">{{ formatCurrency(summary.kpis.delinquency_open_total) }}</strong>
+                <span class="kpi-hint">Exposição financeira atual</span>
+              </p-card>
+
+              <p-card styleClass="kpi-card" *ngIf="canViewMetrics()">
+                <span class="kpi-label">Renovações (Mês)</span>
+                <strong class="kpi-value">{{ summary.kpis.renewals_mtd }}</strong>
+                <span class="kpi-hint">Processadas no mês corrente</span>
+              </p-card>
+            </section>
+
+            <section class="content-grid">
+              <p-card styleClass="panel-card">
+                <h2>Metas e progresso</h2>
+                <p-table [value]="goalRows()" [paginator]="false" responsiveLayout="scroll" size="small">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Métrica</th>
+                      <th>Atual</th>
+                      <th>Meta</th>
+                      <th>Progresso</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr>
+                      <td>{{ row.label }}</td>
+                      <td>{{ formatCurrency(row.current) }}</td>
+                      <td>{{ formatCurrency(row.target) }}</td>
+                      <td>
+                        <div class="table-progress">
+                          <span class="track">
+                            <span class="fill" [style.width.%]="clampPct(row.progress)"></span>
+                          </span>
+                          <span>{{ row.progress }}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </p-card>
+
+              <p-card styleClass="panel-card" *ngIf="canViewMetrics()">
+                <h2>Atividade comercial</h2>
+                <div class="mini-grid" *ngIf="metrics() as metrics">
+                  <div class="mini-item">
+                    <span class="mini-label">Leads novos</span>
+                    <strong>{{ metrics.lead_funnel.NEW }}</strong>
+                  </div>
+                  <div class="mini-item">
+                    <span class="mini-label">Qualificados</span>
+                    <strong>{{ metrics.lead_funnel.QUALIFIED }}</strong>
+                  </div>
+                  <div class="mini-item">
+                    <span class="mini-label">Convertidos</span>
+                    <strong>{{ metrics.lead_funnel.CONVERTED }}</strong>
+                  </div>
+                  <div class="mini-item">
+                    <span class="mini-label">Negócios ganhos</span>
+                    <strong>{{ metrics.opportunity_funnel.WON }}</strong>
+                  </div>
+                  <div class="mini-item">
+                    <span class="mini-label">Pipeline aberto</span>
+                    <strong>{{ formatCurrency(metrics.pipeline_value.open_total_amount) }}</strong>
+                  </div>
+                </div>
+
+                <p-table
+                  [value]="activityRows()"
+                  [paginator]="false"
+                  responsiveLayout="scroll"
+                  size="small"
+                  class="top-gap"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Indicador</th>
+                      <th>Valor</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr>
+                      <td>{{ row.label }}</td>
+                      <td>{{ row.value }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </p-card>
+
+              <p-card styleClass="panel-card" *ngIf="canViewAI()">
+                <h2>Assistente IA</h2>
+                <ng-container *ngIf="aiInsights() as ai; else aiEmpty">
+                  <p class="muted">{{ ai.insights.summary || "Sem resumo gerado." }}</p>
+                  <div class="mini-grid">
+                    <div class="mini-item">
+                      <span class="mini-label">Período</span>
+                      <strong>{{ ai.period_days }} dias</strong>
+                    </div>
+                    <div class="mini-item">
+                      <span class="mini-label">Provider</span>
+                      <strong>{{ ai.insights.provider || "-" }}</strong>
+                    </div>
+                    <div class="mini-item">
+                      <span class="mini-label">Score</span>
+                      <strong>{{ ai.insights.qualification_score ?? "-" }}</strong>
+                    </div>
+                  </div>
+                  <h3>Próximas ações</h3>
+                  <ul>
+                    <li *ngFor="let action of ai.insights.next_actions">{{ action }}</li>
+                  </ul>
+                </ng-container>
+                <ng-template #aiEmpty>
+                  <p class="muted">Nenhum insight disponível para o período.</p>
+                </ng-template>
+                <p *ngIf="aiError()" class="error-text">{{ aiError() }}</p>
+              </p-card>
+
+              <p-card styleClass="panel-card" *ngIf="canViewGoals()">
+                <h2>Editar metas do mês</h2>
+                <p class="muted">A atualização recalcula os KPIs de progresso automaticamente.</p>
+
+                <div class="form-grid">
+                  <label>
+                    Meta produção
+                    <input
+                      pInputText
+                      inputmode="decimal"
+                      [ngModel]="goalPremium()"
+                      (ngModelChange)="goalPremium.set(($event ?? '') + '')"
+                      [disabled]="loading()"
+                    />
+                  </label>
+
+                  <label>
+                    Meta comissão
+                    <input
+                      pInputText
+                      inputmode="decimal"
+                      [ngModel]="goalCommission()"
+                      (ngModelChange)="goalCommission.set(($event ?? '') + '')"
+                      [disabled]="loading()"
+                    />
+                  </label>
+
+                  <label>
+                    Novos clientes
+                    <input
+                      pInputText
+                      inputmode="numeric"
+                      [ngModel]="goalNewCustomers()"
+                      (ngModelChange)="goalNewCustomers.set(($event ?? '') + '')"
+                      [disabled]="loading()"
+                    />
+                  </label>
+
+                  <label class="field-full">
+                    Observações
+                    <textarea
+                      pInputTextarea
+                      rows="3"
+                      [ngModel]="goalNotes()"
+                      (ngModelChange)="goalNotes.set(($event ?? '') + '')"
+                      [disabled]="loading()"
+                    ></textarea>
+                  </label>
+                </div>
+
+                <div class="panel-actions">
+                  <button pButton type="button" class="btn-primary" (click)="saveGoals()" [disabled]="loading()">
+                    Salvar metas
+                  </button>
+                </div>
+              </p-card>
+            </section>
+
+            <section class="charts-grid">
+              <p-card styleClass="panel-card">
+                <h2>Produção diária (MTD)</h2>
+                <div class="bars" *ngIf="dailySeries().length; else dailyEmpty">
+                  <div
+                    *ngFor="let point of dailySeries()"
+                    class="bar"
+                    [style.height.%]="barHeight(point.premium_total, dailyMaxPremium())"
+                    [title]="point.date + ' | ' + formatCurrency(point.premium_total)"
+                  ></div>
+                </div>
+                <ng-template #dailyEmpty>
+                  <p class="muted">Sem dados diários no período.</p>
+                </ng-template>
+                <p-table [value]="dailySeries()" [paginator]="false" responsiveLayout="scroll" size="small" class="top-gap">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Data</th>
+                      <th>Prêmio</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr>
+                      <td>{{ row.date }}</td>
+                      <td>{{ formatCurrency(row.premium_total) }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </p-card>
+
+              <p-card styleClass="panel-card">
+                <h2>Produção mensal (YTD)</h2>
+                <div class="bars month-bars" *ngIf="monthlySeries().length; else monthEmpty">
+                  <div
+                    *ngFor="let point of monthlySeries()"
+                    class="bar"
+                    [style.height.%]="barHeight(point.premium_total, monthlyMaxPremium())"
+                    [title]="'Mês ' + point.month + ' | ' + formatCurrency(point.premium_total)"
+                  ></div>
+                </div>
+                <ng-template #monthEmpty>
+                  <p class="muted">Sem dados mensais no período.</p>
+                </ng-template>
+                <p-table [value]="monthlySeries()" [paginator]="false" responsiveLayout="scroll" size="small" class="top-gap">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Mês</th>
+                      <th>Prêmio</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr>
+                      <td>{{ row.month }}</td>
+                      <td>{{ formatCurrency(row.premium_total) }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </p-card>
+            </section>
+          </ng-container>
+
+          <ng-template #dashboardEmpty>
+            <p-card styleClass="state-card state-empty">
+              <h2>Nenhum dado para exibir</h2>
+              <p>{{ notice() || "Ainda não há dados do dashboard para o tenant atual." }}</p>
+              <button pButton type="button" class="btn-primary" (click)="load()">Recarregar</button>
+            </p-card>
+          </ng-template>
+        </ng-container>
+      </ng-template>
+    </ng-container>
+  </ng-template>
 </section>

@@ -7,7 +7,7 @@
 
     <nav class="menu">
       <a
-        *ngFor="let item of menuItems"
+        *ngFor="let item of menuItems()"
         [routerLink]="item.path"
         routerLinkActive="active"
         [routerLinkActiveOptions]="{ exact: item.exact ?? true }"

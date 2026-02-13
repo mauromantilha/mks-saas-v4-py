@@ -1,8 +1,10 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
 import { environment } from "../../../environments/environment";
+import { normalizeListResponse } from "../../shared/api/response-normalizers";
 import {
   PayableRecord,
   PolicyFinanceSummaryRecord,
@@ -24,9 +26,13 @@ export class FinanceService {
     if (params?.payer_id) {
       httpParams = httpParams.set("payer_id", String(params.payer_id));
     }
-    return this.http.get<ReceivableInvoiceRecord[]>(`${this.apiBase}/invoices/`, {
-      params: httpParams,
-    });
+    return this.http
+      .get<unknown>(`${this.apiBase}/invoices/`, {
+        params: httpParams,
+      })
+      .pipe(
+        map((response) => normalizeListResponse<ReceivableInvoiceRecord>(response).results)
+      );
   }
 
   listPayables(params?: {
@@ -44,9 +50,11 @@ export class FinanceService {
     if (params?.q?.trim()) {
       httpParams = httpParams.set("q", params.q.trim());
     }
-    return this.http.get<PayableRecord[]>(`${this.apiBase}/payables/`, {
-      params: httpParams,
-    });
+    return this.http
+      .get<unknown>(`${this.apiBase}/payables/`, {
+        params: httpParams,
+      })
+      .pipe(map((response) => normalizeListResponse<PayableRecord>(response).results));
   }
 
   listInstallments(params?: {
@@ -68,9 +76,16 @@ export class FinanceService {
     if (params?.delinquent_only) {
       httpParams = httpParams.set("delinquent_only", "true");
     }
-    return this.http.get<ReceivableInstallmentRecord[]>(`${this.apiBase}/installments/`, {
-      params: httpParams,
-    });
+    return this.http
+      .get<unknown>(`${this.apiBase}/installments/`, {
+        params: httpParams,
+      })
+      .pipe(
+        map(
+          (response) =>
+            normalizeListResponse<ReceivableInstallmentRecord>(response).results
+        )
+      );
   }
 
   settleInstallment(installmentId: number): Observable<ReceivableInstallmentRecord> {

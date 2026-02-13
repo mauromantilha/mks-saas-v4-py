@@ -1,4 +1,4 @@
-import { Routes } from "@angular/router";
+import { Route, Routes } from "@angular/router";
 
 import { authGuard } from "./core/auth/auth.guard";
 import { permissionGuard } from "./core/auth/permission.guard";
@@ -28,268 +28,226 @@ import { TenantFiscalPageComponent } from "./features/tenant-settings/tenant-fis
 import { TenantLedgerPageComponent } from "./features/tenant-settings/tenant-ledger-page.component";
 import { TenantRbacPageComponent } from "./features/tenant-settings/tenant-rbac-page.component";
 
+const tenantGuards = [authGuard, portalGuard];
+
+function tenantRoute(
+  path: string,
+  component: Route["component"],
+  title: string,
+  description: string,
+  permission?: string
+): Route {
+  return {
+    path,
+    component,
+    canActivate: permission ? [...tenantGuards, permissionGuard] : tenantGuards,
+    data: {
+      portal: "TENANT",
+      title,
+      description,
+      ...(permission ? { permission } : {}),
+    },
+  };
+}
+
+function tenantPlaceholderRoute(path: string, title: string): Route {
+  return tenantRoute(
+    path,
+    SectionPlaceholderPageComponent,
+    title,
+    "Funcionalidade em evolução contínua."
+  );
+}
+
+function aliasRoute(path: string, redirectTo: string): Route {
+  return {
+    path,
+    pathMatch: "full",
+    redirectTo,
+  };
+}
+
+const tenantCanonicalRoutes: Route[] = [
+  tenantRoute(
+    "tenant/dashboard",
+    TenantDashboardPageComponent,
+    "Painel do Tenant",
+    "Resumo operacional do tenant: funil, emissão, renovação e alertas.",
+    "tenant.dashboard.view"
+  ),
+  tenantRoute(
+    "tenant/comercial/ai-assistente",
+    TenantAIAssistantPageComponent,
+    "IA Assistente",
+    "Consultoria comercial e de seguros com IA, contexto do tenant e memória de aprendizado.",
+    "tenant.ai_assistant.view"
+  ),
+  tenantRoute(
+    "tenant/comercial/fluxo",
+    SalesFlowPageComponent,
+    "Fluxo Comercial",
+    "Pipeline comercial por etapa, com conversão e handover para emissão."
+  ),
+  tenantRoute(
+    "tenant/comercial/leads",
+    TenantLeadsPageComponent,
+    "Leads/Funil",
+    "Entrada de leads por webhook/API/importação, com enriquecimento por IA.",
+    "tenant.leads.view"
+  ),
+  tenantRoute(
+    "tenant/comercial/radar-leads",
+    SectionPlaceholderPageComponent,
+    "Radar de Leads",
+    "Funcionalidade em evolução contínua."
+  ),
+  tenantRoute(
+    "tenant/comercial/projetos-especiais",
+    TenantSpecialProjectsPageComponent,
+    "Projetos Especiais",
+    "Funcionalidade em evolução contínua."
+  ),
+  tenantRoute(
+    "tenant/comercial/clientes",
+    TenantCustomersPageComponent,
+    "Clientes",
+    "Cadastro completo de clientes e histórico comercial consolidado.",
+    "tenant.customers.view"
+  ),
+  tenantRoute(
+    "tenant/comercial/oportunidades",
+    TenantOpportunitiesPageComponent,
+    "Oportunidades",
+    "Gestão detalhada do pipeline comercial com etapas e KPIs de conversão.",
+    "tenant.opportunities.view"
+  ),
+  tenantPlaceholderRoute("tenant/comercial/metas", "Metas"),
+  tenantPlaceholderRoute("tenant/comercial/visao-gestor", "Visão Gestor"),
+  tenantPlaceholderRoute("tenant/comercial/mensageria", "Mensageria"),
+  tenantRoute(
+    "tenant/comercial/atividades",
+    TenantActivitiesPageComponent,
+    "Atividade/Agenda",
+    "Tarefas comerciais com SLA, lembretes e histórico por lead/oportunidade.",
+    "tenant.activities.view"
+  ),
+  tenantRoute(
+    "tenant/operacional/apolices",
+    TenantPoliciesPageComponent,
+    "Apólices",
+    "Gestão operacional de apólices, itens segurados, coberturas, documentos e endossos.",
+    "tenant.apolices.view"
+  ),
+  tenantRoute(
+    "tenant/operacional/seguradoras",
+    TenantInsurersPageComponent,
+    "Seguradoras",
+    "Cadastro e gestão de seguradoras (insurers) com regras de integração por tenant.",
+    "tenant.insurers.view"
+  ),
+  tenantRoute(
+    "tenant/operacional/propostas",
+    TenantProposalOptionsPageComponent,
+    "Propostas",
+    "Comparativo de seguradoras, plano recomendado e estratégia comercial.",
+    "tenant.proposal_options.view"
+  ),
+  tenantRoute(
+    "tenant/operacional/pedidos-emissao",
+    TenantPolicyRequestsPageComponent,
+    "Pedidos de Emissão",
+    "Handover de venda para emissão com vistoria e dados de cobrança.",
+    "tenant.policy_requests.view"
+  ),
+  tenantRoute(
+    "tenant/financeiro/visao-geral",
+    TenantFinancePageComponent,
+    "Financeiro",
+    "Recebíveis, parcelas e inadimplência do tenant com integração ao operacional.",
+    "tenant.finance.view"
+  ),
+  tenantPlaceholderRoute("tenant/financeiro/comissoes-fluxo", "Comissões/Fluxo"),
+  tenantPlaceholderRoute("tenant/financeiro/parcelas-clientes", "Parcelas (Clientes)"),
+  tenantPlaceholderRoute("tenant/financeiro/contas-pagar", "Contas a Pagar"),
+  tenantPlaceholderRoute(
+    "tenant/financeiro/conciliacao-bancos",
+    "Conciliação Bancos (OFX)"
+  ),
+  tenantPlaceholderRoute("tenant/financeiro/fechamento-comissao", "Fechamento Comissão"),
+  tenantRoute(
+    "tenant/financeiro/notas-fiscais",
+    TenantFiscalPageComponent,
+    "Notas Fiscais",
+    "Emissão, cancelamento e auditoria de documentos fiscais do tenant.",
+    "tenant.fiscal.view"
+  ),
+  tenantPlaceholderRoute("tenant/financeiro/fiscal-config", "Fiscal"),
+  tenantPlaceholderRoute("tenant/ferramentas/documentos", "Documentos"),
+  tenantPlaceholderRoute("tenant/ferramentas/importar-clientes", "Importar Clientes"),
+  tenantPlaceholderRoute("tenant/admin/sistema-monitor", "Sistema/Monitor"),
+  tenantRoute(
+    "tenant/admin/usuarios",
+    TenantMembersPageComponent,
+    "Usuários",
+    "Gestão de usuários do tenant, papéis e contexto operacional.",
+    "tenant.members.view"
+  ),
+  tenantRoute(
+    "tenant/admin/auditoria",
+    TenantLedgerPageComponent,
+    "Auditoria",
+    "Trilha de eventos e alterações do tenant para compliance e rastreabilidade.",
+    "tenant.ledger.view"
+  ),
+  tenantRoute(
+    "tenant/admin/rbac",
+    TenantRbacPageComponent,
+    "RBAC",
+    "Matriz de permissões por papel, com validação de capacidades efetivas.",
+    "tenant.rbac.manage"
+  ),
+];
+
+const tenantLegacyAliasRoutes: Route[] = [
+  aliasRoute("sales/flow", "tenant/comercial/fluxo"),
+  aliasRoute("tenant/ai-assistant", "tenant/comercial/ai-assistente"),
+  aliasRoute("tenant/customers", "tenant/comercial/clientes"),
+  aliasRoute("tenant/leads", "tenant/comercial/leads"),
+  aliasRoute("tenant/opportunities", "tenant/comercial/oportunidades"),
+  aliasRoute("tenant/activities", "tenant/comercial/atividades"),
+  aliasRoute("tenant/radar-leads", "tenant/comercial/radar-leads"),
+  aliasRoute("tenant/special-projects", "tenant/comercial/projetos-especiais"),
+  aliasRoute("tenant/goals", "tenant/comercial/metas"),
+  aliasRoute("tenant/manager-view", "tenant/comercial/visao-gestor"),
+  aliasRoute("tenant/messaging", "tenant/comercial/mensageria"),
+  aliasRoute("tenant/insurers", "tenant/operacional/seguradoras"),
+  aliasRoute("tenant/policies", "tenant/operacional/apolices"),
+  aliasRoute("tenant/proposal-options", "tenant/operacional/propostas"),
+  aliasRoute("tenant/policy-requests", "tenant/operacional/pedidos-emissao"),
+  aliasRoute("tenant/finance", "tenant/financeiro/visao-geral"),
+  aliasRoute("tenant/commissions-flow", "tenant/financeiro/comissoes-fluxo"),
+  aliasRoute("tenant/installments-clients", "tenant/financeiro/parcelas-clientes"),
+  aliasRoute("tenant/accounts-payable", "tenant/financeiro/contas-pagar"),
+  aliasRoute("tenant/bank-reconciliation", "tenant/financeiro/conciliacao-bancos"),
+  aliasRoute("tenant/commission-closing", "tenant/financeiro/fechamento-comissao"),
+  aliasRoute("tenant/fiscal", "tenant/financeiro/notas-fiscais"),
+  aliasRoute("tenant/fiscal-settings", "tenant/financeiro/fiscal-config"),
+  aliasRoute("tenant/documents", "tenant/ferramentas/documentos"),
+  aliasRoute("tenant/import-customers", "tenant/ferramentas/importar-clientes"),
+  aliasRoute("tenant/system-monitor", "tenant/admin/sistema-monitor"),
+  aliasRoute("tenant/ledger", "tenant/admin/auditoria"),
+  aliasRoute("tenant/rbac", "tenant/admin/rbac"),
+  aliasRoute("tenant/members", "tenant/admin/usuarios"),
+  aliasRoute("tenant/comercial/equipe", "tenant/admin/usuarios"),
+];
+
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "login" },
   { path: "login", component: LoginPageComponent },
   { path: "forgot-password", component: ForgotPasswordPageComponent },
   { path: "reset-password", component: ResetPasswordPageComponent },
-  {
-    path: "sales/flow",
-    component: SalesFlowPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: { portal: "TENANT" },
-  },
-  {
-    path: "tenant/dashboard",
-    component: TenantDashboardPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Painel do Tenant",
-      description:
-        "Resumo operacional do tenant: funil, emissão, renovação e alertas.",
-    },
-  },
-  {
-    path: "tenant/customers",
-    component: TenantCustomersPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Clientes",
-      description:
-        "Cadastro completo de clientes e histórico comercial consolidado.",
-    },
-  },
-  {
-    path: "tenant/leads",
-    component: TenantLeadsPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Leads",
-      description:
-        "Entrada de leads por webhook/API/importação, com enriquecimento por IA.",
-    },
-  },
-  {
-    path: "tenant/opportunities",
-    component: TenantOpportunitiesPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Oportunidades",
-      description:
-        "Gestão detalhada do pipeline comercial com etapas e KPIs de conversão.",
-    },
-  },
-  {
-    path: "tenant/activities",
-    component: TenantActivitiesPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Atividades e Follow-up",
-      description:
-        "Tarefas comerciais com SLA, lembretes e histórico por lead/oportunidade.",
-    },
-  },
-  {
-    path: "tenant/ai-assistant",
-    component: TenantAIAssistantPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "IA Assistente",
-      description:
-        "Consultoria comercial e de seguros com IA, contexto do tenant e memória de aprendizado.",
-    },
-  },
-  {
-    path: "tenant/radar-leads",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Radar de Leads",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/special-projects",
-    component: TenantSpecialProjectsPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Projetos Especiais",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/goals",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Metas",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/manager-view",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Visão Gestor",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/messaging",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Mensageria",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/insurers",
-    component: TenantInsurersPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Seguradoras",
-      description:
-        "Cadastro e gestão de seguradoras (insurers) com regras de integração por tenant.",
-    },
-  },
-  {
-    path: "tenant/finance",
-    component: TenantFinancePageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Financeiro",
-      description:
-        "Recebíveis, parcelas e inadimplência do tenant com integração ao operacional.",
-    },
-  },
-  {
-    path: "tenant/commissions-flow",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Comissões/Fluxo",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/installments-clients",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Parcelas (Clientes)",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/accounts-payable",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Contas a Pagar",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/bank-reconciliation",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Conciliação Bancos (OFX)",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/commission-closing",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Fechamento Comissão",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/policies",
-    component: TenantPoliciesPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Apólices",
-      description:
-        "Gestão operacional de apólices, itens segurados, coberturas, documentos e endossos.",
-    },
-  },
-  {
-    path: "tenant/policy-requests",
-    component: TenantPolicyRequestsPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Pedidos de Emissão",
-      description:
-        "Handover de venda para emissão com vistoria e dados de cobrança.",
-    },
-  },
-  {
-    path: "tenant/proposal-options",
-    component: TenantProposalOptionsPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Propostas Comparativas",
-      description:
-        "Comparativo de seguradoras, plano recomendado e estratégia comercial.",
-    },
-  },
-  {
-    path: "tenant/documents",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Documentos",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/import-customers",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Importar Clientes",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/system-monitor",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Sistema/Monitor",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
+  ...tenantCanonicalRoutes,
+  ...tenantLegacyAliasRoutes,
   {
     path: "control-panel",
     canActivate: [authGuard, portalGuard, permissionGuard],
@@ -333,44 +291,6 @@ export const routes: Routes = [
     component: PlatformTenantMonitoringPageComponent,
     canActivate: [authGuard, portalGuard],
     data: { portal: "CONTROL_PLANE" },
-  },
-  {
-    path: "tenant/members",
-    component: TenantMembersPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: { portal: "TENANT" },
-  },
-  {
-    path: "tenant/ledger",
-    component: TenantLedgerPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: { portal: "TENANT" },
-  },
-  {
-    path: "tenant/fiscal",
-    component: TenantFiscalPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Fiscal (NF)",
-      description: "Emissão, cancelamento e auditoria de documentos fiscais do tenant.",
-    },
-  },
-  {
-    path: "tenant/fiscal-settings",
-    component: SectionPlaceholderPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: {
-      portal: "TENANT",
-      title: "Fiscal",
-      description: "Funcionalidade em evolução contínua.",
-    },
-  },
-  {
-    path: "tenant/rbac",
-    component: TenantRbacPageComponent,
-    canActivate: [authGuard, portalGuard],
-    data: { portal: "TENANT" },
   },
   { path: "**", redirectTo: "login" },
 ];

@@ -10,6 +10,7 @@ import {
   RouterOutlet,
 } from "@angular/router";
 import { filter, Subscription } from "rxjs";
+import { take } from "rxjs/operators";
 
 import { AuthService } from "../../core/api/auth.service";
 import { PermissionService } from "../../core/auth/permission.service";
@@ -20,6 +21,7 @@ interface ControlPanelNavItem {
   label: string;
   path: string;
   exact?: boolean;
+  permission?: string;
 }
 
 @Component({
@@ -41,14 +43,49 @@ export class ControlPanelLayoutComponent implements OnDestroy {
   readonly session = computed(() => this.sessionService.session());
   readonly breadcrumbs = computed(() => this.breadcrumbService.breadcrumbs());
 
-  readonly menuItems: ControlPanelNavItem[] = [
-    { label: "Dashboard", path: "/control-panel/dashboard", exact: true },
-    { label: "Tenants", path: "/control-panel/tenants", exact: false },
-    { label: "Plans", path: "/control-panel/plans", exact: true },
-    { label: "Contracts", path: "/control-panel/contracts", exact: true },
-    { label: "Monitoring", path: "/control-panel/monitoring", exact: true },
-    { label: "Audit", path: "/control-panel/audit", exact: true },
+  private readonly allMenuItems: ControlPanelNavItem[] = [
+    {
+      label: "Dashboard",
+      path: "/control-panel/dashboard",
+      exact: true,
+      permission: "cp.dashboard.view",
+    },
+    {
+      label: "Tenants",
+      path: "/control-panel/tenants",
+      exact: false,
+      permission: "cp.tenants.view",
+    },
+    {
+      label: "Plans",
+      path: "/control-panel/plans",
+      exact: true,
+      permission: "cp.plans.view",
+    },
+    {
+      label: "Contracts",
+      path: "/control-panel/contracts",
+      exact: true,
+      permission: "cp.contracts.view",
+    },
+    {
+      label: "Monitoring",
+      path: "/control-panel/monitoring",
+      exact: true,
+      permission: "cp.monitoring.view",
+    },
+    {
+      label: "Audit",
+      path: "/control-panel/audit",
+      exact: true,
+      permission: "cp.audit.view",
+    },
   ];
+  readonly menuItems = computed(() =>
+    this.allMenuItems.filter(
+      (item) => !item.permission || this.permissionService.can(item.permission)
+    )
+  );
 
   constructor(
     private readonly router: Router,
@@ -59,6 +96,7 @@ export class ControlPanelLayoutComponent implements OnDestroy {
     private readonly breadcrumbService: BreadcrumbService
   ) {
     this.updateBreadcrumbs();
+    this.permissionService.loadPermissions().pipe(take(1)).subscribe();
     this.subscriptions.add(
       this.router.events
         .pipe(filter((event) => event instanceof NavigationEnd))

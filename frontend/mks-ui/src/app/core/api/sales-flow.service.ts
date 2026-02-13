@@ -1,8 +1,10 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
 import { environment } from "../../../environments/environment";
+import { normalizeListResponse } from "../../shared/api/response-normalizers";
 import {
   AIInsightResponse,
   AIInsightsRequestPayload,
@@ -51,7 +53,9 @@ export class SalesFlowService {
   constructor(private readonly http: HttpClient) {}
 
   listCustomers(): Observable<CustomerRecord[]> {
-    return this.http.get<CustomerRecord[]>(`${this.apiBase}/customers/`);
+    return this.http
+      .get<unknown>(`${this.apiBase}/customers/`)
+      .pipe(map((response) => normalizeListResponse<CustomerRecord>(response).results));
   }
 
   createCustomer(payload: CreateCustomerPayload): Observable<CustomerRecord> {
@@ -76,7 +80,9 @@ export class SalesFlowService {
   }
 
   listLeads(): Observable<LeadRecord[]> {
-    return this.http.get<LeadRecord[]>(`${this.apiBase}/leads/`);
+    return this.http
+      .get<unknown>(`${this.apiBase}/leads/`)
+      .pipe(map((response) => normalizeListResponse<LeadRecord>(response).results));
   }
 
   createLead(payload: CreateLeadPayload): Observable<LeadRecord> {
@@ -88,7 +94,9 @@ export class SalesFlowService {
   }
 
   listOpportunities(): Observable<OpportunityRecord[]> {
-    return this.http.get<OpportunityRecord[]>(`${this.apiBase}/opportunities/`);
+    return this.http
+      .get<unknown>(`${this.apiBase}/opportunities/`)
+      .pipe(map((response) => normalizeListResponse<OpportunityRecord>(response).results));
   }
 
   createOpportunity(payload: CreateOpportunityPayload): Observable<OpportunityRecord> {
@@ -96,7 +104,11 @@ export class SalesFlowService {
   }
 
   listPolicyRequests(): Observable<PolicyRequestRecord[]> {
-    return this.http.get<PolicyRequestRecord[]>(`${this.apiBase}/policy-requests/`);
+    return this.http
+      .get<unknown>(`${this.apiBase}/policy-requests/`)
+      .pipe(
+        map((response) => normalizeListResponse<PolicyRequestRecord>(response).results)
+      );
   }
 
   createPolicyRequest(
@@ -116,7 +128,11 @@ export class SalesFlowService {
   }
 
   listProposalOptions(): Observable<ProposalOptionRecord[]> {
-    return this.http.get<ProposalOptionRecord[]>(`${this.apiBase}/proposal-options/`);
+    return this.http
+      .get<unknown>(`${this.apiBase}/proposal-options/`)
+      .pipe(
+        map((response) => normalizeListResponse<ProposalOptionRecord>(response).results)
+      );
   }
 
   createProposalOption(
@@ -150,9 +166,13 @@ export class SalesFlowService {
     if (params?.search?.trim()) {
       httpParams = httpParams.set("search", params.search.trim());
     }
-    return this.http.get<SpecialProjectRecord[]>(`${this.apiBase}/special-projects/`, {
-      params: httpParams,
-    });
+    return this.http
+      .get<unknown>(`${this.apiBase}/special-projects/`, {
+        params: httpParams,
+      })
+      .pipe(
+        map((response) => normalizeListResponse<SpecialProjectRecord>(response).results)
+      );
   }
 
   getSpecialProject(id: number): Observable<SpecialProjectRecord> {
@@ -227,13 +247,19 @@ export class SalesFlowService {
   }
 
   listActivities(): Observable<CommercialActivityRecord[]> {
-    return this.http.get<CommercialActivityRecord[]>(`${this.apiBase}/activities/`);
+    return this.http
+      .get<unknown>(`${this.apiBase}/activities/`)
+      .pipe(
+        map((response) => normalizeListResponse<CommercialActivityRecord>(response).results)
+      );
   }
 
   listReminderActivities(): Observable<CommercialActivityRecord[]> {
-    return this.http.get<CommercialActivityRecord[]>(
-      `${this.apiBase}/activities/reminders/`
-    );
+    return this.http
+      .get<unknown>(`${this.apiBase}/activities/reminders/`)
+      .pipe(
+        map((response) => normalizeListResponse<CommercialActivityRecord>(response).results)
+      );
   }
 
   createActivity(

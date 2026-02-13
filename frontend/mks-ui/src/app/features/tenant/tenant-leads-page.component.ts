@@ -12,6 +12,7 @@ import {
   LeadStatus,
 } from "../../core/api/sales-flow.types";
 import { SessionService } from "../../core/auth/session.service";
+import { normalizeListResponse } from "../../shared/api/response-normalizers";
 
 type LeadViewMode = "KANBAN" | "LIST";
 
@@ -103,8 +104,9 @@ export class TenantLeadsPageComponent {
     this.loading.set(true);
     this.error.set("");
     this.salesFlowService.listLeads().subscribe({
-      next: (leads) => {
-        this.leads.set(leads);
+      next: (response) => {
+        const normalized = normalizeListResponse<LeadRecord>(response);
+        this.leads.set(normalized.results);
         this.loading.set(false);
       },
       error: (err) => {
@@ -305,4 +307,3 @@ export class TenantLeadsPageComponent {
     this.loading.set(false);
   }
 }
-

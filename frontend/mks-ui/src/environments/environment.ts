@@ -4,4 +4,5 @@ export const environment = {
   tenantIdHeader: "X-Tenant-ID",
   controlPlaneSubdomain: "sistema",
   tenantBaseDomain: "mksbrasil.com",
+  menuV2Enabled: true,
 };

@@ -5,6 +5,7 @@ import { CheckboxModule } from "primeng/checkbox";
 import { SelectModule } from "primeng/select";
 import { InputTextModule } from "primeng/inputtext";
 import { RadioButtonModule } from "primeng/radiobutton";
+import { SkeletonModule } from "primeng/skeleton";
 import { TableModule } from "primeng/table";
 import { TextareaModule } from "primeng/textarea";
 
@@ -16,6 +17,7 @@ import { TextareaModule } from "primeng/textarea";
     SelectModule,
     InputTextModule,
     RadioButtonModule,
+    SkeletonModule,
     TableModule,
     TextareaModule,
   ],

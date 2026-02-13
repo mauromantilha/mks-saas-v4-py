@@ -1,4 +1,6 @@
-import { Directive, Input, TemplateRef, ViewContainerRef } from "@angular/core";
+import { Directive, Input, OnDestroy, TemplateRef, ViewContainerRef, effect } from "@angular/core";
+import { Subscription } from "rxjs";
+import { take } from "rxjs/operators";
 
 import { PermissionService } from "./permission.service";
 
@@ -6,20 +8,37 @@ import { PermissionService } from "./permission.service";
   selector: "[appCan]",
   standalone: true,
 })
-export class PermissionDirective {
+export class PermissionDirective implements OnDestroy {
   private currentPermission = "";
+  private loadSubscription: Subscription | null = null;
 
   constructor(
     private readonly templateRef: TemplateRef<unknown>,
     private readonly viewContainer: ViewContainerRef,
     private readonly permissionService: PermissionService
-  ) {}
+  ) {
+    effect(() => {
+      this.permissionService.version();
+      this.updateView();
+    });
+  }
 
   @Input()
   set appCan(permission: string) {
     this.currentPermission = permission;
-    this.permissionService.loadPermissions();
+    this.loadSubscription?.unsubscribe();
+    this.loadSubscription = this.permissionService
+      .loadPermissions()
+      .pipe(take(1))
+      .subscribe({
+        next: () => this.updateView(),
+        error: () => this.updateView(),
+      });
     this.updateView();
+  }
+
+  ngOnDestroy(): void {
+    this.loadSubscription?.unsubscribe();
   }
 
   private updateView(): void {
@@ -38,4 +57,3 @@ export class PermissionDirective {
     this.viewContainer.clear();
   }
 }
-

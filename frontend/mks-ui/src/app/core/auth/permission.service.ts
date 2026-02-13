@@ -1,7 +1,9 @@
 import { computed, Injectable, signal } from "@angular/core";
 import { Observable, of } from "rxjs";
+import { map } from "rxjs/operators";
 
-import { SessionService } from "./session.service";
+import { CapabilitiesService } from "./capabilities.service";
+import { resolvePermissionAliases } from "./permission-aliases";
 
 export type PermissionCode = string;
 
@@ -9,35 +11,58 @@ export type PermissionCode = string;
 export class PermissionService {
   private readonly permissionsState = signal<Set<string>>(new Set<string>());
   private readonly loadedState = signal(false);
+  private readonly lastErrorState = signal<string | null>(null);
+  private readonly contextKeyState = signal<string | null>(null);
+  private readonly versionState = signal(0);
 
   readonly loaded = computed(() => this.loadedState());
   readonly permissions = computed(() => Array.from(this.permissionsState()));
+  readonly lastError = computed(() => this.lastErrorState());
+  readonly version = computed(() => this.versionState());
 
-  constructor(private readonly sessionService: SessionService) {}
+  constructor(
+    private readonly capabilitiesService: CapabilitiesService
+  ) {}
 
   loadPermissions(force = false): Observable<string[]> {
+    const contextKey = this.capabilitiesService.getCurrentContextKey();
+    if (this.contextKeyState() !== contextKey) {
+      this.resetState();
+      this.contextKeyState.set(contextKey);
+    }
+
     if (this.loadedState() && !force) {
       return of(this.permissions());
     }
 
-    const mockPermissions = this.resolveMockPermissions();
-    this.permissionsState.set(mockPermissions);
-    this.loadedState.set(true);
-    return of(Array.from(mockPermissions));
+    return this.capabilitiesService.loadCapabilities(force).pipe(
+      map((snapshot) => {
+        this.permissionsState.set(new Set<string>(snapshot.permissions));
+        this.loadedState.set(true);
+        this.contextKeyState.set(snapshot.contextKey);
+        this.lastErrorState.set(snapshot.failed ? snapshot.errorMessage ?? "Falha ao carregar permissões." : null);
+        this.bumpVersion();
+        return Array.from(this.permissionsState());
+      })
+    );
   }
 
   clearPermissions(): void {
-    this.permissionsState.set(new Set<string>());
-    this.loadedState.set(false);
+    this.capabilitiesService.clearCurrentSessionCache();
+    this.resetState();
   }
 
   can(permission: PermissionCode): boolean {
-    if (!this.loadedState()) {
-      this.loadPermissions();
+    if (!permission) {
+      return false;
+    }
+    const aliases = resolvePermissionAliases(permission);
+    if (aliases.length === 0) {
+      return false;
     }
 
-    const resolved = this.resolvePermissionAlias(permission);
-    return this.permissionsState().has(resolved);
+    const currentPermissions = this.permissionsState();
+    return aliases.some((candidate) => currentPermissions.has(candidate));
   }
 
   hasPermission(permission: PermissionCode): boolean {
@@ -48,52 +73,15 @@ export class PermissionService {
     return permissions.some((permission) => this.can(permission));
   }
 
-  private resolveMockPermissions(): Set<string> {
-    const session = this.sessionService.session();
-    if (!session || !session.token) {
-      return new Set<string>();
-    }
-
-    // Portal host is already enforced by portalGuard. Keep permissions resilient
-    // even if a stale session has an old portalType value.
-    if (!session.platformAdmin) {
-      return new Set<string>();
-    }
-
-    const basePermissions = new Set<string>([
-      "cp.access",
-      "cp.dashboard.view",
-      "cp.tenants.view",
-      "cp.tenants.manage",
-      "cp.tenants.notes.manage",
-      "cp.plans.view",
-      "cp.contracts.view",
-      "cp.monitoring.view",
-      "cp.audit.view",
-    ]);
-
-    if (session.isSuperuser === true) {
-      basePermissions.add("cp.superadmin");
-      basePermissions.add("cp.tenants.delete");
-      basePermissions.add("cp.plans.manage");
-    }
-
-    return basePermissions;
+  private resetState(): void {
+    this.permissionsState.set(new Set<string>());
+    this.loadedState.set(false);
+    this.lastErrorState.set(null);
+    this.contextKeyState.set(null);
+    this.bumpVersion();
   }
 
-  private resolvePermissionAlias(permission: string): string {
-    const aliases: Record<string, string> = {
-      "control_panel.access": "cp.access",
-      "control_panel.dashboard": "cp.dashboard.view",
-      "control_panel.tenants.read": "cp.tenants.view",
-      "control_panel.tenants.notes.manage": "cp.tenants.notes.manage",
-      "control_panel.plans.read": "cp.plans.view",
-      "control_panel.plans.manage": "cp.plans.manage",
-      "control_panel.contracts.read": "cp.contracts.view",
-      "control_panel.monitoring.read": "cp.monitoring.view",
-      "control_panel.audit.read": "cp.audit.view",
-      "control_panel.superadmin": "cp.superadmin",
-    };
-    return aliases[permission] ?? permission;
+  private bumpVersion(): void {
+    this.versionState.update((value) => value + 1);
   }
 }

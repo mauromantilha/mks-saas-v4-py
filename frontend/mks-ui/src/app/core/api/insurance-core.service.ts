@@ -1,8 +1,10 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
 import { environment } from "../../../environments/environment";
+import { normalizeListResponse } from "../../shared/api/response-normalizers";
 import {
   CepLookupResponse,
   CreateInsurerPayload,
@@ -50,7 +52,9 @@ export class InsuranceCoreService {
     if (filters?.status?.trim()) {
       params = params.set("status", filters.status.trim());
     }
-    return this.http.get<InsurerRecord[]>(`${this.apiBase}/insurers/`, { params });
+    return this.http
+      .get<unknown>(`${this.apiBase}/insurers/`, { params })
+      .pipe(map((response) => normalizeListResponse<InsurerRecord>(response).results));
   }
 
   createInsurer(payload: CreateInsurerPayload): Observable<InsurerRecord> {
@@ -119,7 +123,9 @@ export class InsuranceCoreService {
     if (filters?.insured_party_id) {
       params = params.set("insured_party_id", String(filters.insured_party_id));
     }
-    return this.http.get<PolicyRecord[]>(`${this.apiBase}/policies/`, { params });
+    return this.http
+      .get<unknown>(`${this.apiBase}/policies/`, { params })
+      .pipe(map((response) => normalizeListResponse<PolicyRecord>(response).results));
   }
 
   createPolicy(payload: CreatePolicyPayload): Observable<PolicyRecord> {
