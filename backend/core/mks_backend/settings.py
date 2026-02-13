@@ -19,6 +19,7 @@ env = environ.Env(
     CONTROL_PLANE_ALERT_HEARTBEAT_MINUTES=(int, 15),
     CONTROL_PLANE_ALERT_HIGH_ERROR_RATE=(float, 0.10),
     TENANT_RATE_LIMIT_CACHE_SECONDS=(int, 70),
+    CONTROL_PANEL_ALLOW_STAFF_FALLBACK=(bool, False),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
@@ -113,6 +114,37 @@ TENANT_RATE_LIMIT_CACHE_SECONDS = env("TENANT_RATE_LIMIT_CACHE_SECONDS")
 
 USE_X_FORWARDED_HOST = env.bool("USE_X_FORWARDED_HOST", default=True)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CONTROL_PANEL_ALLOW_STAFF_FALLBACK = env.bool(
+    "CONTROL_PANEL_ALLOW_STAFF_FALLBACK",
+    default=False,
+)
+
+SECURE_CONTENT_TYPE_NOSNIFF = env.bool("SECURE_CONTENT_TYPE_NOSNIFF", default=True)
+SECURE_REFERRER_POLICY = env("SECURE_REFERRER_POLICY", default="same-origin").strip()
+X_FRAME_OPTIONS = env("X_FRAME_OPTIONS", default="DENY").strip().upper()
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = env.bool("CSRF_COOKIE_HTTPONLY", default=True)
+
+if DEBUG:
+    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
+    SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=False)
+    CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=False)
+    SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=0)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+        "SECURE_HSTS_INCLUDE_SUBDOMAINS",
+        default=False,
+    )
+    SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
+else:
+    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
+    SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
+    CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=True)
+    SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+        "SECURE_HSTS_INCLUDE_SUBDOMAINS",
+        default=True,
+    )
+    SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=True)
 
 DATABASE_ENGINE = env("DATABASE_ENGINE", default="django_tenants.postgresql_backend").strip()
 DJANGO_TENANTS_ENABLED = DATABASE_ENGINE == "django_tenants.postgresql_backend"
@@ -316,7 +348,6 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",

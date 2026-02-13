@@ -45,8 +45,8 @@ class IsControlPanelAdmin(IsPlatformAdmin):
             return True
 
         # Backward-compatible fallback: platform staff users can access control panel
-        # when explicitly enabled (default True for existing environments).
-        if getattr(settings, "CONTROL_PANEL_ALLOW_STAFF_FALLBACK", True) and user.is_staff:
+        # when explicitly enabled (default False).
+        if getattr(settings, "CONTROL_PANEL_ALLOW_STAFF_FALLBACK", False) and user.is_staff:
             return True
 
         self.message = "Requires SUPERADMIN or SAAS_ADMIN role."

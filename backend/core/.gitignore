@@ -1,0 +1,18 @@
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.sqlite3
+
+# Virtualenv
+venv/
+
+# Runtime files
+media/
+
+# Local SDK/tooling installs
+gcloud components install alpha beta skaffold minikube kubectl gke-gcloud-auth-plugin/

@@ -159,8 +159,16 @@ class ControlPlaneTenantDetailAPIView(APIView):
                     if updated_fields:
                         provisioning.save(update_fields=updated_fields + ["updated_at"])
         except IntegrityError as exc:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("Tenant update integrity error: %s", exc)
             return Response(
-                {"detail": str(exc)},
+                {
+                    "detail": (
+                        "Tenant update violates uniqueness constraints. "
+                        "Please review tenant name/subdomain and try again."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
