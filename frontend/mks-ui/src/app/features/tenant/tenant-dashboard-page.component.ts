@@ -10,6 +10,7 @@ import { take } from "rxjs/operators";
 import { SalesFlowService } from "../../core/api/sales-flow.service";
 import { SalesMetricsRecord } from "../../core/api/sales-flow.types";
 import { TenantDashboardService } from "../../core/api/tenant-dashboard.service";
+import { DashboardAiSuggestionsCardComponent } from "./dashboard-ai-suggestions-card.component";
 import {
   TenantDashboardAIInsightsResponse,
   TenantDashboardSummary,
@@ -27,6 +28,7 @@ import { PrimeUiModule } from "../../shared/prime-ui.module";
     RouterLink,
     FormsModule,
     PrimeUiModule,
+    DashboardAiSuggestionsCardComponent,
   ],
   templateUrl: "./tenant-dashboard-page.component.html",
   styleUrl: "./tenant-dashboard-page.component.scss",
@@ -64,6 +66,9 @@ export class TenantDashboardPageComponent {
   });
   readonly canViewAI = computed(() =>
     this.permissionService.can("tenant.ai_assistant.view")
+  );
+  readonly canUseAISuggestions = computed(() =>
+    this.permissionService.can("tenant.ai.use")
   );
   readonly permissionError = computed(() => this.permissionService.lastError());
 

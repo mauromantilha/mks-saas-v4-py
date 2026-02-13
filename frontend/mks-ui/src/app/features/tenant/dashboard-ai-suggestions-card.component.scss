@@ -1,0 +1,83 @@
+:host {
+  display: block;
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.card-head h2 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.card-head .muted {
+  margin: 4px 0 0;
+}
+
+.suggestion-skeletons {
+  display: grid;
+  gap: 10px;
+}
+
+.suggestions-list {
+  display: grid;
+  gap: 10px;
+}
+
+.suggestion-item {
+  border: 1px solid var(--mks-border);
+  border-radius: 12px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.suggestion-head {
+  display: grid;
+  gap: 8px;
+}
+
+.suggestion-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.tags-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.suggestion-body {
+  margin: 8px 0 0;
+  color: #0f172a;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.suggestion-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: var(--mks-muted);
+}
+
+.error-text {
+  margin: 10px 0 0;
+  color: #b42318;
+}
+
+@media (max-width: 960px) {
+  .card-head {
+    flex-direction: column;
+  }
+}

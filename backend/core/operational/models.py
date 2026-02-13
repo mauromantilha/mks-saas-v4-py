@@ -2,6 +2,8 @@ from datetime import timedelta
 from uuid import uuid4
 
 from django.conf import settings
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -1145,4 +1147,135 @@ class TenantAIInteraction(BaseTenantModel):
                 fields=("company", "is_pinned_learning"),
                 name="idx_taii_pinned",
             ),
+        ]
+
+
+class AiConversation(BaseTenantModel):
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        CLOSED = "closed", "Closed"
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="ai_conversations",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    title = models.CharField(max_length=255, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+
+    class Meta:
+        ordering = ("-updated_at", "-id")
+        indexes = [
+            models.Index(fields=("company", "status"), name="idx_aiconv_status"),
+            models.Index(fields=("company", "-updated_at"), name="idx_aiconv_recent"),
+            models.Index(fields=("company", "created_at"), name="idx_aiconv_ct"),
+        ]
+
+
+class AiMessage(BaseTenantModel):
+    class Role(models.TextChoices):
+        USER = "user", "User"
+        ASSISTANT = "assistant", "Assistant"
+        SYSTEM = "system", "System"
+        TOOL = "tool", "Tool"
+
+    class Intent(models.TextChoices):
+        WEB_MARKET = "WEB_MARKET", "Web Market"
+        INTERNAL_ANALYTICS = "INTERNAL_ANALYTICS", "Internal Analytics"
+        CNPJ_ENRICH = "CNPJ_ENRICH", "CNPJ Enrich"
+        DOCS_RAG = "DOCS_RAG", "Docs RAG"
+        SYSTEM_HEALTH = "SYSTEM_HEALTH", "System Health"
+        MIXED = "MIXED", "Mixed"
+
+    conversation = models.ForeignKey(
+        AiConversation,
+        related_name="messages",
+        on_delete=models.CASCADE,
+    )
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER)
+    content = models.TextField()
+    intent = models.CharField(max_length=30, choices=Intent.choices, default=Intent.MIXED)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ("created_at", "id")
+        indexes = [
+            models.Index(fields=("company", "conversation"), name="idx_aimsg_conv"),
+            models.Index(fields=("company", "intent"), name="idx_aimsg_intent"),
+            models.Index(fields=("company", "created_at"), name="idx_aimsg_ct"),
+        ]
+
+    def clean(self):
+        super().clean()
+        if (
+            self.conversation_id
+            and self.company_id
+            and self.conversation.company_id != self.company_id
+        ):
+            raise ValidationError("AiMessage and conversation must belong to the same company.")
+
+    def save(self, *args, **kwargs):
+        if self.conversation_id:
+            self.company = self.conversation.company
+        return super().save(*args, **kwargs)
+
+
+class AiSuggestion(BaseTenantModel):
+    class Scope(models.TextChoices):
+        DASHBOARD = "dashboard", "Dashboard"
+        FINANCE = "finance", "Finance"
+        SALES = "sales", "Sales"
+        OPERATIONAL = "operational", "Operational"
+
+    scope = models.CharField(max_length=20, choices=Scope.choices)
+    title = models.CharField(max_length=255)
+    body = models.TextField()
+    severity = models.CharField(max_length=20, blank=True)
+    priority = models.CharField(max_length=20, blank=True)
+    related_entity_type = models.CharField(max_length=80, blank=True)
+    related_entity_id = models.CharField(max_length=80, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    seen_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        indexes = [
+            models.Index(fields=("company", "scope"), name="idx_aisug_scope"),
+            models.Index(fields=("company", "expires_at"), name="idx_aisug_exp"),
+            models.Index(fields=("company", "seen_at"), name="idx_aisug_seen"),
+            models.Index(fields=("company", "created_at"), name="idx_aisug_ct"),
+        ]
+
+
+class AiDocumentChunk(BaseTenantModel):
+    class SourceType(models.TextChoices):
+        POLICY_DOCUMENT = "policy_document", "Policy Document"
+        SPECIAL_PROJECT_DOCUMENT = "special_project_document", "Special Project Document"
+        GENERIC_DOCUMENT = "generic_document", "Generic Document"
+
+    source_type = models.CharField(max_length=40, choices=SourceType.choices)
+    source_id = models.CharField(max_length=64)
+    document_name = models.CharField(max_length=255)
+    mime_type = models.CharField(max_length=120, blank=True)
+    chunk_text = models.TextField()
+    chunk_order = models.PositiveIntegerField(default=0)
+    search_vector = SearchVectorField(null=True, editable=False)
+
+    class Meta:
+        ordering = ("source_type", "source_id", "chunk_order", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "source_type", "source_id", "chunk_order"),
+                name="uq_aidoc_chunk",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("company", "source_type", "source_id"),
+                name="idx_aidoc_src",
+            ),
+            models.Index(fields=("company", "created_at"), name="idx_aidoc_ct"),
+            GinIndex(fields=("search_vector",), name="idx_aidoc_srch"),
         ]

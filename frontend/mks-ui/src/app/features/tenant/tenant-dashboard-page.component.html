@@ -208,6 +208,10 @@
                 </p-table>
               </p-card>
 
+              <app-dashboard-ai-suggestions-card
+                *ngIf="canUseAISuggestions()"
+              ></app-dashboard-ai-suggestions-card>
+
               <p-card styleClass="panel-card" *ngIf="canViewAI()">
                 <h2>Assistente IA</h2>
                 <ng-container *ngIf="aiInsights() as ai; else aiEmpty">

@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
 from operational.models import (
+    AiConversation,
+    AiMessage,
+    AiSuggestion,
     Apolice,
     CommercialActivity,
     Customer,
@@ -836,6 +839,7 @@ class AIInsightRequestSerializer(serializers.Serializer):
 
 class TenantAIAssistantRequestSerializer(serializers.Serializer):
     prompt = serializers.CharField(max_length=4000)
+    conversation_id = serializers.IntegerField(required=False, min_value=1)
     focus = serializers.CharField(required=False, allow_blank=True, max_length=255)
     cnpj = serializers.CharField(required=False, allow_blank=True, max_length=18)
     include_cnpj_enrichment = serializers.BooleanField(required=False, default=True)
@@ -844,6 +848,69 @@ class TenantAIAssistantRequestSerializer(serializers.Serializer):
     include_commercial_context = serializers.BooleanField(required=False, default=True)
     learned_note = serializers.CharField(required=False, allow_blank=True, max_length=2000)
     pin_learning = serializers.BooleanField(required=False, default=False)
+
+
+class AiConversationSerializer(serializers.ModelSerializer):
+    created_by_username = serializers.CharField(source="created_by.username", read_only=True)
+
+    class Meta:
+        model = AiConversation
+        fields = (
+            "id",
+            "title",
+            "status",
+            "created_by",
+            "created_by_username",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class AiMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AiMessage
+        fields = (
+            "id",
+            "conversation",
+            "role",
+            "content",
+            "intent",
+            "metadata",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class AiConversationDetailSerializer(AiConversationSerializer):
+    messages = AiMessageSerializer(many=True, read_only=True)
+
+    class Meta(AiConversationSerializer.Meta):
+        fields = AiConversationSerializer.Meta.fields + ("messages",)
+
+
+class AiConversationMessageRequestSerializer(serializers.Serializer):
+    prompt = serializers.CharField(max_length=4000)
+
+
+class AiDashboardSuggestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AiSuggestion
+        fields = (
+            "id",
+            "scope",
+            "title",
+            "body",
+            "severity",
+            "priority",
+            "related_entity_type",
+            "related_entity_id",
+            "created_at",
+            "expires_at",
+            "seen_at",
+        )
+        read_only_fields = fields
 
 
 class TenantDashboardAIInsightsRequestSerializer(serializers.Serializer):

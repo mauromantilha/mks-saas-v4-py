@@ -21,7 +21,31 @@ export const PERMISSION_ALIAS_MAP: PermissionAliasMap = {
   "tenant.leads.view": ["leads.list"],
   "tenant.opportunities.view": ["opportunities.list"],
   "tenant.activities.view": ["activities.list"],
-  "tenant.ai_assistant.view": ["ai_assistant.list", "ai_assistant.create"],
+
+  // IA assistant canonical matrix.
+  "tenant.ai.use": ["ai_assistant.create", "ai_assistant.write"],
+  "tenant.ai.web": ["tenant.ai.use", "ai_assistant.create"],
+  "tenant.ai.docs": ["tenant.ai.use", "apolices.list", "policies.list"],
+  "tenant.ai.finance": [
+    "tenant.ai.use",
+    "invoices.list",
+    "installments.list",
+    "payables.list",
+  ],
+  "tenant.ai.crm": [
+    "tenant.ai.use",
+    "customers.list",
+    "leads.list",
+    "opportunities.list",
+    "activities.list",
+  ],
+  "tenant.ai.admin": ["tenant.ai.use", "dashboard.list", "ledger.list"],
+  "tenant.ai_assistant.view": [
+    "tenant.ai.use",
+    "ai_assistant.list",
+    "ai_assistant.read",
+  ],
+
   "tenant.proposal_options.view": ["proposal_options.list"],
   "tenant.policy_requests.view": ["policy_requests.list"],
   "tenant.insurers.view": ["insurers.list"],

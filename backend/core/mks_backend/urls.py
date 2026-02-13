@@ -92,6 +92,13 @@ from operational.views import (
     SpecialProjectListCreateAPIView,
     TenantDashboardSummaryAPIView,
 )
+from operational.ai_assistant_views import (
+    AiAssistantConversationDetailAPIView,
+    AiAssistantConversationListAPIView,
+    AiAssistantConversationMessageAPIView,
+    AiAssistantDashboardSuggestionsAPIView,
+    TenantAIAssistantConsultAPIView,
+)
 
 
 def healthz(_request):
@@ -258,6 +265,31 @@ urlpatterns = [
         "api/dashboard/summary/",
         TenantDashboardSummaryAPIView.as_view(),
         name="tenant-dashboard-summary",
+    ),
+    path(
+        "api/ai-assistant/consult/",
+        TenantAIAssistantConsultAPIView.as_view(),
+        name="tenant-ai-assistant-consult",
+    ),
+    path(
+        "api/ai-assistant/conversations/",
+        AiAssistantConversationListAPIView.as_view(),
+        name="tenant-ai-assistant-conversations",
+    ),
+    path(
+        "api/ai-assistant/conversations/<int:conversation_id>/",
+        AiAssistantConversationDetailAPIView.as_view(),
+        name="tenant-ai-assistant-conversations-detail",
+    ),
+    path(
+        "api/ai-assistant/conversations/<int:conversation_id>/message/",
+        AiAssistantConversationMessageAPIView.as_view(),
+        name="tenant-ai-assistant-conversations-message",
+    ),
+    path(
+        "api/ai-assistant/dashboard-suggestions/",
+        AiAssistantDashboardSuggestionsAPIView.as_view(),
+        name="tenant-ai-assistant-dashboard-suggestions",
     ),
     path("api/sales-goals/", SalesGoalListCreateAPIView.as_view(), name="sales-goals-list"),
     path(

@@ -23,6 +23,7 @@ from operational.ai import (
     lookup_cnpj_profile,
     sanitize_cnpj,
 )
+from operational.ai_assistant_service import AiAssistantService
 from operational.models import (
     Apolice,
     CommercialActivity,
@@ -1335,39 +1336,30 @@ class TenantAIAssistantConsultAPIView(APIView):
         data = serializer.validated_data
 
         cnpj = sanitize_cnpj(data.get("cnpj", ""))
-        cnpj_profile = None
-        if data.get("include_cnpj_enrichment", True) and cnpj:
-            cnpj_profile = lookup_cnpj_profile(cnpj)
-
         context_snapshot = self._build_context(request)
         learning_memory = self._load_learning_memory(request.company)
 
-        payload = {
-            "prompt": data["prompt"],
-            "focus": data.get("focus", ""),
-            "context_snapshot": context_snapshot,
-            "learning_memory": learning_memory,
-            "market_research_required": bool(data.get("include_market_research", True)),
-            "cnpj_profile": cnpj_profile,
-            "instructions": {
-                "domain": "Corretora de Seguros",
-                "goals": [
-                    "Analisar carteira, inadimplência, financeiro, parcelas, equipe e metas.",
-                    "Sugerir próximos passos comerciais e operacionais.",
-                    "Indicar hipóteses de pesquisa de mercado e benchmarking setorial.",
-                    "Quando houver CNPJ, orientar leitura de quadro societário e presença digital.",
-                ],
-                "compliance": [
-                    "Não expor dados sensíveis sem necessidade.",
-                    "Separar fatos dos dados e inferências.",
-                ],
+        ai_service = AiAssistantService()
+        consult_result = ai_service.consult(
+            company=request.company,
+            user=request.user,
+            prompt=data["prompt"],
+            context={
+                "conversation_id": data.get("conversation_id"),
+                "focus": data.get("focus", ""),
+                "cnpj": cnpj,
+                "include_cnpj_enrichment": bool(data.get("include_cnpj_enrichment", True)),
+                "include_market_research": bool(data.get("include_market_research", True)),
+                "include_financial_context": bool(data.get("include_financial_context", True)),
+                "include_commercial_context": bool(data.get("include_commercial_context", True)),
+                "context_snapshot": context_snapshot,
+                "learning_memory": learning_memory,
             },
-        }
-        insights = generate_commercial_insights(
-            entity_type="TENANT_AI_ASSISTANT",
-            payload=payload,
-            focus=(data.get("focus", "") or "consultoria comercial e seguros"),
-            cnpj_profile=cnpj_profile,
+            request=request,
+        )
+        insights = consult_result["assistant"]
+        cnpj_profile = consult_result.get("cnpj_profile") or (
+            lookup_cnpj_profile(cnpj) if data.get("include_cnpj_enrichment", True) and cnpj else None
         )
 
         interaction = TenantAIInteraction.objects.create(
@@ -1380,7 +1372,7 @@ class TenantAIAssistantConsultAPIView(APIView):
             response_payload=insights,
             learned_note=data.get("learned_note", "").strip(),
             is_pinned_learning=bool(data.get("pin_learning", False)),
-            provider=str(insights.get("provider") or ""),
+            provider=str(insights.get("provider") or "ai_assistant_orchestrator"),
             confidence_score=insights.get("qualification_score"),
             created_by=request.user if getattr(request.user, "is_authenticated", False) else None,
         )
@@ -1399,8 +1391,13 @@ class TenantAIAssistantConsultAPIView(APIView):
                 "focus": interaction.focus,
                 "provider": interaction.provider,
                 "is_pinned_learning": interaction.is_pinned_learning,
+                "conversation_id": consult_result.get("conversation_id"),
+                "assistant_message_id": consult_result.get("assistant_message_id"),
             },
-            metadata={"tenant_resource_key": "ai_assistant"},
+            metadata={
+                "tenant_resource_key": "ai_assistant",
+                "correlation_id": consult_result.get("correlation_id"),
+            },
         )
         return Response(
             {
@@ -1409,6 +1406,10 @@ class TenantAIAssistantConsultAPIView(APIView):
                 "assistant": insights,
                 "context_snapshot": context_snapshot,
                 "learning_memory": learning_memory,
+                "conversation_id": consult_result.get("conversation_id"),
+                "assistant_message_id": consult_result.get("assistant_message_id"),
+                "intents": consult_result.get("intents", []),
+                "sources": consult_result.get("sources", {}),
             },
             status=status.HTTP_201_CREATED,
         )
