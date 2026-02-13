@@ -126,7 +126,7 @@ const tenantCanonicalRoutes: Route[] = [
   tenantPlaceholderRoute("tenant/comercial/mensageria", "Mensageria"),
   tenantRoute(
     "tenant/comercial/atividades",
-    TenantActivitiesPageComponent,
+    TenantSalesFlowPageComponent,
     "Atividade/Agenda",
     "Tarefas comerciais com SLA, lembretes e histórico por lead/oportunidade.",
     "tenant.activities.view"

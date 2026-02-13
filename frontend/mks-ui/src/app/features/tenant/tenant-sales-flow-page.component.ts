@@ -119,6 +119,8 @@ export class TenantSalesFlowPageComponent implements OnDestroy {
   readonly canReadSalesFlow = computed(
     () =>
       this.permissionService.can("tenant.sales_flow.read")
+      || this.permissionService.can("tenant.activities.view")
+      || this.permissionService.can("activities.list")
       || this.permissionService.can("metrics.list")
   );
 
