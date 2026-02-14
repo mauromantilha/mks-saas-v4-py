@@ -30,6 +30,7 @@ class FiscalDocumentViewSet(
     serializer_class = FiscalDocumentSerializer
     permission_classes = [IsTenantRoleAllowed]
     tenant_resource_key = "fiscal_documents"
+    pagination_class = None
 
     def get_queryset(self):
         company = getattr(self.request, "company", None)
