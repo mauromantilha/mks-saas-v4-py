@@ -1,19 +1,31 @@
 <section class="sales-wrap">
-  <h1>Fluxo Comercial</h1>
+  <div class="header-section">
+    <div class="title-group">
+      <h1><i class="pi pi-chart-line"></i> Fluxo Comercial</h1>
+      <p class="subtitle">Gestão completa do processo de vendas</p>
+    </div>
 
-  <div *ngIf="session()" class="meta">
-    <span><strong>Tenant:</strong> {{ session()?.tenantCode }}</span>
-    <span><strong>Usuário:</strong> {{ session()?.username }}</span>
-    <span><strong>Role:</strong> {{ session()?.role }}</span>
+    <div *ngIf="session()" class="user-badge">
+      <i class="pi pi-user"></i>
+      <div class="user-info">
+        <span class="user-name">{{ session()?.username }}</span>
+        <span class="user-role">{{ session()?.role }} · {{ session()?.tenantCode }}</span>
+      </div>
+    </div>
   </div>
 
-  <div class="toolbar">
-    <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar painel</button>
+  <div class="toolbar-actions">
+    <button pButton 
+      label="Atualizar Painel" 
+      icon="pi pi-refresh" 
+      (click)="load()" 
+      [loading]="loading()"
+      severity="secondary"></button>
   </div>
 
-  <p *ngIf="loading()">Carregando...</p>
-  <p *ngIf="error()" class="error">{{ error() }}</p>
-  <p *ngIf="notice()" class="notice">{{ notice() }}</p>
+  <p-message *ngIf="loading()" severity="info" text="Carregando dados do painel..."></p-message>
+  <p-message *ngIf="error()" severity="error" [text]="error()"></p-message>
+  <p-message *ngIf="notice()" severity="success" [text]="notice()"></p-message>
 
   <p-card styleClass="card metrics-card" *ngIf="metrics() as m">
     <h2>Visão Comercial Prioritária</h2>
@@ -155,105 +167,182 @@
       </div>
     </p-card>
 
-    <p-card styleClass="card">
-      <h2>Atividade / Follow-up</h2>
+    <p-card styleClass="card activity-card">
+      <ng-template pTemplate="header">
+        <div class="card-header-custom">
+          <i class="pi pi-calendar-plus"></i>
+          <h2>Criar Atividade / Agenda</h2>
+        </div>
+      </ng-template>
+      <p class="card-description">
+        <i class="pi pi-info-circle"></i> 
+        Crie tarefas, follow-ups e lembretes vinculados a leads ou oportunidades
+      </p>
       <div class="form-grid">
-        <label>
-          Tipo
+        <div class="field">
+          <label for="activityKind">Tipo de Atividade *</label>
           <p-select
+            inputId="activityKind"
             [options]="activityKindOptions"
             optionLabel="label"
             optionValue="value"
             [ngModel]="activityKind()"
             (ngModelChange)="activityKind.set($event)"
             [disabled]="loading() || !canWrite()"
-          ></p-select>
-        </label>
-        <label>
-          Prioridade
+            placeholder="Escolha o tipo"
+            styleClass="w-full"
+          >
+            <ng-template pTemplate="selectedItem" let-option>
+              <div class="flex align-items-center gap-2" *ngIf="option">
+                <i class="pi" [ngClass]="{
+                  'pi-check-square': option.value === 'TASK',
+                  'pi-phone': option.value === 'FOLLOW_UP',
+                  'pi-file-edit': option.value === 'NOTE'
+                }"></i>
+                <span>{{ option.label }}</span>
+              </div>
+            </ng-template>
+            <ng-template pTemplate="item" let-option>
+              <div class="flex align-items-center gap-2">
+                <i class="pi" [ngClass]="{
+                  'pi-check-square': option.value === 'TASK',
+                  'pi-phone': option.value === 'FOLLOW_UP',
+                  'pi-file-edit': option.value === 'NOTE'
+                }"></i>
+                <span>{{ option.label }}</span>
+              </div>
+            </ng-template>
+          </p-select>
+        </div>
+        <div class="field">
+          <label for="activityPriority">Prioridade *</label>
           <p-select
+            inputId="activityPriority"
             [options]="activityPriorityOptions"
             optionLabel="label"
             optionValue="value"
             [ngModel]="activityPriority()"
             (ngModelChange)="activityPriority.set($event)"
             [disabled]="loading() || !canWrite()"
-          ></p-select>
-        </label>
-        <label class="field-full">
-          Título *
+            placeholder="Escolha a prioridade"
+            styleClass="w-full"
+          >
+            <ng-template pTemplate="selectedItem" let-option>
+              <div class="flex align-items-center gap-2" *ngIf="option">
+                <i class="pi pi-circle-fill" [style.color]="getPriorityColor(option.value)"></i>
+                <span>{{ option.label }}</span>
+              </div>
+            </ng-template>
+            <ng-template pTemplate="item" let-option>
+              <div class="flex align-items-center gap-2">
+                <i class="pi pi-circle-fill" [style.color]="getPriorityColor(option.value)"></i>
+                <span>{{ option.label }}</span>
+              </div>
+            </ng-template>
+          </p-select>
+        </div>
+        <div class="field field-full">
+          <label for="activityTitle">Título da Atividade *</label>
           <input pInputText
+            id="activityTitle"
             type="text"
             [ngModel]="activityTitle()"
             (ngModelChange)="activityTitle.set($event)"
             [disabled]="loading() || !canWrite()"
             placeholder="Ex.: Follow-up proposta renovação"
+            class="w-full"
           />
-        </label>
-        <label>
-          Vínculo
+        </div>
+        <div class="field">
+          <label for="activityTargetType">Vincular a *</label>
           <p-select
+            inputId="activityTargetType"
             [options]="activityTargetTypeOptions"
             optionLabel="label"
             optionValue="value"
             [ngModel]="activityTargetType()"
             (ngModelChange)="onActivityTargetTypeChange($event)"
             [disabled]="loading() || !canWrite()"
+            placeholder="Escolha o vínculo"
+            styleClass="w-full"
           ></p-select>
-        </label>
-        <label>
-          Registro
+        </div>
+        <div class="field">
+          <label for="activityTargetId">Registro *</label>
           <p-select
+            inputId="activityTargetId"
             *ngIf="activityTargetType() === 'LEAD'"
             [options]="leadTargetOptions()"
             [ngModel]="activityTargetId()"
             (ngModelChange)="activityTargetId.set($event)"
             [disabled]="loading() || !canWrite()"
-            placeholder="Selecione..."
+            placeholder="Selecione um lead"
+            [filter]="true"
+            filterBy="label"
+            styleClass="w-full"
           ></p-select>
           <p-select
+            inputId="activityTargetId"
             *ngIf="activityTargetType() === 'OPPORTUNITY'"
             [options]="opportunityTargetOptions()"
             [ngModel]="activityTargetId()"
             (ngModelChange)="activityTargetId.set($event)"
             [disabled]="loading() || !canWrite()"
-            placeholder="Selecione..."
+            placeholder="Selecione uma oportunidade"
+            [filter]="true"
+            filterBy="label"
+            styleClass="w-full"
           ></p-select>
-        </label>
-        <label>
-          Vencimento
+        </div>
+        <div class="field">
+          <label for="activityDueAt">
+            <i class="pi pi-calendar"></i> Data/Hora Vencimento
+          </label>
           <input pInputText
+            id="activityDueAt"
             type="datetime-local"
             [ngModel]="activityDueAt()"
             (ngModelChange)="activityDueAt.set($event)"
             [disabled]="loading() || !canWrite()"
+            class="w-full"
           />
-        </label>
-        <label>
-          Lembrete
+        </div>
+        <div class="field">
+          <label for="activityReminderAt">
+            <i class="pi pi-bell"></i> Data/Hora Lembrete
+          </label>
           <input pInputText
+            id="activityReminderAt"
             type="datetime-local"
             [ngModel]="activityReminderAt()"
             (ngModelChange)="activityReminderAt.set($event)"
             [disabled]="loading() || !canWrite()"
+            class="w-full"
           />
-        </label>
-        <label>
-          SLA (horas)
+        </div>
+        <div class="field">
+          <label for="activitySlaHours">
+            <i class="pi pi-clock"></i> SLA (horas)
+          </label>
           <input pInputText
+            id="activitySlaHours"
             type="number"
             min="1"
             [ngModel]="activitySlaHours()"
             (ngModelChange)="activitySlaHours.set($event)"
             [disabled]="loading() || !canWrite()"
             placeholder="24"
+            class="w-full"
           />
-        </label>
+        </div>
       </div>
-      <div class="actions top-gap">
-        <button pButton type="button" (click)="createActivity()" [disabled]="loading() || !canWrite()">
-          Criar atividade
-        </button>
+      <div class="actions-footer">
+        <button pButton 
+          label="Criar Atividade" 
+          icon="pi pi-plus" 
+          (click)="createActivity()" 
+          [disabled]="loading() || !canWrite()"
+          severity="success"></button>
       </div>
     </p-card>
   </div>
@@ -327,69 +416,141 @@
     </p-card>
   </div>
 
-  <div class="grid secondary-grid">
-    <p-card styleClass="card">
-      <h2>Atividades</h2>
-      <p-table *ngIf="activities().length > 0" class="table" [value]="activities()" responsiveLayout="scroll">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>ID</th>
-            <th>Título</th>
-            <th>Status</th>
-            <th>Prioridade</th>
-            <th>Vínculo</th>
-            <th>SLA</th>
-            <th>Ações</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-activity>
-          <tr>
-            <td>{{ activity.id }}</td>
-            <td>{{ activity.title }}</td>
-            <td>{{ activity.status }}</td>
-            <td>{{ activity.priority }}</td>
-            <td>
-              <span *ngIf="activity.lead">Lead #{{ activity.lead }}</span>
-              <span *ngIf="activity.opportunity">Opp #{{ activity.opportunity }}</span>
-            </td>
-            <td><span [class.badge-alert]="activity.is_sla_breached">{{ activity.sla_due_at || "-" }}</span></td>
-            <td>
-              <div class="actions">
-                <button pButton type="button" (click)="completeActivity(activity)" [disabled]="loading() || !canWrite() || activity.status === 'DONE'">Concluir</button>
-                <button pButton type="button" (click)="reopenActivity(activity)" [disabled]="loading() || !canWrite() || activity.status !== 'DONE'">Reabrir</button>
+  <!-- Lista de Atividades e Agenda -->
+  <div class="activity-agenda-section">
+    <p-card styleClass="card list-card">
+      <ng-template pTemplate="header">
+        <div class="card-header-custom">
+          <i class="pi pi-list-check"></i>
+          <h2>Minhas Atividades</h2>
+          <p-tag [value]="activities().length.toString()" severity="info"></p-tag>
+        </div>
+      </ng-template>
+      
+      <p-dataView *ngIf="activities().length > 0" 
+        [value]="activities()" 
+        layout="list"
+        [paginator]="true"
+        [rows]="10">
+        <ng-template pTemplate="list" let-activity>
+          <div class="activity-item" [class.activity-done]="activity.status === 'DONE'"
+               [class.activity-overdue]="activity.is_sla_breached && activity.status !== 'DONE'">
+            <div class="activity-header">
+              <div class="activity-info">
+                <i class="pi" [ngClass]="{
+                  'pi-check-circle': activity.status === 'DONE',
+                  'pi-clock': activity.status === 'PENDING',
+                  'pi-exclamation-triangle': activity.is_sla_breached
+                }" [style.color]="activity.status === 'DONE' ? '#16a34a' : activity.is_sla_breached ? '#dc2626' : '#f59e0b'"></i>
+                <h3 class="activity-title">{{ activity.title }}</h3>
+                <p-tag [value]="activity.kind" [severity]="getActivityKindSeverity(activity.kind)"></p-tag>
+                <p-tag [value]="activity.priority" 
+                       [style]="{'background-color': getPriorityColor(activity.priority)}"></p-tag>
               </div>
-            </td>
-          </tr>
+              <div class="activity-actions">
+                <button pButton 
+                  icon="pi pi-check" 
+                  label="Concluir"
+                  (click)="completeActivity(activity)" 
+                  [disabled]="loading() || !canWrite() || activity.status === 'DONE'"
+                  size="small"
+                  severity="success"></button>
+                <button pButton 
+                  icon="pi pi-replay" 
+                  label="Reabrir"
+                  (click)="reopenActivity(activity)" 
+                  [disabled]="loading() || !canWrite() || activity.status !== 'DONE'"
+                  size="small"
+                  severity="secondary"></button>
+              </div>
+            </div>
+            <div class="activity-details">
+              <div class="detail-item">
+                <i class="pi pi-tag"></i>
+                <span>ID: #{{ activity.id }}</span>
+              </div>
+              <div class="detail-item" *ngIf="activity.lead">
+                <i class="pi pi-user"></i>
+                <span>Lead #{{ activity.lead }}</span>
+              </div>
+              <div class="detail-item" *ngIf="activity.opportunity">
+                <i class="pi pi-briefcase"></i>
+                <span>Oportunidade #{{ activity.opportunity }}</span>
+              </div>
+              <div class="detail-item" *ngIf="activity.due_at">
+                <i class="pi pi-calendar"></i>
+                <span>Vencimento: {{ activity.due_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <div class="detail-item" *ngIf="activity.sla_due_at">
+                <i class="pi pi-clock"></i>
+                <span [class.text-danger]="activity.is_sla_breached">SLA: {{ activity.sla_due_at }}</span>
+              </div>
+            </div>
+            <p class="activity-description" *ngIf="activity.description">
+              {{ activity.description }}
+            </p>
+          </div>
         </ng-template>
-      </p-table>
-      <p *ngIf="activities().length === 0">Nenhuma atividade cadastrada.</p>
+      </p-dataView>
+      
+      <div class="empty-state" *ngIf="activities().length === 0">
+        <i class="pi pi-inbox" style="font-size: 3rem; color: var(--mks-muted);"></i>
+        <p>Nenhuma atividade cadastrada</p>
+        <small>Crie sua primeira atividade usando o formulário acima</small>
+      </div>
     </p-card>
 
-    <p-card styleClass="card">
-      <h2>Lembretes Pendentes</h2>
-      <p-table *ngIf="reminderActivities().length > 0" class="table" [value]="reminderActivities()" responsiveLayout="scroll">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>ID</th>
-            <th>Título</th>
-            <th>Lembrete</th>
-            <th>Ação</th>
-          </tr>
+    <p-card styleClass="card list-card">
+      <ng-template pTemplate="header">
+        <div class="card-header-custom">
+          <i class="pi pi-bell"></i>
+          <h2>Agenda de Lembretes</h2>
+          <p-tag [value]="reminderActivities().length.toString()" 
+                 [severity]="reminderActivities().length > 0 ? 'warning' : 'success'"></p-tag>
+        </div>
+      </ng-template>
+      
+      <p-dataView *ngIf="reminderActivities().length > 0" 
+        [value]="reminderActivities()" 
+        layout="list"
+        [paginator]="true"
+        [rows]="10">
+        <ng-template pTemplate="list" let-activity>
+          <div class="reminder-item" [class.reminder-sent]="activity.reminder_sent">
+            <div class="reminder-header">
+              <div class="reminder-info">
+                <i class="pi pi-bell" [style.color]="activity.reminder_sent ? '#16a34a' : '#f59e0b'"></i>
+                <h3 class="reminder-title">{{ activity.title }}</h3>
+                <p-tag *ngIf="activity.reminder_sent" value="Enviado" severity="success"></p-tag>
+                <p-tag *ngIf="!activity.reminder_sent" value="Pendente" severity="warning"></p-tag>
+              </div>
+              <button pButton 
+                icon="pi pi-check" 
+                label="Marcar como Enviado"
+                (click)="markReminderSent(activity)" 
+                [disabled]="loading() || !canWrite() || activity.reminder_sent"
+                size="small"
+                severity="success"></button>
+            </div>
+            <div class="reminder-details">
+              <div class="detail-item">
+                <i class="pi pi-calendar"></i>
+                <span>Lembrete agendado: {{ activity.reminder_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <div class="detail-item">
+                <i class="pi pi-tag"></i>
+                <span>Atividade ID: #{{ activity.id }}</span>
+              </div>
+            </div>
+          </div>
         </ng-template>
-        <ng-template pTemplate="body" let-activity>
-          <tr>
-            <td>{{ activity.id }}</td>
-            <td>{{ activity.title }}</td>
-            <td>{{ activity.reminder_at }}</td>
-            <td>
-              <button pButton type="button" (click)="markReminderSent(activity)" [disabled]="loading() || !canWrite() || activity.reminder_sent">
-                Marcar enviado
-              </button>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-      <p *ngIf="reminderActivities().length === 0">Não há lembretes pendentes.</p>
+      </p-dataView>
+      
+      <div class="empty-state" *ngIf="reminderActivities().length === 0">
+        <i class="pi pi-check-circle" style="font-size: 3rem; color: #16a34a;"></i>
+        <p>Nenhum lembrete pendente</p>
+        <small>Todos os lembretes foram processados</small>
+      </div>
     </p-card>
   </div>
 </section>

@@ -970,4 +970,32 @@ export class SalesFlowPageComponent {
     this.notice.set("");
     this.loading.set(false);
   }
+
+  getPriorityColor(priority: ActivityPriority): string {
+    switch (priority) {
+      case "LOW":
+        return "#10b981"; // green
+      case "MEDIUM":
+        return "#f59e0b"; // yellow
+      case "HIGH":
+        return "#f97316"; // orange
+      case "URGENT":
+        return "#dc2626"; // red
+      default:
+        return "#6b7280"; // gray
+    }
+  }
+
+  getActivityKindSeverity(kind: ActivityKind): "success" | "info" | "warning" | "danger" {
+    switch (kind) {
+      case "TASK":
+        return "info";
+      case "FOLLOW_UP":
+        return "warning";
+      case "NOTE":
+        return "success";
+      default:
+        return "info";
+    }
+  }
 }
