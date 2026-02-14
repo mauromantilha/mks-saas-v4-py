@@ -67,12 +67,6 @@ export class TenantAIAssistantPageComponent implements OnDestroy {
     { label: "Analisando inadimplência", tone: "danger" as const },
     { label: "Analisando sistema", tone: "warn" as const },
   ];
-  readonly quickPrompts = [
-    "Como está a inadimplência desta semana considerando internet e CRM?",
-    "Quais oportunidades têm maior chance de fechamento neste mês?",
-    "Quais clientes devo priorizar para renovação nos próximos 30 dias?",
-    "Existe risco operacional no CRM que impacte meu fluxo comercial?",
-  ];
 
   readonly advisorFeed = computed<AdvisorFeedItem[]>(() => {
     const apiRows = this.dashboardSuggestions();
@@ -198,14 +192,6 @@ export class TenantAIAssistantPageComponent implements OnDestroy {
 
   clearPrompt(): void {
     this.prompt.set("");
-  }
-
-  useQuickPrompt(prompt: string): void {
-    this.prompt.set(prompt);
-  }
-
-  triggerAutonomousAnalysis(): void {
-    this.refreshSuggestions();
   }
 
   refreshSuggestions(silent = false): void {

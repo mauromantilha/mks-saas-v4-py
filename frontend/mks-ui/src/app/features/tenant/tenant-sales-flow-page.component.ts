@@ -12,6 +12,7 @@ import { ButtonModule } from "primeng/button";
 import { CardModule } from "primeng/card";
 import { DatePickerModule } from "primeng/datepicker";
 import { DialogModule } from "primeng/dialog";
+import { FloatLabelModule } from "primeng/floatlabel";
 import { InputTextModule } from "primeng/inputtext";
 import { SelectModule } from "primeng/select";
 import { SkeletonModule } from "primeng/skeleton";
@@ -70,6 +71,7 @@ interface KpiCard {
     TableModule,
     TagModule,
     DialogModule,
+    FloatLabelModule,
     ToastModule,
   ],
   providers: [MessageService],
@@ -105,6 +107,12 @@ export class TenantSalesFlowPageComponent implements OnDestroy {
 
   readonly summary = signal<SalesFlowSummaryResponse | null>(null);
   readonly agendaItems = signal<AgendaEventRecord[]>([]);
+  readonly meetingItems = computed(() =>
+    this.agendaItems().filter((item) => this.isMeetingItem(item))
+  );
+  readonly pendingActivityItems = computed(() =>
+    this.agendaItems().filter((item) => !this.isMeetingItem(item))
+  );
 
   readonly leads = signal<LeadRecord[]>([]);
   readonly opportunities = signal<OpportunityRecord[]>([]);
@@ -887,5 +895,12 @@ export class TenantSalesFlowPageComponent implements OnDestroy {
       detail,
       life: 4000,
     });
+  }
+
+  private isMeetingItem(item: AgendaEventRecord): boolean {
+    return Boolean(
+      String(item.attendee_name || "").trim()
+      || String(item.attendee_email || "").trim()
+    );
   }
 }

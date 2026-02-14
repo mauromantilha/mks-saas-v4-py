@@ -1,11 +1,11 @@
 <p-toast position="top-right"></p-toast>
 
 <section class="sales-flow-page sales-flow-aura-light">
-  <header class="sales-flow-header">
+  <header class="sales-flow-header bg-primary-600">
     <div class="title-wrap">
       <p class="eyebrow">Estratégia & Comercial</p>
-      <h1>Fluxo Comercial</h1>
-      <p class="subtitle">
+      <h1 class="text-white">Fluxo Comercial</h1>
+      <p class="subtitle text-blue-100">
         Gestão diária de indicadores, atividades e agenda comercial do tenant.
       </p>
     </div>
@@ -57,12 +57,15 @@
 
       <ng-template #kpiLoaded>
         <section class="kpi-grid" *ngIf="kpiCards().length > 0; else emptyKpi">
-          <p-card styleClass="kpi-card" *ngFor="let card of kpiCards()">
+          <p-card
+            styleClass="kpi-card surface-card border-1 border-blue-200 shadow-none"
+            *ngFor="let card of kpiCards()"
+          >
             <div class="kpi-head">
               <i [class]="card.icon"></i>
-              <span class="kpi-label">{{ card.label }}</span>
+              <span class="kpi-label text-600">{{ card.label }}</span>
             </div>
-            <strong class="kpi-value">{{ card.value }}</strong>
+            <strong class="kpi-value text-900">{{ card.value }}</strong>
           </p-card>
         </section>
       </ng-template>
@@ -75,7 +78,7 @@
       </ng-template>
 
       <section class="workspace-grid">
-        <p-card styleClass="panel-card">
+        <p-card styleClass="panel-card surface-card border-1 border-blue-200 shadow-none">
           <h2>Criar atividade</h2>
           <p class="muted panel-note">
             Permissão necessária: <code>tenant.activities.manage</code>
@@ -89,6 +92,7 @@
                 [options]="activityTypeOptions"
                 optionLabel="label"
                 optionValue="value"
+                placeholder="Selecione o tipo de atividade"
                 [disabled]="savingActivity() || !canManageActivities()"
               ></p-select>
             </label>
@@ -100,6 +104,7 @@
                 [options]="activityPriorityOptions"
                 optionLabel="label"
                 optionValue="value"
+                placeholder="Selecione a prioridade"
                 [disabled]="savingActivity() || !canManageActivities()"
               ></p-select>
             </label>
@@ -111,6 +116,7 @@
                 [options]="originOptions"
                 optionLabel="label"
                 optionValue="value"
+                placeholder="Selecione a origem"
                 [disabled]="savingActivity() || loadingEntities() || !canManageActivities()"
               ></p-select>
             </label>
@@ -125,14 +131,15 @@
                 dropdownIcon="pi pi-chevron-down"
                 [forceSelection]="true"
                 optionLabel="label"
-                [placeholder]="targetPlaceholder()"
+                placeholder="Buscar lead / oportunidade / projeto"
                 [disabled]="savingActivity() || loadingEntities() || !canManageActivities()"
               ></p-autocomplete>
             </label>
 
-            <label>
-              Início
+            <div class="field-date">
+              <p-floatlabel>
               <p-datepicker
+                inputId="sf-startAt"
                 formControlName="startAt"
                 [showIcon]="true"
                 iconDisplay="input"
@@ -141,11 +148,14 @@
                 appendTo="body"
                 [disabled]="savingActivity() || !canManageActivities()"
               ></p-datepicker>
-            </label>
+              <label for="sf-startAt">Início</label>
+              </p-floatlabel>
+            </div>
 
-            <label>
-              Fim
+            <div class="field-date">
+              <p-floatlabel>
               <p-datepicker
+                inputId="sf-endAt"
                 formControlName="endAt"
                 [showIcon]="true"
                 iconDisplay="input"
@@ -154,7 +164,9 @@
                 appendTo="body"
                 [disabled]="savingActivity() || !canManageActivities()"
               ></p-datepicker>
-            </label>
+              <label for="sf-endAt">Fim</label>
+              </p-floatlabel>
+            </div>
 
             <label class="field-full">
               Título
@@ -182,17 +194,17 @@
               <button
                 pButton
                 type="submit"
-                class="btn-primary"
+                severity="primary"
+                icon="pi pi-check"
+                [label]="savingActivity() ? 'Criando...' : 'Criar Atividade'"
                 [disabled]="savingActivity() || !canManageActivities()"
-              >
-                {{ savingActivity() ? "Salvando..." : "Salvar atividade" }}
-              </button>
+              ></button>
             </div>
           </form>
         </p-card>
 
-        <p-card styleClass="panel-card">
-          <h2>Agenda</h2>
+        <p-card styleClass="panel-card agenda-card surface-card border-1 border-blue-300 shadow-none">
+          <h2>Nova Reunião</h2>
           <p class="muted panel-note">
             Convites por email seguem a configuração SMTP do tenant.
           </p>
@@ -204,13 +216,15 @@
                 pInputText
                 type="text"
                 formControlName="title"
+                placeholder="Título da reunião"
                 [disabled]="savingAgenda() || !canManageAgenda()"
               />
             </label>
 
-            <label>
-              Data
+            <div class="field-date">
+              <p-floatlabel>
               <p-datepicker
+                inputId="sf-agenda-date"
                 formControlName="date"
                 dateFormat="dd/mm/yy"
                 [showIcon]="true"
@@ -218,7 +232,9 @@
                 appendTo="body"
                 [disabled]="savingAgenda() || !canManageAgenda()"
               ></p-datepicker>
-            </label>
+              <label for="sf-agenda-date">Data</label>
+              </p-floatlabel>
+            </div>
 
             <label>
               Horário
@@ -236,6 +252,7 @@
                 pInputText
                 type="text"
                 formControlName="attendeeName"
+                placeholder="Nome do participante"
                 [disabled]="savingAgenda() || !canManageAgenda()"
               />
             </label>
@@ -246,6 +263,7 @@
                 pInputText
                 type="email"
                 formControlName="attendeeEmail"
+                placeholder="Email do participante"
                 [disabled]="savingAgenda() || !canManageAgenda()"
               />
             </label>
@@ -256,12 +274,13 @@
                 pInputText
                 type="text"
                 formControlName="subject"
+                placeholder="Assunto da reunião"
                 [disabled]="savingAgenda() || !canManageAgenda()"
               />
             </label>
 
             <label class="toggle-row field-full">
-              <span>Enviar convite</span>
+              <span>Enviar convite por email</span>
               <p-toggleswitch
                 formControlName="sendInvite"
                 [disabled]="savingAgenda() || !canManageAgenda()"
@@ -272,26 +291,27 @@
               <button
                 pButton
                 type="submit"
-                class="btn-primary"
+                severity="success"
+                icon="pi pi-calendar-plus"
+                [label]="savingAgenda() ? 'Agendando...' : 'Agendar'"
                 [disabled]="savingAgenda() || !canManageAgenda()"
-              >
-                {{ savingAgenda() ? "Salvando..." : "Salvar agenda" }}
-              </button>
+              ></button>
             </div>
           </form>
         </p-card>
       </section>
 
-      <p-card styleClass="panel-card table-card">
+      <p-card styleClass="panel-card table-card surface-card border-1 border-blue-200 shadow-none">
         <div class="table-header">
-          <h2>Próximos compromissos</h2>
+          <h2>Próximas Reuniões</h2>
           <span class="muted">Atualização automática a cada 60s</span>
         </div>
 
         <p-table
-          [value]="agendaItems()"
+          styleClass="table-light"
+          [value]="meetingItems()"
           [loading]="loadingAgenda()"
-          [paginator]="agendaItems().length > 10"
+          [paginator]="meetingItems().length > 10"
           [rows]="10"
           responsiveLayout="scroll"
           size="small"
@@ -354,7 +374,86 @@
 
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="5" class="empty-row">Nenhum compromisso encontrado para o período.</td>
+              <td colspan="5" class="empty-row">Nenhuma reunião encontrada para o período.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+
+      <p-card styleClass="panel-card table-card mt-4 surface-card border-1 border-blue-200 shadow-none">
+        <div class="table-header">
+          <h2>Atividades Pendentes</h2>
+          <span class="muted">Itens operacionais sem participante definido</span>
+        </div>
+
+        <p-table
+          styleClass="table-light"
+          [value]="pendingActivityItems()"
+          [loading]="loadingAgenda()"
+          [paginator]="pendingActivityItems().length > 10"
+          [rows]="10"
+          responsiveLayout="scroll"
+          size="small"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Título</th>
+              <th>Origem</th>
+              <th>Data</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-item>
+            <tr>
+              <td>{{ item.title }}</td>
+              <td>{{ item.origin }}</td>
+              <td>{{ item.start_at | date: "dd/MM/yyyy HH:mm" }}</td>
+              <td>
+                <p-tag
+                  [value]="statusLabel(item.status)"
+                  [severity]="statusSeverity(item.status)"
+                ></p-tag>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button
+                    pButton
+                    type="button"
+                    size="small"
+                    severity="success"
+                    [disabled]="
+                      !canManageAgenda()
+                      || item.status !== 'OPEN'
+                      || handlingReminderAction()
+                    "
+                    (click)="confirmAgenda(item)"
+                  >
+                    Confirmar
+                  </button>
+                  <button
+                    pButton
+                    type="button"
+                    size="small"
+                    severity="danger"
+                    [disabled]="
+                      !canManageAgenda()
+                      || (item.status !== 'OPEN' && item.status !== 'CONFIRMED')
+                      || handlingReminderAction()
+                    "
+                    (click)="cancelAgenda(item)"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="empty-row">Nenhuma atividade pendente no período.</td>
             </tr>
           </ng-template>
         </p-table>

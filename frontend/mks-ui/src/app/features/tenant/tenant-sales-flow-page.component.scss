@@ -3,10 +3,13 @@
   --aura-surface-ground: var(--surface-ground, var(--p-surface-ground, #f8fafc));
   --aura-surface-card: var(--surface-card, var(--p-surface-card, #ffffff));
   --aura-surface-border: var(--surface-border, var(--p-surface-border, #d9e2ec));
-  --aura-text-color: var(--text-color, var(--p-text-color, #0f172a));
+  --aura-text-color: var(--text-color, var(--p-text-color, #111827));
   --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
-  --aura-primary: var(--primary-color, var(--p-primary-color, #0b57d0));
-  --agenda-green: #16a34a;
+  --aura-primary: var(--primary-color, var(--p-primary-color, #2563eb));
+  --aura-primary-600: var(--p-primary-600, #2563eb);
+  --aura-primary-100: var(--p-primary-100, #dbeafe);
+  --aura-blue-200: var(--p-blue-200, #bfdbfe);
+  --agenda-green: var(--p-green-600, #16a34a);
 }
 
 .sales-flow-page {
@@ -19,22 +22,20 @@
 
 .sales-flow-header {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 18px;
-  border: 1px solid var(--aura-surface-border);
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--aura-primary-600) 68%, var(--aura-surface-border));
   border-radius: 16px;
-  background: radial-gradient(
-    circle at top left,
-    color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card)),
-    var(--aura-surface-card) 62%
-  );
+  background: var(--aura-primary-600);
+  color: #ffffff;
 }
 
 .title-wrap h1 {
   margin: 6px 0;
-  font-size: 1.7rem;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .eyebrow {
@@ -43,9 +44,9 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--aura-primary) 35%, var(--aura-surface-border));
-  background: color-mix(in srgb, var(--aura-primary) 10%, var(--aura-surface-card));
-  color: var(--aura-primary);
+  border: 1px solid color-mix(in srgb, #ffffff 70%, transparent);
+  background: color-mix(in srgb, #ffffff 16%, transparent);
+  color: #ffffff;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -54,7 +55,17 @@
 
 .subtitle {
   margin: 0;
-  color: var(--aura-text-muted);
+  color: var(--aura-primary-100);
+}
+
+.sales-flow-header .header-actions .btn-secondary {
+  background: #ffffff;
+  color: var(--aura-primary-600);
+  border: 1px solid color-mix(in srgb, var(--aura-primary-600) 30%, #ffffff);
+}
+
+.sales-flow-header .header-actions .btn-secondary:hover {
+  background: color-mix(in srgb, #ffffff 90%, var(--aura-primary-100));
 }
 
 .session-strip {
@@ -90,19 +101,22 @@
   align-items: center;
   justify-content: center;
   color: var(--aura-primary);
-  background: color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card));
+  background: color-mix(in srgb, var(--aura-primary) 14%, #ffffff);
 }
 
 .kpi-label {
   display: block;
-  color: var(--aura-text-muted);
+  color: #475569;
   font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .kpi-value {
   display: block;
   margin-top: 6px;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
 }
 
 .workspace-grid {
@@ -122,8 +136,14 @@
 .form-grid label {
   display: grid;
   gap: 6px;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 600;
+  color: #334155;
+}
+
+.field-date {
+  display: grid;
+  gap: 6px;
 }
 
 .field-full {
@@ -134,15 +154,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid var(--aura-surface-border);
+  border: 1px solid color-mix(in srgb, var(--aura-primary) 20%, var(--aura-surface-border));
   border-radius: 10px;
   padding: 10px;
-  background: color-mix(in srgb, var(--aura-primary) 2%, var(--aura-surface-card));
+  background: #ffffff;
 }
 
 .panel-card h2 {
   margin: 0;
   font-size: 1.05rem;
+  color: #111827;
 }
 
 .panel-note {
@@ -170,6 +191,7 @@
 .table-header h2 {
   margin: 0;
   font-size: 1.03rem;
+  color: #111827;
 }
 
 .row-actions {
@@ -203,6 +225,43 @@
   min-width: 130px;
 }
 
+.bg-primary-600 {
+  background: var(--aura-primary-600);
+}
+
+.text-white {
+  color: #ffffff;
+}
+
+.text-blue-100 {
+  color: var(--aura-primary-100);
+}
+
+.surface-card {
+  background: var(--aura-surface-card);
+}
+
+.border-1 {
+  border-width: 1px;
+  border-style: solid;
+}
+
+.border-blue-200 {
+  border-color: color-mix(in srgb, var(--aura-blue-200) 75%, var(--aura-surface-border));
+}
+
+.shadow-none {
+  box-shadow: none;
+}
+
+.text-900 {
+  color: #111827;
+}
+
+.text-600 {
+  color: #475569;
+}
+
 .mt-2 {
   margin-top: 0.5rem;
 }
@@ -210,16 +269,19 @@
 :host ::ng-deep .sales-flow-aura-light .panel-card,
 :host ::ng-deep .sales-flow-aura-light .kpi-card,
 :host ::ng-deep .sales-flow-aura-light .state-card {
-  border: 1px solid var(--aura-surface-border);
+  border: 1px solid color-mix(in srgb, var(--aura-blue-200) 65%, var(--aura-surface-border));
   border-radius: 14px;
-  background: var(--aura-surface-card);
+  background: #ffffff;
   color: var(--aura-text-color);
 }
 
-/* Slightly stronger outline for activity/agenda cards without making it heavy. */
 :host ::ng-deep .sales-flow-aura-light .panel-card {
-  border-color: color-mix(in srgb, var(--aura-text-color) 16%, var(--aura-surface-border));
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--aura-text-color) 8%, transparent);
+  border-color: color-mix(in srgb, var(--aura-blue-200) 72%, var(--aura-surface-border));
+  box-shadow: none;
+}
+
+:host ::ng-deep .sales-flow-aura-light .agenda-card {
+  border-color: color-mix(in srgb, var(--aura-primary) 35%, var(--aura-blue-200));
 }
 
 :host ::ng-deep .sales-flow-aura-light .state-error {
@@ -228,7 +290,7 @@
 }
 
 :host ::ng-deep .sales-flow-aura-light .state-empty {
-  background: color-mix(in srgb, var(--aura-primary) 2%, var(--aura-surface-card));
+  background: color-mix(in srgb, var(--aura-primary) 2%, #ffffff);
 }
 
 /* Date fields: calendar icon inside input with green highlight. */
@@ -285,6 +347,34 @@
   outline-offset: 1px;
 }
 
+:host ::ng-deep .sales-flow-aura-light .table-light .p-datatable,
+:host ::ng-deep .sales-flow-aura-light .table-light .p-datatable-wrapper,
+:host ::ng-deep .sales-flow-aura-light .table-light .p-datatable-thead > tr > th,
+:host ::ng-deep .sales-flow-aura-light .table-light .p-datatable-tbody > tr,
+:host ::ng-deep .sales-flow-aura-light .table-light .p-datatable-tbody > tr > td {
+  background: #ffffff;
+  color: #111827;
+}
+
+:host ::ng-deep .sales-flow-aura-light .table-light .p-datatable-thead > tr > th {
+  color: #475569;
+  border-bottom: 1px solid color-mix(in srgb, var(--aura-blue-200) 72%, var(--aura-surface-border));
+}
+
+:host ::ng-deep .sales-flow-aura-light .table-light .p-datatable-tbody > tr > td {
+  border-bottom: 1px solid color-mix(in srgb, var(--aura-blue-200) 55%, var(--aura-surface-border));
+}
+
+:host ::ng-deep .sales-flow-aura-light .p-dialog,
+:host ::ng-deep .sales-flow-aura-light .p-dialog .p-dialog-header,
+:host ::ng-deep .sales-flow-aura-light .p-dialog .p-dialog-content {
+  background: #ffffff;
+  color: #111827;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
 
 @media (max-width: 1080px) {
   .workspace-grid {

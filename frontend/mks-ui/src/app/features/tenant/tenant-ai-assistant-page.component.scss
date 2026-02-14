@@ -88,27 +88,6 @@
   min-height: 12rem;
 }
 
-.quick-prompts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.btn-quick {
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--aura-primary) 38%, var(--aura-surface-border));
-  background: color-mix(in srgb, var(--aura-primary) 7%, var(--aura-surface-card));
-  color: var(--aura-text-color);
-  padding: 0.4rem 0.7rem;
-  font-size: 0.8rem;
-  line-height: 1.2;
-}
-
-.btn-quick:hover {
-  background: color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card));
-}
-
 .answer-wrap {
   margin-top: 10px;
   border: 1px solid var(--aura-surface-border);
@@ -130,9 +109,15 @@
 
 .analysis-pills {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   margin-bottom: 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+:host ::ng-deep .analysis-pills .p-tag {
+  white-space: nowrap;
 }
 
 .suggestion-skeletons {
