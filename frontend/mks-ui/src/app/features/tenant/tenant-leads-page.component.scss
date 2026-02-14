@@ -50,25 +50,12 @@
 
 .title {
   margin: 0;
-  color: var(--sakai-text);
+  color: #111827;
 }
 
 .subtitle {
   margin: 0;
-  color: var(--sakai-muted);
-}
-
-.header-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--sakai-primary) 30%, var(--sakai-border));
-  background: color-mix(in srgb, var(--sakai-primary) 10%, #ffffff);
-  color: var(--sakai-primary);
-  font-size: 1.2rem;
+  color: #111827;
 }
 
 .header-actions {
@@ -169,6 +156,32 @@ textarea {
 :host ::ng-deep .form-grid .p-autocomplete,
 :host ::ng-deep .form-grid .p-autocomplete-input {
   width: 100%;
+}
+
+:host ::ng-deep .form-grid .p-select {
+  background: #ffffff;
+  border: 1px solid var(--sakai-border);
+  color: #111827;
+}
+
+:host ::ng-deep .form-grid .p-select .p-select-label,
+:host ::ng-deep .form-grid .p-select .p-select-dropdown-icon {
+  color: #111827;
+}
+
+:host ::ng-deep .p-select-overlay {
+  background: #ffffff;
+  border: 1px solid var(--sakai-border);
+}
+
+:host ::ng-deep .p-select-overlay .p-select-option {
+  color: #111827;
+  background: #ffffff;
+}
+
+:host ::ng-deep .p-select-overlay .p-select-option.p-focus,
+:host ::ng-deep .p-select-overlay .p-select-option.p-select-option-selected {
+  background: color-mix(in srgb, var(--sakai-primary) 12%, #ffffff);
 }
 
 .field-full {
@@ -332,10 +345,6 @@ textarea {
   .page-header {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .header-icon {
-    display: none;
   }
 
   .header-actions {

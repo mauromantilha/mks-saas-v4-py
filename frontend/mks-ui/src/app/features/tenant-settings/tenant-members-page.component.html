@@ -94,7 +94,7 @@
 
     <div class="form-grid">
       <label>
-        Ação
+        Nome da ação
         <p-select
           [options]="actionOptions"
           optionLabel="label"
@@ -260,12 +260,15 @@
           <td>{{ member.is_active ? "Sim" : "Não" }}</td>
           <td>
             <div class="actions" *ngIf="isOwner(); else readOnlyActions">
-              <p-select
-                [options]="roles"
-                [ngModel]="member.role"
-                (ngModelChange)="updateRole(member, $event)"
-                [disabled]="loading()"
-              ></p-select>
+              <label class="inline-role-field">
+                Role
+                <p-select
+                  [options]="roles"
+                  [ngModel]="member.role"
+                  (ngModelChange)="updateRole(member, $event)"
+                  [disabled]="loading()"
+                ></p-select>
+              </label>
               <button pButton type="button" class="danger" (click)="deactivate(member)" [disabled]="loading() || !member.is_active">
                 Desativar
               </button>

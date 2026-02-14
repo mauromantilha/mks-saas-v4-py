@@ -21,7 +21,7 @@
 
     <div class="form-grid">
       <label>
-        Ação
+        Nome da ação
         <p-select
           [options]="actionOptions"
           optionLabel="label"
@@ -381,7 +381,7 @@
       <p class="muted">Campos com <strong>*</strong> são obrigatórios.</p>
       <div class="form-grid">
         <label>
-          Ação
+          Nome da ação
           <p-select
             [options]="actionOptions"
             optionLabel="label"
@@ -525,6 +525,10 @@
                 <label>
                   Cargo
                   <input pInputText type="text" [(ngModel)]="c.role" [disabled]="loading() || !canWrite()" />
+                </label>
+                <label class="field-full">
+                  Notas
+                  <textarea pInputTextarea rows="2" [(ngModel)]="c.notes" [disabled]="loading() || !canWrite()"></textarea>
                 </label>
               </div>
             </div>

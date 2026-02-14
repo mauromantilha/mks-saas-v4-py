@@ -15,6 +15,7 @@
 
   <p-card styleClass="card">
     <h2>Criar Projeto</h2>
+    <p class="field-label">Tipo de vínculo do cliente</p>
     <div class="toggle-row">
       <label>
         <p-radioButton name="customerMode" [value]="true" [ngModel]="useExistingCustomer()" (ngModelChange)="changeCustomerMode(!!$event)"></p-radioButton>
@@ -28,7 +29,7 @@
 
     <div class="form-grid">
       <label>
-        Ação
+        Nome da ação
         <p-select
           [options]="actionOptions"
           optionLabel="label"
@@ -289,7 +290,8 @@
 
       <p-card styleClass="card inner">
         <h3>Documentos</h3>
-        <input type="file" multiple (change)="uploadDocuments($event)" [disabled]="loading() || !canWrite()" />
+        <label class="field-label" for="project-documents-upload">Arquivos do projeto</label>
+        <input id="project-documents-upload" type="file" multiple (change)="uploadDocuments($event)" [disabled]="loading() || !canWrite()" />
         <p-table class="table compact-table" *ngIf="project.documents.length > 0" [value]="project.documents" responsiveLayout="scroll">
           <ng-template pTemplate="header"><tr><th>Título</th><th>Arquivo</th><th>Enviado por</th><th></th></tr></ng-template>
           <ng-template pTemplate="body" let-d>

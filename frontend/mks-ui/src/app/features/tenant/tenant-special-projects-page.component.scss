@@ -154,6 +154,14 @@ textarea {
   margin-bottom: 10px;
 }
 
+.field-label {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sakai-text);
+}
+
 .toggle-row label {
   font-weight: 700;
   display: inline-flex;
