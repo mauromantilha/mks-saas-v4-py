@@ -97,6 +97,14 @@ export class TenantCustomersPageComponent {
   createCepError = signal("");
   editCepLoading = signal(false);
   editCepError = signal("");
+  createAction = signal("CADASTRAR");
+  editAction = signal("ATUALIZAR");
+
+  readonly actionOptions = [
+    { label: "Cadastrar", value: "CADASTRAR" },
+    { label: "Atualizar", value: "ATUALIZAR" },
+    { label: "Inativar", value: "INATIVAR" },
+  ];
 
   constructor(
     private readonly salesFlowService: SalesFlowService,

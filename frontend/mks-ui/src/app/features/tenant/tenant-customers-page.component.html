@@ -1,12 +1,13 @@
-<section class="tenant-wrap">
-  <header class="page-header">
-    <div>
+<section class="tenant-wrap sakai-page">
+  <header class="page-header surface-card">
+    <div class="title-wrap">
       <p class="badge">CRM</p>
       <h1>Clientes</h1>
       <p class="subtitle">
         Cadastro completo, ficha detalhada e gestão de status do cliente por tenant.
       </p>
     </div>
+    <i class="pi pi-users header-icon" aria-hidden="true"></i>
     <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
   </header>
 
@@ -19,6 +20,18 @@
     <p class="muted">Campos com <strong>*</strong> são obrigatórios.</p>
 
     <div class="form-grid">
+      <label>
+        Ação
+        <p-select
+          [options]="actionOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="createAction()"
+          (ngModelChange)="createAction.set($event)"
+          [disabled]="loading() || !canWrite()"
+          placeholder="Selecione a ação"
+        ></p-select>
+      </label>
       <label>
         Tipo de cliente *
         <select
@@ -367,6 +380,18 @@
     <div *ngIf="editing()" class="top-gap">
       <p class="muted">Campos com <strong>*</strong> são obrigatórios.</p>
       <div class="form-grid">
+        <label>
+          Ação
+          <p-select
+            [options]="actionOptions"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="editAction()"
+            (ngModelChange)="editAction.set($event)"
+            [disabled]="loading() || !canWrite()"
+            placeholder="Selecione a ação"
+          ></p-select>
+        </label>
         <label>
           Tipo de cliente *
           <select [(ngModel)]="editForm.customer_type" (ngModelChange)="setEditType($event)" [disabled]="loading() || !canWrite()">

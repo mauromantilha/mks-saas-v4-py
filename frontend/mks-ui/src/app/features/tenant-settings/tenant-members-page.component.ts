@@ -29,6 +29,7 @@ export class TenantMembersPageComponent {
   loading = signal(false);
   error = signal("");
   notice = signal("");
+  producerAction = signal("CADASTRAR");
   producers = signal<TenantProducer[]>([]);
   performance = signal<TenantProducerPerformanceResponse | null>(null);
   banks = signal<BankCatalogItem[]>([]);
@@ -70,6 +71,11 @@ export class TenantMembersPageComponent {
     { label: "Email", value: "EMAIL" },
     { label: "Telefone", value: "PHONE" },
     { label: "Aleatória", value: "RANDOM" },
+  ];
+  readonly actionOptions = [
+    { label: "Cadastrar", value: "CADASTRAR" },
+    { label: "Atualizar", value: "ATUALIZAR" },
+    { label: "Desativar", value: "DESATIVAR" },
   ];
 
   constructor(

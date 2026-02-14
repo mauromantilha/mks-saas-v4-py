@@ -15,6 +15,7 @@ interface NavItem {
   path: string;
   exact?: boolean;
   accent?: string;
+  icon?: string;
   permission?: string;
 }
 
@@ -333,7 +334,12 @@ export class AppComponent {
     }
     if (this.portalType() === "CONTROL_PLANE") {
       return session.platformAdmin
-        ? this.controlPlaneMenu.filter((item) => this.canRenderMenuItem(item))
+        ? this.controlPlaneMenu
+            .filter((item) => this.canRenderMenuItem(item))
+            .map((item) => ({
+              ...item,
+              icon: item.icon ?? this.iconForLabel(item.label),
+            }))
         : [];
     }
     return this.tenantMenuGroupsView().flatMap((group) => group.items);
@@ -354,6 +360,7 @@ export class AppComponent {
             path: this.resolveTenantPath(item, useMenuV2),
             exact: item.exact,
             accent: item.accent,
+            icon: item.icon ?? this.iconForLabel(item.label),
           })),
       }))
       .filter((group) => group.items.length > 0);
@@ -456,6 +463,39 @@ export class AppComponent {
 
   private resolveTenantPath(item: TenantNavItem, useMenuV2: boolean): string {
     return useMenuV2 ? item.pathV2 : item.pathLegacy;
+  }
+
+  private iconForLabel(label: string): string {
+    const key = String(label || "").toLowerCase();
+    if (key.includes("dashboard")) return "pi pi-home";
+    if (key.includes("advisor") || key.includes("assistente")) return "pi pi-sparkles";
+    if (key.includes("fluxo")) return "pi pi-chart-line";
+    if (key.includes("lead")) return "pi pi-bullseye";
+    if (key.includes("projeto")) return "pi pi-briefcase";
+    if (key.includes("cliente")) return "pi pi-users";
+    if (key.includes("equipe") || key.includes("produtor")) return "pi pi-user-edit";
+    if (key.includes("meta")) return "pi pi-flag";
+    if (key.includes("mensageria")) return "pi pi-send";
+    if (key.includes("apólice") || key.includes("apolice")) return "pi pi-shield";
+    if (key.includes("seguradora")) return "pi pi-building";
+    if (key.includes("proposta")) return "pi pi-file-edit";
+    if (key.includes("emissão") || key.includes("emissao")) return "pi pi-file-check";
+    if (key.includes("comiss")) return "pi pi-percentage";
+    if (key.includes("parcela")) return "pi pi-wallet";
+    if (key.includes("contas a pagar")) return "pi pi-credit-card";
+    if (key.includes("concilia")) return "pi pi-sync";
+    if (key.includes("notas fiscais")) return "pi pi-receipt";
+    if (key === "fiscal") return "pi pi-calculator";
+    if (key.includes("documento")) return "pi pi-folder";
+    if (key.includes("importar")) return "pi pi-upload";
+    if (key.includes("monitor")) return "pi pi-desktop";
+    if (key.includes("usuário") || key.includes("usuario")) return "pi pi-user";
+    if (key.includes("auditoria")) return "pi pi-history";
+    if (key.includes("rbac")) return "pi pi-lock";
+    if (key.includes("tenant")) return "pi pi-warehouse";
+    if (key.includes("plan")) return "pi pi-box";
+    if (key.includes("contract")) return "pi pi-file";
+    return "pi pi-circle-fill";
   }
 
   private canRenderMenuItem(item: { permission?: string }): boolean {

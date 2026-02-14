@@ -40,6 +40,7 @@ export class TenantSpecialProjectsPageComponent {
   selectedProject = signal<SpecialProjectRecord | null>(null);
 
   statusFilter = signal("");
+  projectAction = signal("CRIAR");
 
   useExistingCustomer = signal(true);
   customerId = signal<number | null>(null);
@@ -76,6 +77,12 @@ export class TenantSpecialProjectsPageComponent {
     { label: "Fechado", value: "CLOSED" },
     { label: "Ganho", value: "CLOSED_WON" },
     { label: "Perdido", value: "CLOSED_LOST" },
+  ];
+
+  readonly actionOptions = [
+    { label: "Criar", value: "CRIAR" },
+    { label: "Atualizar", value: "ATUALIZAR" },
+    { label: "Encerrar", value: "ENCERRAR" },
   ];
 
   readonly customerSelectOptions = computed(() =>

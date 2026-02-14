@@ -45,7 +45,7 @@
           [ngStyle]="{ '--accent': item.accent || '#0ea5e9' }"
           [attr.title]="isSidebarCollapsed() ? item.label : null"
         >
-          <span class="dot" aria-hidden="true"></span>
+          <i class="menu-icon" [ngClass]="item.icon || 'pi pi-circle-fill'" aria-hidden="true"></i>
           <span class="label">{{ item.label }}</span>
         </a>
       </div>
@@ -61,7 +61,7 @@
           [ngStyle]="{ '--accent': item.accent || '#0ea5e9' }"
           [attr.title]="isSidebarCollapsed() ? item.label : null"
         >
-          <span class="dot" aria-hidden="true"></span>
+          <i class="menu-icon" [ngClass]="item.icon || 'pi pi-circle-fill'" aria-hidden="true"></i>
           <span class="label">{{ item.label }}</span>
         </a>
       </nav>

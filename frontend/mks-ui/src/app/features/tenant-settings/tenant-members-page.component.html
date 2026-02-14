@@ -1,10 +1,11 @@
-<section class="members-wrap">
-  <header class="page-header">
-    <div>
+<section class="members-wrap sakai-page">
+  <header class="page-header surface-card">
+    <div class="title-wrap">
       <p class="badge">Equipe / Produtores</p>
       <h1>Gestão de Produção Comercial</h1>
       <p class="subtitle">Análise mensal automática da equipe e repasses dos produtores.</p>
     </div>
+    <i class="pi pi-user-edit header-icon" aria-hidden="true"></i>
     <div class="actions">
       <button pButton type="button" (click)="load()" [disabled]="loading()">Atualizar</button>
     </div>
@@ -92,6 +93,18 @@
     <p class="muted">Os repasses gerados entram em Contas a Pagar como pendência após baixa da parcela + prazo de retenção.</p>
 
     <div class="form-grid">
+      <label>
+        Ação
+        <p-select
+          [options]="actionOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="producerAction()"
+          (ngModelChange)="producerAction.set($event)"
+          [disabled]="loading() || !isOwner()"
+          placeholder="Selecione a ação"
+        ></p-select>
+      </label>
       <label>
         Nome *
         <input pInputText type="text" [ngModel]="fullName()" (ngModelChange)="fullName.set($event)" />

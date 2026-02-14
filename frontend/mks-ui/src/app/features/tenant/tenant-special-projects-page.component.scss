@@ -2,17 +2,39 @@
   max-width: 1280px;
   margin: 18px auto;
   padding: 0 16px 32px;
+  --sakai-ground: var(--surface-ground, var(--p-surface-ground, #f4f7fb));
+  --sakai-card: var(--surface-card, var(--p-surface-card, #ffffff));
+  --sakai-border: var(--surface-border, var(--p-surface-border, #d8e0ea));
+  --sakai-text: var(--text-color, var(--p-text-color, #111827));
+  --sakai-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
+  --sakai-primary: var(--primary-color, var(--p-primary-color, #2563eb));
+  background: var(--sakai-ground);
+}
+
+.sakai-page {
+  display: grid;
+  gap: 12px;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 16px;
-  padding: 18px;
+  padding: 18px 20px;
   border-radius: 16px;
-  border: 1px solid var(--mks-border);
-  background: radial-gradient(circle at 15% 15%, #f5f3ff, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 26%, var(--sakai-border));
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--sakai-primary) 10%, var(--sakai-card)),
+    var(--sakai-card) 58%
+  );
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+.title-wrap {
+  display: grid;
+  gap: 4px;
 }
 
 .badge {
@@ -21,12 +43,21 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-size: 0.78rem;
-  color: #5b21b6;
-  background: #ede9fe;
-  border: 1px solid #ddd6fe;
-  padding: 4px 10px;
-  border-radius: 999px;
+  font-size: 0.74rem;
+  color: #1d4ed8;
+}
+
+.header-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 30%, var(--sakai-border));
+  background: color-mix(in srgb, var(--sakai-primary) 10%, #ffffff);
+  color: var(--sakai-primary);
+  font-size: 1.2rem;
 }
 
 button {
@@ -63,10 +94,10 @@ button[disabled] {
 }
 
 .card {
-  margin-top: 12px;
-  border: 1px solid color-mix(in srgb, #0f172a 18%, var(--mks-border));
-  border-radius: 14px;
-  background: var(--mks-surface);
+  border: 1px solid var(--sakai-border);
+  border-radius: 16px;
+  background: var(--sakai-card);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
 }
 
 :host ::ng-deep .card .p-card-body {
@@ -74,7 +105,7 @@ button[disabled] {
 }
 
 :host ::ng-deep .card .p-card-content {
-  padding: 12px;
+  padding: 14px;
 }
 
 .inner {
@@ -102,11 +133,11 @@ label {
 input,
 select,
 textarea {
-  border: 1px solid var(--mks-border);
+  border: 1px solid var(--sakai-border);
   border-radius: 10px;
   padding: 10px;
   font: inherit;
-  background: var(--mks-surface);
+  background: #ffffff;
 }
 
 :host ::ng-deep .form-grid .p-select {
@@ -201,7 +232,7 @@ textarea {
 }
 
 .muted {
-  color: var(--mks-muted);
+  color: var(--sakai-muted);
 }
 
 .notice {
@@ -213,6 +244,15 @@ textarea {
 }
 
 @media (max-width: 960px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-icon {
+    display: none;
+  }
+
   .detail-header {
     flex-direction: column;
   }
@@ -220,4 +260,16 @@ textarea {
   .split-grid {
     grid-template-columns: 1fr;
   }
+}
+
+:host ::ng-deep .form-grid .p-select {
+  width: 100%;
+}
+
+:host ::ng-deep .form-grid .p-select .p-select-label,
+:host ::ng-deep .form-grid .p-select .p-select-trigger,
+:host ::ng-deep .form-grid .p-select {
+  background: #ffffff;
+  color: var(--sakai-text);
+  border-color: var(--sakai-border);
 }
