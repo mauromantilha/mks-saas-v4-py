@@ -4,11 +4,25 @@
   [class.no-legacy-sidebar]="!shouldShowLegacySidebar()"
   [class.control-plane]="portalType() === 'CONTROL_PLANE'"
   [class.tenant-portal]="portalType() === 'TENANT'"
+  [class.sidebar-collapsed]="isSidebarCollapsed()"
 >
-  <aside class="sidebar" *ngIf="shouldShowLegacySidebar()">
+  <aside class="sidebar" [class.collapsed]="isSidebarCollapsed()" *ngIf="shouldShowLegacySidebar()">
     <div class="brand">
-      <strong>{{ brandTitle() }}</strong>
-      <span>{{ portalTitle() }}</span>
+      <div class="brand-row">
+        <div class="brand-text">
+          <strong>{{ brandTitle() }}</strong>
+          <span>{{ portalTitle() }}</span>
+        </div>
+        <button
+          type="button"
+          class="sidebar-toggle-btn"
+          (click)="toggleSidebarCollapse()"
+          [attr.aria-label]="isSidebarCollapsed() ? 'Expandir menu lateral' : 'Recolher menu lateral'"
+          [title]="isSidebarCollapsed() ? 'Expandir menu lateral' : 'Recolher menu lateral'"
+        >
+          <i class="pi pi-bars" aria-hidden="true"></i>
+        </button>
+      </div>
     </div>
 
     <div class="session-meta" *ngIf="session() as current">
@@ -29,6 +43,7 @@
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
           [ngStyle]="{ '--accent': item.accent || '#0ea5e9' }"
+          [attr.title]="isSidebarCollapsed() ? item.label : null"
         >
           <span class="dot" aria-hidden="true"></span>
           <span class="label">{{ item.label }}</span>
@@ -44,6 +59,7 @@
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
           [ngStyle]="{ '--accent': item.accent || '#0ea5e9' }"
+          [attr.title]="isSidebarCollapsed() ? item.label : null"
         >
           <span class="dot" aria-hidden="true"></span>
           <span class="label">{{ item.label }}</span>
@@ -51,7 +67,10 @@
       </nav>
     </ng-template>
 
-    <button type="button" class="logout-btn" (click)="logout()">Sair</button>
+    <button type="button" class="logout-btn" (click)="logout()" [title]="isSidebarCollapsed() ? 'Sair' : null">
+      <i class="pi pi-sign-out" aria-hidden="true"></i>
+      <span class="logout-label">Sair</span>
+    </button>
   </aside>
 
   <div class="content">

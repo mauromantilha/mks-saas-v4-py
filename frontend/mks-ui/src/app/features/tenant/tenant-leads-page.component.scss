@@ -2,6 +2,9 @@
   max-width: 1280px;
   margin: 18px auto;
   padding: 0 16px 32px;
+  --lead-green-600: var(--p-green-600, #16a34a);
+  --lead-green-700: var(--p-green-700, #15803d);
+  --lead-blue-600: var(--p-blue-600, #2563eb);
 }
 
 .page-header {
@@ -11,8 +14,8 @@
   gap: 16px;
   padding: 18px 18px 14px;
   border-radius: 16px;
-  border: 1px solid var(--mks-border);
-  background: radial-gradient(circle at 15% 15%, #eff6ff, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--lead-green-600) 58%, var(--mks-border));
+  background: color-mix(in srgb, var(--lead-green-600) 92%, #ffffff);
 }
 
 .badge {
@@ -22,20 +25,21 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 0.78rem;
-  color: #0b4a6f;
-  background: #e0f2ff;
-  border: 1px solid #bae6fd;
+  color: #ffffff;
+  background: color-mix(in srgb, #ffffff 16%, transparent);
+  border: 1px solid color-mix(in srgb, #ffffff 72%, transparent);
   padding: 4px 10px;
   border-radius: 999px;
 }
 
-h1 {
+.title {
   margin: 8px 0 6px;
+  color: #ffffff;
 }
 
 .subtitle {
   margin: 0;
-  color: var(--mks-muted);
+  color: color-mix(in srgb, #ffffff 88%, #dcfce7);
 }
 
 .header-actions {
@@ -49,23 +53,29 @@ h1 {
   display: inline-flex;
   gap: 8px;
   padding: 4px;
-  background: var(--mks-surface-soft);
-  border: 1px solid var(--mks-border);
+  background: color-mix(in srgb, #ffffff 18%, transparent);
+  border: 1px solid color-mix(in srgb, #ffffff 65%, transparent);
   border-radius: 12px;
 }
 
 .tabs button {
   padding: 8px 10px;
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid color-mix(in srgb, #ffffff 52%, transparent);
+  background: color-mix(in srgb, #ffffff 14%, transparent);
+  color: #ffffff;
   border-radius: 10px;
   font-weight: 800;
   cursor: pointer;
 }
 
 .tabs button.active {
-  background: #0f172a;
+  background: var(--lead-green-700);
   color: #fff;
+  border-color: color-mix(in srgb, #ffffff 55%, transparent);
+}
+
+.tabs button.mode-green:hover {
+  background: color-mix(in srgb, var(--lead-green-700) 88%, #ffffff);
 }
 
 button {
@@ -74,13 +84,19 @@ button {
   padding: 10px 12px;
   font-weight: 800;
   cursor: pointer;
-  background: #0f172a;
+  background: var(--lead-green-600);
   color: #fff;
 }
 
 button[disabled] {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.page-header > .header-actions > button {
+  background: #ffffff;
+  color: var(--lead-green-700);
+  border: 1px solid color-mix(in srgb, var(--lead-green-700) 24%, #ffffff);
 }
 
 .card {
@@ -118,6 +134,12 @@ textarea {
   border-radius: 10px;
   padding: 10px;
   font: inherit;
+}
+
+:host ::ng-deep .form-grid .p-select,
+:host ::ng-deep .form-grid .p-autocomplete,
+:host ::ng-deep .form-grid .p-autocomplete-input {
+  width: 100%;
 }
 
 .field-full {
@@ -265,4 +287,14 @@ textarea {
 
 .error {
   color: #b42318;
+}
+
+:host ::ng-deep .list-table .p-datatable-thead > tr > th {
+  background: var(--lead-blue-600);
+  color: #ffffff;
+  border-bottom: 1px solid color-mix(in srgb, var(--lead-blue-600) 82%, #ffffff);
+}
+
+:host ::ng-deep .list-table .p-datatable-tbody > tr > td {
+  border-bottom: 1px solid color-mix(in srgb, #0f172a 10%, var(--mks-border));
 }

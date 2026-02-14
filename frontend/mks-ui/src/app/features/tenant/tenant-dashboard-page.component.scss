@@ -22,18 +22,20 @@
   gap: 16px;
   padding: 16px;
   border-radius: 14px;
-  border: 1px solid var(--aura-surface-border);
-  background: var(--aura-surface-card);
+  border: 1px solid color-mix(in srgb, #16a34a 58%, var(--aura-surface-border));
+  background: color-mix(in srgb, #16a34a 92%, #ffffff);
 }
 
-.dashboard-header h1 {
+.dashboard-header h1,
+.header-title {
   margin: 0;
   font-size: 1.55rem;
+  color: #ffffff;
 }
 
 .subtitle {
   margin: 4px 0 0;
-  color: var(--aura-text-muted);
+  color: color-mix(in srgb, #ffffff 84%, #dcfce7);
 }
 
 .state-grid {

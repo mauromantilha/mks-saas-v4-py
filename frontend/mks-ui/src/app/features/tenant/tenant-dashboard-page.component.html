@@ -1,13 +1,9 @@
 <section class="dashboard-page dashboard-layout">
   <header class="dashboard-header">
     <div>
-      <h1>Dashboard</h1>
+      <h1 class="header-title">Dashboard</h1>
       <p class="subtitle">Visão executiva de produção, operação e metas.</p>
     </div>
-
-    <button pButton type="button" class="btn-primary" (click)="load()" [disabled]="loading()">
-      Atualizar
-    </button>
   </header>
 
   <ng-container *ngIf="permissionsLoading(); else permissionsReady">

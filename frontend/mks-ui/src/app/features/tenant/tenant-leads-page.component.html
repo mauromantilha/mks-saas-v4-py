@@ -2,7 +2,7 @@
   <header class="page-header">
     <div>
       <p class="badge">CRM</p>
-      <h1>Leads</h1>
+      <h1 class="title">Leads</h1>
       <p class="subtitle">
         Entrada por webhook/API/importação e gestão do primeiro contato com SLA e IA.
       </p>
@@ -13,6 +13,7 @@
           type="button"
           (click)="setMode('KANBAN')"
           [class.active]="mode() === 'KANBAN'"
+          [class.mode-green]="mode() === 'KANBAN'"
         >
           Kanban
         </button>
@@ -20,6 +21,7 @@
           type="button"
           (click)="setMode('LIST')"
           [class.active]="mode() === 'LIST'"
+          [class.mode-green]="mode() === 'LIST'"
         >
           Lista
         </button>
@@ -41,14 +43,28 @@
 
     <div class="form-grid">
       <label>
+        Ação
+        <p-select
+          [options]="actionOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="leadAction()"
+          (ngModelChange)="leadAction.set($event)"
+          [disabled]="loading() || !canWrite()"
+          placeholder="Selecione a ação"
+        ></p-select>
+      </label>
+      <label>
         Origem (obrigatório)
-        <input pInputText
-          type="text"
+        <p-select
+          [options]="leadSourceOptions"
+          optionLabel="label"
+          optionValue="value"
           [ngModel]="leadSource()"
           (ngModelChange)="leadSource.set($event)"
           [disabled]="loading() || !canWrite()"
-          placeholder="Facebook, LinkedIn, Site, Indicação..."
-        />
+          placeholder="Selecione a origem do lead"
+        ></p-select>
       </label>
       <label>
         Contato
@@ -89,13 +105,13 @@
         />
       </label>
       <label>
-        CNPJ
+        CNPJ ou CPF
         <input pInputText
           type="text"
           [ngModel]="leadCnpj()"
           (ngModelChange)="leadCnpj.set($event)"
           [disabled]="loading() || !canWrite()"
-          placeholder="00.000.000/0001-00"
+          placeholder="00.000.000/0001-00 ou 000.000.000-00"
         />
       </label>
       <label>
@@ -141,18 +157,18 @@
         *ngFor="let col of columns"
         class="column"
         (dragover)="onDragOver($event)"
-        (drop)="onDrop($event, col.status)"
+        (drop)="onDrop($event, col.key)"
       >
         <header class="column-header">
           <h3>{{ col.label }}</h3>
-          <span class="count">{{ leadsForStatus(col.status).length }}</span>
+          <span class="count">{{ leadsForColumn(col.key).length }}</span>
         </header>
         <p class="help">{{ col.help }}</p>
 
         <div class="cards">
           <div
             class="lead-card"
-            *ngFor="let lead of leadsForStatus(col.status)"
+            *ngFor="let lead of leadsForColumn(col.key)"
             draggable="true"
             (dragstart)="onDragStart($event, lead)"
           >
@@ -193,9 +209,14 @@
   </ng-container>
 
   <ng-container *ngIf="mode() === 'LIST'">
-    <p-card styleClass="card">
+    <p-card styleClass="card list-card">
       <h2>Lista de Leads</h2>
-      <p-table class="table" *ngIf="leads().length > 0" [value]="leads()" responsiveLayout="scroll">
+      <p-table
+        class="table list-table"
+        *ngIf="leads().length > 0"
+        [value]="leads()"
+        responsiveLayout="scroll"
+      >
         <ng-template pTemplate="header">
           <tr>
             <th>ID</th>

@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, effect, untracked } from "@angular/core";
+import { Component, HostListener, computed, effect, signal, untracked } from "@angular/core";
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { take } from "rxjs/operators";
 
@@ -41,6 +41,7 @@ interface TenantNavGroup {
   styleUrl: "./app.component.scss",
 })
 export class AppComponent {
+  private static readonly SIDEBAR_COLLAPSED_KEY = "mks.sidebar.collapsed";
   readonly session = computed(() => this.sessionService.session());
   readonly isAuthenticated = computed(() => this.sessionService.isAuthenticated());
   readonly hostname = this.portalContextService.hostname();
@@ -56,6 +57,18 @@ export class AppComponent {
   readonly isControlPlanePortal = computed(() => this.portalType() === "CONTROL_PLANE");
   readonly isControlPanelRoute = computed(() => this.router.url.startsWith("/control-panel"));
   readonly isMenuV2Enabled = computed(() => this.menuVersionService.isMenuV2Enabled());
+  readonly sidebarAutoCollapsed = signal(false);
+  readonly sidebarManualCollapsed = signal<boolean | null>(null);
+  readonly isSidebarCollapsed = computed(() => {
+    if (!this.shouldShowLegacySidebar()) {
+      return false;
+    }
+    const manual = this.sidebarManualCollapsed();
+    if (manual !== null) {
+      return manual;
+    }
+    return this.sidebarAutoCollapsed();
+  });
 
   private readonly controlPlaneMenu: NavItem[] = [
     {
@@ -387,6 +400,8 @@ export class AppComponent {
         this.permissionService.loadPermissions().pipe(take(1)).subscribe();
       });
     });
+    this.sidebarAutoCollapsed.set(this.computeSidebarAutoCollapse());
+    this.sidebarManualCollapsed.set(this.readSidebarManualPreference());
   }
 
   shouldShowLegacySidebar(): boolean {
@@ -398,6 +413,45 @@ export class AppComponent {
     this.permissionService.clearPermissions();
     this.sessionService.clearSession();
     void this.router.navigate(["/login"]);
+  }
+
+  toggleSidebarCollapse(): void {
+    const next = !this.isSidebarCollapsed();
+    this.sidebarManualCollapsed.set(next);
+    this.saveSidebarManualPreference(next);
+  }
+
+  @HostListener("window:resize")
+  onWindowResize(): void {
+    this.sidebarAutoCollapsed.set(this.computeSidebarAutoCollapse());
+  }
+
+  private computeSidebarAutoCollapse(): boolean {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.matchMedia("(max-width: 1280px)").matches;
+  }
+
+  private readSidebarManualPreference(): boolean | null {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    const raw = window.localStorage.getItem(AppComponent.SIDEBAR_COLLAPSED_KEY);
+    if (raw === "1") {
+      return true;
+    }
+    if (raw === "0") {
+      return false;
+    }
+    return null;
+  }
+
+  private saveSidebarManualPreference(value: boolean): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(AppComponent.SIDEBAR_COLLAPSED_KEY, value ? "1" : "0");
   }
 
   private resolveTenantPath(item: TenantNavItem, useMenuV2: boolean): string {

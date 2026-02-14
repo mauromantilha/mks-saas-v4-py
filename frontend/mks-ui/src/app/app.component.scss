@@ -1,7 +1,7 @@
 :host {
   --shell-bg: #f6f8fb;
-  --sidebar-bg: #ffffff;
-  --sidebar-gradient-to: #eef7fb;
+  --sidebar-bg: #f1f4f8;
+  --sidebar-gradient-to: #e8edf4;
   --sidebar-text: #0f172a;
   --sidebar-muted: #475467;
   --sidebar-active: #0ea5e9;
@@ -34,9 +34,14 @@
   position: relative;
 }
 
+.shell.sidebar-collapsed {
+  grid-template-columns: 86px 1fr;
+}
+
 .shell.tenant-portal {
   --shell-bg: #eef7fb;
-  --sidebar-gradient-to: #eaf6ff;
+  --sidebar-bg: #edf2f7;
+  --sidebar-gradient-to: #e3e9f1;
   --sidebar-active: #0ea5e9;
 }
 
@@ -88,6 +93,10 @@
   overflow: hidden;
 }
 
+.sidebar.collapsed {
+  padding: 14px 10px;
+}
+
 .theme-toggle-panel {
   position: fixed;
   top: 12px;
@@ -104,6 +113,37 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.brand-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-toggle-btn {
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--mks-surface) 88%, transparent);
+  color: var(--sidebar-text);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.sidebar-toggle-btn:hover {
+  background: color-mix(in srgb, var(--mks-surface) 96%, transparent);
 }
 
 .brand strong {
@@ -223,6 +263,10 @@
   padding: 10px 12px;
   font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .logout-btn:hover {
@@ -235,6 +279,31 @@
 
 :host-context(.dark-theme) .logout-btn:hover {
   background: rgba(30, 41, 59, 0.95);
+}
+
+.sidebar.collapsed .brand-text,
+.sidebar.collapsed .session-meta,
+.sidebar.collapsed .menu-group-title,
+.sidebar.collapsed .label,
+.sidebar.collapsed .logout-label {
+  display: none;
+}
+
+.sidebar.collapsed .brand-row {
+  justify-content: center;
+}
+
+.sidebar.collapsed .menu a {
+  justify-content: center;
+  padding: 10px 8px;
+}
+
+.sidebar.collapsed .menu .dot {
+  margin: 0;
+}
+
+.sidebar.collapsed .logout-btn {
+  padding: 10px;
 }
 
 .content {

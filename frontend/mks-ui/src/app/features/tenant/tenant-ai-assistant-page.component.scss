@@ -21,14 +21,15 @@
 
 .advisor-header {
   padding: 18px;
-  border: 1px solid var(--aura-surface-border);
+  border: 1px solid color-mix(in srgb, #16a34a 56%, var(--aura-surface-border));
   border-radius: 16px;
-  background: var(--aura-surface-card);
+  background: color-mix(in srgb, #16a34a 92%, #ffffff);
 }
 
 .title-wrap h1 {
   margin: 4px 0;
   font-size: 1.7rem;
+  color: #ffffff;
 }
 
 .eyebrow {
@@ -37,9 +38,9 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--aura-primary) 35%, var(--aura-surface-border));
-  background: color-mix(in srgb, var(--aura-primary) 10%, var(--aura-surface-card));
-  color: var(--aura-primary);
+  border: 1px solid color-mix(in srgb, #ffffff 70%, transparent);
+  background: color-mix(in srgb, #ffffff 14%, transparent);
+  color: #ffffff;
   font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -48,7 +49,7 @@
 
 .subtitle {
   margin: 0;
-  color: var(--aura-text-muted);
+  color: color-mix(in srgb, #ffffff 85%, #dcfce7);
 }
 
 .state-grid {
