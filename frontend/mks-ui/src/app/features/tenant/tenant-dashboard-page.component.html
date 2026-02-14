@@ -1,9 +1,11 @@
-<section class="dashboard-page dashboard-layout">
-  <header class="dashboard-header">
-    <div>
+<section class="dashboard-page dashboard-layout sakai-page">
+  <header class="dashboard-header surface-card">
+    <div class="title-wrap">
+      <span class="section-kicker">Painel executivo</span>
       <h1 class="header-title">Dashboard</h1>
       <p class="subtitle">Visão executiva de produção, operação e metas.</p>
     </div>
+    <i class="pi pi-chart-line header-icon" aria-hidden="true"></i>
   </header>
 
   <ng-container *ngIf="permissionsLoading(); else permissionsReady">
@@ -46,84 +48,109 @@
             <p>{{ notice() }}</p>
           </p-card>
 
-          <section class="cards-grid cards-grid--4">
-            <p-card
-              *ngFor="let card of topCards()"
-              [styleClass]="'metric-card ' + card.tone"
-            >
-              <span class="metric-label">{{ card.label }}</span>
-              <strong class="metric-value">{{ formatCardValue(card) }}</strong>
-              <span class="metric-hint">{{ card.hint }}</span>
-            </p-card>
+          <section class="block-wrap">
+            <div class="block-title">
+              <h2>Indicadores principais</h2>
+            </div>
+            <section class="cards-grid cards-grid--4">
+              <p-card
+                *ngFor="let card of topCards()"
+                [styleClass]="'metric-card ' + card.tone"
+              >
+                <span class="metric-label">{{ card.label }}</span>
+                <strong class="metric-value">{{ formatCardValue(card) }}</strong>
+                <span class="metric-hint">{{ card.hint }}</span>
+              </p-card>
+            </section>
           </section>
 
-          <section class="cards-grid cards-grid--3">
-            <p-card
-              *ngFor="let card of operationsCards()"
-              [styleClass]="'metric-card ' + card.tone"
-            >
-              <span class="metric-label">{{ card.label }}</span>
-              <strong class="metric-value">{{ formatCardValue(card) }}</strong>
-              <span class="metric-hint">{{ card.hint }}</span>
-            </p-card>
+          <section class="block-wrap">
+            <div class="block-title">
+              <h2>Operação do dia</h2>
+            </div>
+            <section class="cards-grid cards-grid--3">
+              <p-card
+                *ngFor="let card of operationsCards()"
+                [styleClass]="'metric-card ' + card.tone"
+              >
+                <span class="metric-label">{{ card.label }}</span>
+                <strong class="metric-value">{{ formatCardValue(card) }}</strong>
+                <span class="metric-hint">{{ card.hint }}</span>
+              </p-card>
+            </section>
           </section>
 
-          <section class="cards-grid cards-grid--2">
-            <p-card
-              *ngFor="let card of yearCards()"
-              [styleClass]="'metric-card ' + card.tone"
-            >
-              <span class="metric-label">{{ card.label }}</span>
-              <strong class="metric-value">{{ formatCardValue(card) }}</strong>
-              <span class="metric-hint">{{ card.hint }}</span>
-            </p-card>
+          <section class="block-wrap">
+            <div class="block-title">
+              <h2>Acumulado anual</h2>
+            </div>
+            <section class="cards-grid cards-grid--2">
+              <p-card
+                *ngFor="let card of yearCards()"
+                [styleClass]="'metric-card ' + card.tone"
+              >
+                <span class="metric-label">{{ card.label }}</span>
+                <strong class="metric-value">{{ formatCardValue(card) }}</strong>
+                <span class="metric-hint">{{ card.hint }}</span>
+              </p-card>
+            </section>
           </section>
 
-          <section class="cards-grid cards-grid--2">
-            <p-card
-              *ngFor="let card of monthCards()"
-              [styleClass]="'metric-card ' + card.tone"
-            >
-              <span class="metric-label">{{ card.label }}</span>
-              <strong class="metric-value">{{ formatCardValue(card) }}</strong>
-              <span class="metric-hint">{{ card.hint }}</span>
-            </p-card>
+          <section class="block-wrap">
+            <div class="block-title">
+              <h2>Mês corrente</h2>
+            </div>
+            <section class="cards-grid cards-grid--2">
+              <p-card
+                *ngFor="let card of monthCards()"
+                [styleClass]="'metric-card ' + card.tone"
+              >
+                <span class="metric-label">{{ card.label }}</span>
+                <strong class="metric-value">{{ formatCardValue(card) }}</strong>
+                <span class="metric-hint">{{ card.hint }}</span>
+              </p-card>
+            </section>
           </section>
 
-          <section class="cards-grid cards-grid--2">
-            <p-card
-              *ngFor="let chart of productionGoalCharts()"
-              [styleClass]="'metric-card chart-card ' + chart.tone"
-            >
-              <h2 class="chart-title">{{ chart.title }}</h2>
+          <section class="block-wrap">
+            <div class="block-title">
+              <h2>Metas de produção</h2>
+            </div>
+            <section class="cards-grid cards-grid--2">
+              <p-card
+                *ngFor="let chart of productionGoalCharts()"
+                [styleClass]="'metric-card chart-card ' + chart.tone"
+              >
+                <h2 class="chart-title">{{ chart.title }}</h2>
 
-              <div class="chart-line">
-                <span class="chart-label">Produção</span>
-                <div class="chart-track">
-                  <span
-                    class="chart-fill chart-fill-current"
-                    [style.width.%]="chartWidth(chart.current, chart.current, chart.target)"
-                  ></span>
+                <div class="chart-line">
+                  <span class="chart-label">Produção</span>
+                  <div class="chart-track">
+                    <span
+                      class="chart-fill chart-fill-current"
+                      [style.width.%]="chartWidth(chart.current, chart.current, chart.target)"
+                    ></span>
+                  </div>
+                  <strong>{{ formatCurrency(chart.current) }}</strong>
                 </div>
-                <strong>{{ formatCurrency(chart.current) }}</strong>
-              </div>
 
-              <div class="chart-line">
-                <span class="chart-label">Meta</span>
-                <div class="chart-track">
-                  <span
-                    class="chart-fill chart-fill-target"
-                    [style.width.%]="chartWidth(chart.target, chart.current, chart.target)"
-                  ></span>
+                <div class="chart-line">
+                  <span class="chart-label">Meta</span>
+                  <div class="chart-track">
+                    <span
+                      class="chart-fill chart-fill-target"
+                      [style.width.%]="chartWidth(chart.target, chart.current, chart.target)"
+                    ></span>
+                  </div>
+                  <strong>{{ formatCurrency(chart.target) }}</strong>
                 </div>
-                <strong>{{ formatCurrency(chart.target) }}</strong>
-              </div>
 
-              <div class="chart-progress">
-                <span>Atingimento</span>
-                <strong>{{ chartProgress(chart.current, chart.target) }}%</strong>
-              </div>
-            </p-card>
+                <div class="chart-progress">
+                  <span>Atingimento</span>
+                  <strong>{{ chartProgress(chart.current, chart.target) }}%</strong>
+                </div>
+              </p-card>
+            </section>
           </section>
         </ng-container>
       </ng-template>

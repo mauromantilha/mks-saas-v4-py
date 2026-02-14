@@ -1,52 +1,97 @@
 :host {
   display: block;
-  --aura-surface-ground: var(--surface-ground, var(--p-surface-ground, #f8fafc));
-  --aura-surface-card: var(--surface-card, var(--p-surface-card, #ffffff));
-  --aura-surface-border: var(--surface-border, var(--p-surface-border, #d0d7e2));
-  --aura-text-color: var(--text-color, var(--p-text-color, #0f172a));
-  --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
+  --sakai-ground: var(--surface-ground, var(--p-surface-ground, #f4f7fb));
+  --sakai-card: var(--surface-card, var(--p-surface-card, #ffffff));
+  --sakai-border: var(--surface-border, var(--p-surface-border, #d8e0ea));
+  --sakai-text: var(--text-color, var(--p-text-color, #111827));
+  --sakai-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
 }
 
 .dashboard-page {
   max-width: 1280px;
   margin: 20px auto;
   padding: 0 16px 32px;
-  background: var(--aura-surface-ground);
-  color: var(--aura-text-color);
+  background: var(--sakai-ground);
+  color: var(--sakai-text);
+}
+
+.sakai-page {
+  display: grid;
+  gap: 14px;
 }
 
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, #16a34a 58%, var(--aura-surface-border));
-  background: color-mix(in srgb, #16a34a 92%, #ffffff);
+  gap: 18px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, #16a34a 30%, var(--sakai-border));
+  background:
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, #16a34a 14%, var(--sakai-card)),
+      var(--sakai-card) 55%
+    );
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
 }
 
-.dashboard-header h1,
+.title-wrap {
+  display: grid;
+  gap: 4px;
+}
+
+.section-kicker {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #15803d;
+}
+
 .header-title {
   margin: 0;
-  font-size: 1.55rem;
-  color: #ffffff;
+  font-size: 1.5rem;
+  color: var(--sakai-text);
 }
 
 .subtitle {
-  margin: 4px 0 0;
-  color: color-mix(in srgb, #ffffff 84%, #dcfce7);
+  margin: 0;
+  color: var(--sakai-muted);
+}
+
+.header-icon {
+  font-size: 1.4rem;
+  color: #16a34a;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #16a34a 10%, #ffffff);
+  border: 1px solid color-mix(in srgb, #16a34a 30%, var(--sakai-border));
+}
+
+.block-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.block-title h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #334155;
 }
 
 .state-grid {
-  margin-top: 14px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
 
 .cards-grid {
-  margin-top: 14px;
   display: grid;
   gap: 12px;
 }
@@ -66,7 +111,7 @@
 .metric-label {
   display: block;
   font-size: 0.85rem;
-  color: var(--aura-text-muted);
+  color: var(--sakai-muted);
 }
 
 .metric-value {
@@ -74,14 +119,14 @@
   margin-top: 8px;
   font-size: 1.5rem;
   line-height: 1.15;
-  color: var(--aura-text-color);
+  color: var(--sakai-text);
 }
 
 .metric-hint {
   display: block;
   margin-top: 8px;
   font-size: 0.8rem;
-  color: var(--aura-text-muted);
+  color: var(--sakai-muted);
 }
 
 .chart-card {
@@ -103,14 +148,14 @@
 
 .chart-label {
   font-size: 0.82rem;
-  color: var(--aura-text-muted);
+  color: var(--sakai-muted);
 }
 
 .chart-track {
   position: relative;
   height: 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--aura-text-muted) 16%, var(--aura-surface-card));
+  background: color-mix(in srgb, var(--sakai-muted) 16%, var(--sakai-card));
   overflow: hidden;
 }
 
@@ -135,17 +180,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: var(--aura-text-muted);
+  color: var(--sakai-muted);
   font-size: 0.82rem;
 }
 
 .chart-progress strong {
-  color: var(--aura-text-color);
+  color: var(--sakai-text);
   font-size: 0.92rem;
 }
 
 .muted {
-  color: var(--aura-text-muted);
+  color: var(--sakai-muted);
 }
 
 .mt-2 {
@@ -154,50 +199,50 @@
 
 :host ::ng-deep .dashboard-layout .metric-card,
 :host ::ng-deep .dashboard-layout .state-card {
-  border: 1.5px solid var(--aura-surface-border);
-  border-radius: 14px;
-  background: var(--aura-surface-card);
-  color: var(--aura-text-color);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--sakai-border);
+  border-radius: 16px;
+  background: var(--sakai-card);
+  color: var(--sakai-text);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
 }
 
 :host ::ng-deep .dashboard-layout .metric-card .p-card-content,
 :host ::ng-deep .dashboard-layout .state-card .p-card-content {
-  padding: 12px;
+  padding: 14px;
 }
 
 :host ::ng-deep .dashboard-layout .state-error {
-  border-color: color-mix(in srgb, #dc2626 45%, var(--aura-surface-border));
-  background: color-mix(in srgb, #dc2626 4%, var(--aura-surface-card));
+  border-color: color-mix(in srgb, #dc2626 45%, var(--sakai-border));
+  background: color-mix(in srgb, #dc2626 4%, var(--sakai-card));
 }
 
 :host ::ng-deep .dashboard-layout .state-info {
-  border-color: color-mix(in srgb, #2563eb 38%, var(--aura-surface-border));
-  background: color-mix(in srgb, #2563eb 3%, var(--aura-surface-card));
+  border-color: color-mix(in srgb, #2563eb 38%, var(--sakai-border));
+  background: color-mix(in srgb, #2563eb 3%, var(--sakai-card));
 }
 
 :host ::ng-deep .dashboard-layout .tone-green {
-  border-color: color-mix(in srgb, #16a34a 56%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, #16a34a 56%, var(--sakai-border));
 }
 
 :host ::ng-deep .dashboard-layout .tone-yellow {
-  border-color: color-mix(in srgb, #eab308 64%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, #eab308 64%, var(--sakai-border));
 }
 
 :host ::ng-deep .dashboard-layout .tone-red {
-  border-color: color-mix(in srgb, #dc2626 56%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, #dc2626 56%, var(--sakai-border));
 }
 
 :host ::ng-deep .dashboard-layout .tone-blue {
-  border-color: color-mix(in srgb, #2563eb 54%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, #2563eb 54%, var(--sakai-border));
 }
 
 :host ::ng-deep .dashboard-layout .tone-teal {
-  border-color: color-mix(in srgb, #0d9488 54%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, #0d9488 54%, var(--sakai-border));
 }
 
 :host ::ng-deep .dashboard-layout .tone-orange {
-  border-color: color-mix(in srgb, #f59e0b 56%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, #f59e0b 56%, var(--sakai-border));
 }
 
 @media (max-width: 900px) {

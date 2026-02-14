@@ -1,7 +1,7 @@
 <p-toast position="top-right"></p-toast>
 
-<section class="advisor-page advisor-aura-light">
-  <header class="advisor-header">
+<section class="advisor-page advisor-aura-light sakai-page">
+  <header class="advisor-header surface-card">
     <div class="title-wrap">
       <p class="eyebrow">Estratégia & Comercial</p>
       <h1>MKS Advisor</h1>
@@ -9,6 +9,7 @@
         Prompt principal para consulta na internet e nos dados do CRM, com monitor autônomo de sugestões.
       </p>
     </div>
+    <i class="pi pi-sparkles header-icon" aria-hidden="true"></i>
   </header>
 
   <ng-container *ngIf="permissionsLoading(); else permissionsReady">
@@ -35,93 +36,95 @@
         <p>{{ error() }}</p>
       </p-card>
 
-      <p-card styleClass="panel-card prompt-card tone-blue">
-        <div class="panel-head">
-          <div>
-            <h2>Pesquisa unificada: internet + CRM</h2>
-            <p class="muted small">
-              Use um único prompt para mercado, carteira, receita, inadimplência e dados do sistema.
-            </p>
-          </div>
-          <div class="prompt-actions">
-            <button
-              pButton
-              type="button"
-              class="btn-secondary"
-              [disabled]="consulting() || !prompt().trim()"
-              (click)="clearPrompt()"
-            >
-              Limpar
-            </button>
-            <button
-              pButton
-              type="button"
-              class="btn-primary"
-              [disabled]="consulting() || !prompt().trim()"
-              (click)="sendPrompt()"
-            >
-              {{ consulting() ? "Consultando..." : "Consultar" }}
-            </button>
-          </div>
-        </div>
-
-        <textarea
-          pInputTextarea
-          rows="8"
-          [ngModel]="prompt()"
-          (ngModelChange)="prompt.set(($event ?? '').toString())"
-          [disabled]="consulting()"
-          placeholder="Ex.: como está a inadimplência essa semana considerando internet e dados do sistema?"
-        ></textarea>
-
-        <div class="answer-wrap" *ngIf="consulting()">
-          <p-skeleton width="100%" height="6rem"></p-skeleton>
-        </div>
-
-        <div class="answer-wrap" *ngIf="!consulting() && answer()">
-          <h3>Resposta do MKS Advisor</h3>
-          <p>{{ answer() }}</p>
-        </div>
-      </p-card>
-
-      <p-card styleClass="panel-card advisor-feed-card tone-green">
-        <div class="panel-head panel-head--compact">
-          <div>
-            <h2>Monitor autônomo de análise do sistema</h2>
-            <p class="muted small">{{ suggestionsUpdatedLabel() }}</p>
-          </div>
-        </div>
-
-        <div class="analysis-pills">
-          <p-tag
-            *ngFor="let row of analysisPills"
-            [value]="row.label"
-            [severity]="row.tone"
-          ></p-tag>
-        </div>
-
-        <ng-container *ngIf="loadingSuggestions() && advisorFeed().length === 0">
-          <div class="suggestion-skeletons">
-            <p-skeleton width="100%" height="3.8rem"></p-skeleton>
-            <p-skeleton width="100%" height="3.8rem"></p-skeleton>
-            <p-skeleton width="100%" height="3.8rem"></p-skeleton>
-          </div>
-        </ng-container>
-
-        <div class="advisor-feed" *ngIf="advisorFeed().length > 0">
-          <article
-            class="advisor-item"
-            [ngClass]="item.tone"
-            *ngFor="let item of advisorFeed(); trackBy: trackByFeedId"
-          >
-            <div class="advisor-item-head">
-              <h3>{{ item.title }}</h3>
-              <p-chip [label]="item.scope"></p-chip>
+      <section class="workspace-grid">
+        <p-card styleClass="panel-card prompt-card tone-blue">
+          <div class="panel-head">
+            <div>
+              <h2>Pesquisa unificada: internet + CRM</h2>
+              <p class="muted small">
+                Use um único prompt para mercado, carteira, receita, inadimplência e dados do sistema.
+              </p>
             </div>
-            <p>{{ item.body }}</p>
-          </article>
-        </div>
-      </p-card>
+            <div class="prompt-actions">
+              <button
+                pButton
+                type="button"
+                class="btn-secondary"
+                [disabled]="consulting() || !prompt().trim()"
+                (click)="clearPrompt()"
+              >
+                Limpar
+              </button>
+              <button
+                pButton
+                type="button"
+                class="btn-primary"
+                [disabled]="consulting() || !prompt().trim()"
+                (click)="sendPrompt()"
+              >
+                {{ consulting() ? "Consultando..." : "Consultar" }}
+              </button>
+            </div>
+          </div>
+
+          <textarea
+            pInputTextarea
+            rows="8"
+            [ngModel]="prompt()"
+            (ngModelChange)="prompt.set(($event ?? '').toString())"
+            [disabled]="consulting()"
+            placeholder="Ex.: como está a inadimplência essa semana considerando internet e dados do sistema?"
+          ></textarea>
+
+          <div class="answer-wrap" *ngIf="consulting()">
+            <p-skeleton width="100%" height="6rem"></p-skeleton>
+          </div>
+
+          <div class="answer-wrap" *ngIf="!consulting() && answer()">
+            <h3>Resposta do MKS Advisor</h3>
+            <p>{{ answer() }}</p>
+          </div>
+        </p-card>
+
+        <p-card styleClass="panel-card advisor-feed-card tone-green">
+          <div class="panel-head panel-head--compact">
+            <div>
+              <h2>Monitor autônomo de análise do sistema</h2>
+              <p class="muted small">{{ suggestionsUpdatedLabel() }}</p>
+            </div>
+          </div>
+
+          <div class="analysis-pills">
+            <p-tag
+              *ngFor="let row of analysisPills"
+              [value]="row.label"
+              [severity]="row.tone"
+            ></p-tag>
+          </div>
+
+          <ng-container *ngIf="loadingSuggestions() && advisorFeed().length === 0">
+            <div class="suggestion-skeletons">
+              <p-skeleton width="100%" height="3.8rem"></p-skeleton>
+              <p-skeleton width="100%" height="3.8rem"></p-skeleton>
+              <p-skeleton width="100%" height="3.8rem"></p-skeleton>
+            </div>
+          </ng-container>
+
+          <div class="advisor-feed" *ngIf="advisorFeed().length > 0">
+            <article
+              class="advisor-item"
+              [ngClass]="item.tone"
+              *ngFor="let item of advisorFeed(); trackBy: trackByFeedId"
+            >
+              <div class="advisor-item-head">
+                <h3>{{ item.title }}</h3>
+                <p-chip [label]="item.scope"></p-chip>
+              </div>
+              <p>{{ item.body }}</p>
+            </article>
+          </div>
+        </p-card>
+      </section>
     </ng-container>
   </ng-template>
 </section>

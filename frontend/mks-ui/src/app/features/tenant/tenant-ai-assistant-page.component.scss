@@ -1,65 +1,98 @@
 :host {
   display: block;
-  --aura-surface-ground: var(--surface-ground, var(--p-surface-ground, #f8fafc));
-  --aura-surface-card: var(--surface-card, var(--p-surface-card, #ffffff));
-  --aura-surface-border: var(--surface-border, var(--p-surface-border, #d0d7e2));
-  --aura-text-color: var(--text-color, var(--p-text-color, #0f172a));
-  --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
-  --aura-primary: var(--primary-color, var(--p-primary-color, #2563eb));
-  --aura-green: var(--p-green-500, #22c55e);
-  --aura-orange: var(--p-orange-500, #f59e0b);
-  --aura-red: var(--p-red-500, #ef4444);
+  --sakai-ground: var(--surface-ground, var(--p-surface-ground, #f4f7fb));
+  --sakai-card: var(--surface-card, var(--p-surface-card, #ffffff));
+  --sakai-border: var(--surface-border, var(--p-surface-border, #d8e0ea));
+  --sakai-text: var(--text-color, var(--p-text-color, #111827));
+  --sakai-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
+  --sakai-primary: var(--primary-color, var(--p-primary-color, #2563eb));
+  --sakai-green: var(--p-green-500, #22c55e);
+  --sakai-orange: var(--p-orange-500, #f59e0b);
+  --sakai-red: var(--p-red-500, #ef4444);
 }
 
 .advisor-page {
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 20px auto;
   padding: 0 16px 28px;
-  background: var(--aura-surface-ground);
-  color: var(--aura-text-color);
+  background: var(--sakai-ground);
+  color: var(--sakai-text);
+}
+
+.sakai-page {
+  display: grid;
+  gap: 14px;
 }
 
 .advisor-header {
-  padding: 18px;
-  border: 1px solid color-mix(in srgb, #16a34a 56%, var(--aura-surface-border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid color-mix(in srgb, #16a34a 30%, var(--sakai-border));
   border-radius: 16px;
-  background: color-mix(in srgb, #16a34a 92%, #ffffff);
+  background:
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, #16a34a 12%, var(--sakai-card)),
+      var(--sakai-card) 58%
+    );
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+.title-wrap {
+  display: grid;
+  gap: 4px;
 }
 
 .title-wrap h1 {
-  margin: 4px 0;
-  font-size: 1.7rem;
-  color: #ffffff;
+  margin: 0;
+  font-size: 1.45rem;
+  color: var(--sakai-text);
 }
 
 .eyebrow {
   margin: 0;
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, #ffffff 70%, transparent);
-  background: color-mix(in srgb, #ffffff 14%, transparent);
-  color: #ffffff;
   font-size: 0.74rem;
   font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #15803d;
+}
+
+.header-icon {
+  font-size: 1.3rem;
+  color: #16a34a;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #16a34a 10%, #ffffff);
+  border: 1px solid color-mix(in srgb, #16a34a 30%, var(--sakai-border));
 }
 
 .subtitle {
   margin: 0;
-  color: color-mix(in srgb, #ffffff 85%, #dcfce7);
+  color: var(--sakai-muted);
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
 }
 
 .state-grid {
-  margin-top: 12px;
   display: grid;
   gap: 12px;
 }
 
 .panel-card {
-  margin-top: 12px;
+  border-radius: 16px;
 }
 
 .panel-head {
@@ -86,14 +119,15 @@
 
 .prompt-card textarea {
   width: 100%;
-  min-height: 12rem;
+  min-height: 13rem;
+  border-radius: 12px;
 }
 
 .answer-wrap {
   margin-top: 10px;
-  border: 1px solid var(--aura-surface-border);
+  border: 1px solid var(--sakai-border);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--aura-primary) 3%, var(--aura-surface-card));
+  background: color-mix(in srgb, var(--sakai-primary) 3%, var(--sakai-card));
   padding: 12px;
 }
 
@@ -110,11 +144,9 @@
 
 .analysis-pills {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
-  overflow-x: auto;
-  scrollbar-width: thin;
 }
 
 :host ::ng-deep .analysis-pills .p-tag {
@@ -132,9 +164,9 @@
 }
 
 .advisor-item {
-  border: 1px solid var(--aura-surface-border);
+  border: 1px solid var(--sakai-border);
   border-radius: 12px;
-  background: var(--aura-surface-card);
+  background: var(--sakai-card);
   padding: 10px;
 }
 
@@ -153,51 +185,62 @@
 
 .advisor-item p {
   margin: 0;
-  color: var(--aura-text-color);
+  color: var(--sakai-text);
   line-height: 1.4;
 }
 
 .muted {
-  color: var(--aura-text-muted);
+  color: var(--sakai-muted);
 }
 
 .small {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 :host ::ng-deep .advisor-aura-light .p-card {
-  background: var(--aura-surface-card);
-  color: var(--aura-text-color);
-  border: 1.5px solid var(--aura-surface-border);
-  border-radius: 14px;
+  background: var(--sakai-card);
+  color: var(--sakai-text);
+  border: 1px solid var(--sakai-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
 }
 
 :host ::ng-deep .advisor-aura-light .p-card .p-card-content {
-  padding: 12px;
+  padding: 14px;
 }
 
 :host ::ng-deep .advisor-aura-light .tone-blue {
-  border-color: color-mix(in srgb, var(--aura-primary) 60%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, var(--sakai-primary) 60%, var(--sakai-border));
 }
 
 :host ::ng-deep .advisor-aura-light .tone-green {
-  border-color: color-mix(in srgb, var(--aura-green) 55%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, var(--sakai-green) 55%, var(--sakai-border));
 }
 
 :host ::ng-deep .advisor-aura-light .tone-orange {
-  border-color: color-mix(in srgb, var(--aura-orange) 58%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, var(--sakai-orange) 58%, var(--sakai-border));
 }
 
 :host ::ng-deep .advisor-aura-light .tone-red {
-  border-color: color-mix(in srgb, var(--aura-red) 58%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, var(--sakai-red) 58%, var(--sakai-border));
 }
 
 :host ::ng-deep .advisor-aura-light .state-error {
-  border-color: color-mix(in srgb, var(--aura-red) 45%, var(--aura-surface-border));
-  background: color-mix(in srgb, var(--aura-red) 4%, var(--aura-surface-card));
+  border-color: color-mix(in srgb, var(--sakai-red) 45%, var(--sakai-border));
+  background: color-mix(in srgb, var(--sakai-red) 4%, var(--sakai-card));
+}
+
+@media (max-width: 1100px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
+  .advisor-header {
+    align-items: flex-start;
+  }
+
   .panel-head,
   .panel-head--compact {
     flex-direction: column;
