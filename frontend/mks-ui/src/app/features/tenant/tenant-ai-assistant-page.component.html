@@ -6,7 +6,7 @@
       <p class="eyebrow">Estratégia & Comercial</p>
       <h1>MKS Advisor</h1>
       <p class="subtitle">
-        Faça uma pergunta única para internet e sistema interno. Ex.: como está a inadimplência essa semana?
+        Prompt principal para consulta na internet e nos dados do CRM, com monitor autônomo de sugestões.
       </p>
     </div>
   </header>
@@ -37,7 +37,12 @@
 
       <p-card styleClass="panel-card prompt-card tone-blue">
         <div class="panel-head">
-          <h2>Prompt único</h2>
+          <div>
+            <h2>Pesquisa unificada: internet + CRM</h2>
+            <p class="muted small">
+              Use um único prompt para mercado, carteira, receita, inadimplência e dados do sistema.
+            </p>
+          </div>
           <div class="prompt-actions">
             <button
               pButton
@@ -60,9 +65,21 @@
           </div>
         </div>
 
+        <div class="quick-prompts">
+          <button
+            pButton
+            type="button"
+            class="btn-quick"
+            *ngFor="let item of quickPrompts"
+            (click)="useQuickPrompt(item)"
+          >
+            {{ item }}
+          </button>
+        </div>
+
         <textarea
           pInputTextarea
-          rows="4"
+          rows="8"
           [ngModel]="prompt()"
           (ngModelChange)="prompt.set(($event ?? '').toString())"
           [disabled]="consulting()"
@@ -82,10 +99,16 @@
       <p-card styleClass="panel-card advisor-feed-card tone-green">
         <div class="panel-head panel-head--compact">
           <div>
-            <h2>Advisor em análise contínua</h2>
+            <h2>Monitor autônomo de análise do sistema</h2>
             <p class="muted small">{{ suggestionsUpdatedLabel() }}</p>
           </div>
-          <button pButton type="button" class="btn-secondary" [disabled]="loadingSuggestions()" (click)="refreshSuggestions()">
+          <button
+            pButton
+            type="button"
+            class="btn-secondary"
+            [disabled]="loadingSuggestions()"
+            (click)="triggerAutonomousAnalysis()"
+          >
             {{ loadingSuggestions() ? "Atualizando..." : "Atualizar" }}
           </button>
         </div>

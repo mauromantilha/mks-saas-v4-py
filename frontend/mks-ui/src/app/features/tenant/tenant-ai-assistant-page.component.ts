@@ -56,6 +56,7 @@ export class TenantAIAssistantPageComponent implements OnDestroy {
   readonly consultSuggestions = signal<string[]>([]);
   readonly lastSuggestionsAt = signal<Date | null>(null);
   readonly lastConversationId = signal<number | null>(null);
+  readonly autonomousRunning = signal(true);
 
   readonly canUseAI = computed(() => this.permissionService.can("tenant.ai.use"));
   readonly permissionError = computed(() => this.permissionService.lastError());
@@ -65,6 +66,12 @@ export class TenantAIAssistantPageComponent implements OnDestroy {
     { label: "Analisando receita", tone: "info" as const },
     { label: "Analisando inadimplência", tone: "danger" as const },
     { label: "Analisando sistema", tone: "warn" as const },
+  ];
+  readonly quickPrompts = [
+    "Como está a inadimplência desta semana considerando internet e CRM?",
+    "Quais oportunidades têm maior chance de fechamento neste mês?",
+    "Quais clientes devo priorizar para renovação nos próximos 30 dias?",
+    "Existe risco operacional no CRM que impacte meu fluxo comercial?",
   ];
 
   readonly advisorFeed = computed<AdvisorFeedItem[]>(() => {
@@ -127,10 +134,11 @@ export class TenantAIAssistantPageComponent implements OnDestroy {
     if (!last) {
       return "ainda não atualizado";
     }
-    return `atualizado às ${last.toLocaleTimeString("pt-BR", {
+    const base = `atualizado às ${last.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
     })}`;
+    return this.autonomousRunning() ? `${base} · monitor ativo` : `${base} · monitor pausado`;
   });
 
   private suggestionsRefreshHandle: number | null = null;
@@ -190,6 +198,14 @@ export class TenantAIAssistantPageComponent implements OnDestroy {
 
   clearPrompt(): void {
     this.prompt.set("");
+  }
+
+  useQuickPrompt(prompt: string): void {
+    this.prompt.set(prompt);
+  }
+
+  triggerAutonomousAnalysis(): void {
+    this.refreshSuggestions();
   }
 
   refreshSuggestions(silent = false): void {
@@ -256,12 +272,13 @@ export class TenantAIAssistantPageComponent implements OnDestroy {
 
   private startSuggestionsAutoRefresh(): void {
     this.stopSuggestionsAutoRefresh();
+    this.autonomousRunning.set(true);
     this.suggestionsRefreshHandle = window.setInterval(() => {
       if (!this.canUseAI() || document.visibilityState !== "visible") {
         return;
       }
       this.refreshSuggestions(true);
-    }, 45000);
+    }, 30000);
   }
 
   private stopSuggestionsAutoRefresh(): void {
@@ -269,6 +286,7 @@ export class TenantAIAssistantPageComponent implements OnDestroy {
       window.clearInterval(this.suggestionsRefreshHandle);
       this.suggestionsRefreshHandle = null;
     }
+    this.autonomousRunning.set(false);
   }
 
   private mapSuggestionToFeed(

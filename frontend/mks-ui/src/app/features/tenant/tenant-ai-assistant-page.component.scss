@@ -6,6 +6,9 @@
   --aura-text-color: var(--text-color, var(--p-text-color, #0f172a));
   --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
   --aura-primary: var(--primary-color, var(--p-primary-color, #2563eb));
+  --aura-green: var(--p-green-500, #22c55e);
+  --aura-orange: var(--p-orange-500, #f59e0b);
+  --aura-red: var(--p-red-500, #ef4444);
 }
 
 .advisor-page {
@@ -82,6 +85,28 @@
 
 .prompt-card textarea {
   width: 100%;
+  min-height: 12rem;
+}
+
+.quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.btn-quick {
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--aura-primary) 38%, var(--aura-surface-border));
+  background: color-mix(in srgb, var(--aura-primary) 7%, var(--aura-surface-card));
+  color: var(--aura-text-color);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.btn-quick:hover {
+  background: color-mix(in srgb, var(--aura-primary) 12%, var(--aura-surface-card));
 }
 
 .answer-wrap {
@@ -166,24 +191,24 @@
 }
 
 :host ::ng-deep .advisor-aura-light .tone-blue {
-  border-color: color-mix(in srgb, #2563eb 60%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, var(--aura-primary) 60%, var(--aura-surface-border));
 }
 
 :host ::ng-deep .advisor-aura-light .tone-green {
-  border-color: color-mix(in srgb, #16a34a 60%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, var(--aura-green) 55%, var(--aura-surface-border));
 }
 
 :host ::ng-deep .advisor-aura-light .tone-orange {
-  border-color: color-mix(in srgb, #f59e0b 60%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, var(--aura-orange) 58%, var(--aura-surface-border));
 }
 
 :host ::ng-deep .advisor-aura-light .tone-red {
-  border-color: color-mix(in srgb, #dc2626 60%, var(--aura-surface-border));
+  border-color: color-mix(in srgb, var(--aura-red) 58%, var(--aura-surface-border));
 }
 
 :host ::ng-deep .advisor-aura-light .state-error {
-  border-color: color-mix(in srgb, #dc2626 50%, var(--aura-surface-border));
-  background: color-mix(in srgb, #dc2626 4%, var(--aura-surface-card));
+  border-color: color-mix(in srgb, var(--aura-red) 45%, var(--aura-surface-border));
+  background: color-mix(in srgb, var(--aura-red) 4%, var(--aura-surface-card));
 }
 
 @media (max-width: 900px) {
