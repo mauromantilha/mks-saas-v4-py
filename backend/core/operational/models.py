@@ -128,6 +128,13 @@ class Customer(BaseTenantModel):
                 condition=~models.Q(cnpj=""),
             ),
         ]
+        indexes = [
+            models.Index(fields=["company", "lifecycle_stage", "-created_at"]),
+            models.Index(fields=["company", "email"]),
+            models.Index(fields=["company", "-last_contact_at"]),
+            models.Index(fields=["company", "-next_follow_up_at"]),
+            models.Index(fields=["assigned_to", "-created_at"]),
+        ]
 
     def __str__(self):
         return f"{self.name} <{self.email}>"
@@ -390,6 +397,13 @@ class Lead(BaseTenantModel):
 
     class Meta:
         ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["company", "status", "-created_at"]),
+            models.Index(fields=["company", "-first_response_due_at"]),
+            models.Index(fields=["company", "customer", "status"]),
+            models.Index(fields=["company", "lead_score_label"]),
+            models.Index(fields=["company", "-next_follow_up_at"]),
+        ]
 
     def __str__(self):
         return f"Lead {self.id} - {self.source}"
@@ -535,6 +549,13 @@ class Opportunity(BaseTenantModel):
 
     class Meta:
         ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["company", "stage", "-created_at"]),
+            models.Index(fields=["company", "customer", "stage"]),
+            models.Index(fields=["company", "-expected_close_date"]),
+            models.Index(fields=["company", "stage", "-amount"]),
+            models.Index(fields=["company", "-next_step_due_at"]),
+        ]
 
     def __str__(self):
         return f"{self.title} ({self.customer.name})"
