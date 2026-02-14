@@ -1,14 +1,12 @@
 :host {
   display: block;
-  --aura-surface-ground: var(--surface-ground, var(--p-surface-ground, #f8fafc));
-  --aura-surface-card: var(--surface-card, var(--p-surface-card, #ffffff));
-  --aura-surface-border: var(--surface-border, var(--p-surface-border, #d9e2ec));
-  --aura-text-color: var(--text-color, var(--p-text-color, #111827));
-  --aura-text-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
-  --aura-primary: var(--primary-color, var(--p-primary-color, #2563eb));
-  --aura-primary-600: var(--p-primary-600, #2563eb);
-  --aura-primary-100: var(--p-primary-100, #dbeafe);
-  --aura-blue-200: var(--p-blue-200, #bfdbfe);
+  --sakai-ground: var(--surface-ground, var(--p-surface-ground, #f4f7fb));
+  --sakai-card: var(--surface-card, var(--p-surface-card, #ffffff));
+  --sakai-border: var(--surface-border, var(--p-surface-border, #d8e0ea));
+  --sakai-text: var(--text-color, var(--p-text-color, #111827));
+  --sakai-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
+  --sakai-primary: var(--primary-color, var(--p-primary-color, #2563eb));
+  --sakai-blue-200: var(--p-blue-200, #bfdbfe);
   --agenda-green: var(--p-green-600, #16a34a);
 }
 
@@ -16,8 +14,13 @@
   max-width: 1320px;
   margin: 20px auto;
   padding: 0 16px 30px;
-  background: var(--aura-surface-ground);
-  color: var(--aura-text-color);
+  background: var(--sakai-ground);
+  color: var(--sakai-text);
+}
+
+.sakai-page {
+  display: grid;
+  gap: 12px;
 }
 
 .sales-flow-header {
@@ -25,63 +28,67 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 20px;
-  border: 1px solid color-mix(in srgb, var(--aura-primary-600) 68%, var(--aura-surface-border));
+  padding: 18px 20px;
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 26%, var(--sakai-border));
   border-radius: 16px;
-  background: var(--aura-primary-600);
-  color: #ffffff;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--sakai-primary) 10%, var(--sakai-card)),
+    var(--sakai-card) 58%
+  );
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  color: var(--sakai-text);
 }
 
 .title-wrap h1 {
-  margin: 6px 0;
-  font-size: 1.25rem;
+  margin: 4px 0;
+  font-size: 1.35rem;
   font-weight: 600;
 }
 
 .eyebrow {
   margin: 0;
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, #ffffff 70%, transparent);
-  background: color-mix(in srgb, #ffffff 16%, transparent);
-  color: #ffffff;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: #1d4ed8;
 }
 
 .subtitle {
   margin: 0;
-  color: var(--aura-primary-100);
+  color: var(--sakai-muted);
 }
 
-.sales-flow-header .header-actions .btn-secondary {
-  background: #ffffff;
-  color: var(--aura-primary-600);
-  border: 1px solid color-mix(in srgb, var(--aura-primary-600) 30%, #ffffff);
+.header-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 30%, var(--sakai-border));
+  background: color-mix(in srgb, var(--sakai-primary) 10%, #ffffff);
+  color: var(--sakai-primary);
+  font-size: 1.2rem;
 }
 
-.sales-flow-header .header-actions .btn-secondary:hover {
-  background: color-mix(in srgb, #ffffff 90%, var(--aura-primary-100));
+.sales-flow-header .header-actions .btn-primary {
+  min-width: 120px;
 }
 
 .session-strip {
-  margin-top: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--aura-surface-border);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--aura-primary) 3%, var(--aura-surface-card));
-  color: var(--aura-text-muted);
+  border: 1px solid var(--sakai-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--sakai-primary) 3%, var(--sakai-card));
+  color: var(--sakai-muted);
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
 }
 
 .kpi-grid {
-  margin-top: 12px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
@@ -100,8 +107,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--aura-primary);
-  background: color-mix(in srgb, var(--aura-primary) 14%, #ffffff);
+  color: var(--sakai-primary);
+  background: color-mix(in srgb, var(--sakai-primary) 14%, #ffffff);
 }
 
 .kpi-label {
@@ -120,7 +127,6 @@
 }
 
 .workspace-grid {
-  margin-top: 12px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
@@ -154,7 +160,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid color-mix(in srgb, var(--aura-primary) 20%, var(--aura-surface-border));
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 18%, var(--sakai-border));
   border-radius: 10px;
   padding: 10px;
   background: #ffffff;
@@ -177,7 +183,7 @@
 }
 
 .table-card {
-  margin-top: 12px;
+  margin-top: 2px;
 }
 
 .table-header {
@@ -202,7 +208,7 @@
 
 .empty-row {
   text-align: center;
-  color: var(--aura-text-muted);
+  color: var(--sakai-muted);
 }
 
 .reminder-content p {
@@ -217,49 +223,7 @@
 }
 
 .muted {
-  color: var(--aura-text-muted);
-}
-
-.btn-primary,
-.btn-secondary {
-  min-width: 130px;
-}
-
-.bg-primary-600 {
-  background: var(--aura-primary-600);
-}
-
-.text-white {
-  color: #ffffff;
-}
-
-.text-blue-100 {
-  color: var(--aura-primary-100);
-}
-
-.surface-card {
-  background: var(--aura-surface-card);
-}
-
-.border-1 {
-  border-width: 1px;
-  border-style: solid;
-}
-
-.border-blue-200 {
-  border-color: color-mix(in srgb, var(--aura-blue-200) 75%, var(--aura-surface-border));
-}
-
-.shadow-none {
-  box-shadow: none;
-}
-
-.text-900 {
-  color: #111827;
-}
-
-.text-600 {
-  color: #475569;
+  color: var(--sakai-muted);
 }
 
 .mt-2 {
@@ -269,28 +233,35 @@
 :host ::ng-deep .sales-flow-aura-light .panel-card,
 :host ::ng-deep .sales-flow-aura-light .kpi-card,
 :host ::ng-deep .sales-flow-aura-light .state-card {
-  border: 1px solid color-mix(in srgb, var(--aura-blue-200) 65%, var(--aura-surface-border));
-  border-radius: 14px;
-  background: #ffffff;
-  color: var(--aura-text-color);
+  border: 1px solid var(--sakai-border);
+  border-radius: 16px;
+  background: var(--sakai-card);
+  color: var(--sakai-text);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
 }
 
 :host ::ng-deep .sales-flow-aura-light .panel-card {
-  border-color: color-mix(in srgb, var(--aura-blue-200) 72%, var(--aura-surface-border));
-  box-shadow: none;
+  border-color: color-mix(in srgb, var(--sakai-blue-200) 68%, var(--sakai-border));
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
 }
 
 :host ::ng-deep .sales-flow-aura-light .agenda-card {
-  border-color: color-mix(in srgb, var(--aura-primary) 35%, var(--aura-blue-200));
+  border-color: color-mix(in srgb, var(--sakai-primary) 32%, var(--sakai-border));
 }
 
 :host ::ng-deep .sales-flow-aura-light .state-error {
-  border-color: color-mix(in srgb, var(--p-red-500, #ef4444) 40%, var(--aura-surface-border));
-  background: color-mix(in srgb, var(--p-red-500, #ef4444) 6%, var(--aura-surface-card));
+  border-color: color-mix(in srgb, var(--p-red-500, #ef4444) 40%, var(--sakai-border));
+  background: color-mix(in srgb, var(--p-red-500, #ef4444) 6%, var(--sakai-card));
 }
 
 :host ::ng-deep .sales-flow-aura-light .state-empty {
-  background: color-mix(in srgb, var(--aura-primary) 2%, #ffffff);
+  background: color-mix(in srgb, var(--sakai-primary) 2%, #ffffff);
+}
+
+:host ::ng-deep .sales-flow-aura-light .panel-card .p-card-content,
+:host ::ng-deep .sales-flow-aura-light .kpi-card .p-card-content,
+:host ::ng-deep .sales-flow-aura-light .state-card .p-card-content {
+  padding: 14px;
 }
 
 /* Date fields: calendar icon inside input with green highlight. */
@@ -334,16 +305,16 @@
   border-radius: 8px;
   padding: 0;
   background: transparent;
-  color: color-mix(in srgb, var(--aura-text-color) 55%, var(--aura-surface-border));
+  color: color-mix(in srgb, var(--sakai-text) 55%, var(--sakai-border));
   box-shadow: none;
 }
 
 :host ::ng-deep .sales-flow-aura-light .form-grid .p-autocomplete .p-autocomplete-dropdown:hover {
-  background: color-mix(in srgb, var(--aura-primary) 10%, var(--aura-surface-card));
+  background: color-mix(in srgb, var(--sakai-primary) 10%, var(--sakai-card));
 }
 
 :host ::ng-deep .sales-flow-aura-light .form-grid .p-autocomplete .p-autocomplete-dropdown:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--aura-primary) 45%, #ffffff);
+  outline: 2px solid color-mix(in srgb, var(--sakai-primary) 45%, #ffffff);
   outline-offset: 1px;
 }
 
@@ -358,11 +329,11 @@
 
 :host ::ng-deep .sales-flow-aura-light .table-light .p-datatable-thead > tr > th {
   color: #475569;
-  border-bottom: 1px solid color-mix(in srgb, var(--aura-blue-200) 72%, var(--aura-surface-border));
+  border-bottom: 1px solid color-mix(in srgb, var(--sakai-blue-200) 68%, var(--sakai-border));
 }
 
 :host ::ng-deep .sales-flow-aura-light .table-light .p-datatable-tbody > tr > td {
-  border-bottom: 1px solid color-mix(in srgb, var(--aura-blue-200) 55%, var(--aura-surface-border));
+  border-bottom: 1px solid color-mix(in srgb, var(--sakai-blue-200) 45%, var(--sakai-border));
 }
 
 :host ::ng-deep .sales-flow-aura-light .p-dialog,
@@ -386,6 +357,10 @@
   .sales-flow-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .header-icon {
+    display: none;
   }
 
   .form-grid {

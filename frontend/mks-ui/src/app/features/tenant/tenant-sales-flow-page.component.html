@@ -1,20 +1,21 @@
 <p-toast position="top-right"></p-toast>
 
-<section class="sales-flow-page sales-flow-aura-light">
-  <header class="sales-flow-header bg-primary-600">
+<section class="sales-flow-page sales-flow-aura-light sakai-page">
+  <header class="sales-flow-header surface-card">
     <div class="title-wrap">
       <p class="eyebrow">Estratégia & Comercial</p>
-      <h1 class="text-white">Fluxo Comercial</h1>
-      <p class="subtitle text-blue-100">
+      <h1>Fluxo Comercial</h1>
+      <p class="subtitle">
         Gestão diária de indicadores, atividades e agenda comercial do tenant.
       </p>
     </div>
+    <i class="pi pi-briefcase header-icon" aria-hidden="true"></i>
 
     <div class="header-actions">
       <button
         pButton
         type="button"
-        class="btn-secondary"
+        class="btn-primary"
         [disabled]="loadingSummary() || loadingAgenda() || loadingEntities()"
         (click)="refreshPage()"
       >
@@ -23,7 +24,7 @@
     </div>
   </header>
 
-  <div *ngIf="session() as s" class="session-strip">
+  <div *ngIf="session() as s" class="session-strip surface-card">
     <span><strong>Tenant:</strong> {{ s.tenantCode }}</span>
     <span><strong>Usuário:</strong> {{ s.username }}</span>
     <span><strong>Perfil:</strong> {{ s.role || "-" }}</span>

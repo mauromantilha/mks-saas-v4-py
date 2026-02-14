@@ -2,20 +2,40 @@
   max-width: 1280px;
   margin: 18px auto;
   padding: 0 16px 32px;
-  --lead-green-600: var(--p-green-600, #16a34a);
-  --lead-green-700: var(--p-green-700, #15803d);
+  --sakai-ground: var(--surface-ground, var(--p-surface-ground, #f4f7fb));
+  --sakai-card: var(--surface-card, var(--p-surface-card, #ffffff));
+  --sakai-border: var(--surface-border, var(--p-surface-border, #d8e0ea));
+  --sakai-text: var(--text-color, var(--p-text-color, #111827));
+  --sakai-muted: var(--text-color-secondary, var(--p-text-muted-color, #64748b));
+  --sakai-primary: var(--primary-color, var(--p-primary-color, #2563eb));
   --lead-blue-600: var(--p-blue-600, #2563eb);
+  background: var(--sakai-ground);
+}
+
+.sakai-page {
+  display: grid;
+  gap: 12px;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 16px;
-  padding: 18px 18px 14px;
+  padding: 18px 20px;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--lead-green-600) 58%, var(--mks-border));
-  background: color-mix(in srgb, var(--lead-green-600) 92%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 26%, var(--sakai-border));
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--sakai-primary) 10%, var(--sakai-card)),
+    var(--sakai-card) 58%
+  );
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+.title-wrap {
+  display: grid;
+  gap: 4px;
 }
 
 .badge {
@@ -24,22 +44,31 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-size: 0.78rem;
-  color: #ffffff;
-  background: color-mix(in srgb, #ffffff 16%, transparent);
-  border: 1px solid color-mix(in srgb, #ffffff 72%, transparent);
-  padding: 4px 10px;
-  border-radius: 999px;
+  font-size: 0.74rem;
+  color: #1d4ed8;
 }
 
 .title {
-  margin: 8px 0 6px;
-  color: #ffffff;
+  margin: 0;
+  color: var(--sakai-text);
 }
 
 .subtitle {
   margin: 0;
-  color: color-mix(in srgb, #ffffff 88%, #dcfce7);
+  color: var(--sakai-muted);
+}
+
+.header-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 30%, var(--sakai-border));
+  background: color-mix(in srgb, var(--sakai-primary) 10%, #ffffff);
+  color: var(--sakai-primary);
+  font-size: 1.2rem;
 }
 
 .header-actions {
@@ -53,29 +82,29 @@
   display: inline-flex;
   gap: 8px;
   padding: 4px;
-  background: color-mix(in srgb, #ffffff 18%, transparent);
-  border: 1px solid color-mix(in srgb, #ffffff 65%, transparent);
+  background: color-mix(in srgb, var(--sakai-primary) 6%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 25%, var(--sakai-border));
   border-radius: 12px;
 }
 
 .tabs button {
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, #ffffff 52%, transparent);
-  background: color-mix(in srgb, #ffffff 14%, transparent);
-  color: #ffffff;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #1f2937;
   border-radius: 10px;
   font-weight: 800;
   cursor: pointer;
 }
 
 .tabs button.active {
-  background: var(--lead-green-700);
+  background: var(--sakai-primary);
   color: #fff;
-  border-color: color-mix(in srgb, #ffffff 55%, transparent);
+  border-color: color-mix(in srgb, var(--sakai-primary) 65%, #ffffff);
 }
 
 .tabs button.mode-green:hover {
-  background: color-mix(in srgb, var(--lead-green-700) 88%, #ffffff);
+  background: color-mix(in srgb, var(--sakai-primary) 14%, #ffffff);
 }
 
 button {
@@ -84,7 +113,7 @@ button {
   padding: 10px 12px;
   font-weight: 800;
   cursor: pointer;
-  background: var(--lead-green-600);
+  background: var(--sakai-primary);
   color: #fff;
 }
 
@@ -94,16 +123,16 @@ button[disabled] {
 }
 
 .page-header > .header-actions > button {
-  background: #ffffff;
-  color: var(--lead-green-700);
-  border: 1px solid color-mix(in srgb, var(--lead-green-700) 24%, #ffffff);
+  background: color-mix(in srgb, var(--sakai-primary) 10%, #ffffff);
+  color: #1e3a8a;
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 30%, var(--sakai-border));
 }
 
 .card {
-  background: var(--mks-surface);
-  border: 1px solid color-mix(in srgb, #0f172a 18%, var(--mks-border));
-  border-radius: 14px;
-  margin-top: 12px;
+  background: var(--sakai-card);
+  border: 1px solid var(--sakai-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
 }
 
 :host ::ng-deep .card .p-card-body {
@@ -111,7 +140,7 @@ button[disabled] {
 }
 
 :host ::ng-deep .card .p-card-content {
-  padding: 12px;
+  padding: 14px;
 }
 
 .form-grid {
@@ -130,7 +159,7 @@ label {
 
 input,
 textarea {
-  border: 1px solid var(--mks-border);
+  border: 1px solid var(--sakai-border);
   border-radius: 10px;
   padding: 10px;
   font: inherit;
@@ -170,9 +199,9 @@ textarea {
 }
 
 .column {
-  background: var(--mks-surface);
-  border: 1px solid color-mix(in srgb, #0f172a 18%, var(--mks-border));
-  border-radius: 14px;
+  background: var(--sakai-card);
+  border: 1px solid var(--sakai-border);
+  border-radius: 16px;
   padding: 10px;
   min-height: 220px;
 }
@@ -185,7 +214,7 @@ textarea {
 }
 
 .count {
-  background: #0f172a;
+  background: color-mix(in srgb, var(--sakai-primary) 90%, #1e3a8a);
   color: #fff;
   padding: 2px 10px;
   border-radius: 999px;
@@ -195,7 +224,7 @@ textarea {
 
 .help {
   margin: 6px 0 10px;
-  color: var(--mks-muted);
+  color: var(--sakai-muted);
   font-size: 0.9rem;
 }
 
@@ -205,7 +234,7 @@ textarea {
 }
 
 .lead-card {
-  border: 1px solid color-mix(in srgb, #0f172a 20%, var(--mks-border));
+  border: 1px solid color-mix(in srgb, var(--sakai-primary) 20%, var(--sakai-border));
   background: linear-gradient(180deg, #ffffff, #f8fafc);
   border-radius: 14px;
   padding: 10px;
@@ -243,7 +272,7 @@ textarea {
   margin: 6px 0 0;
   display: grid;
   gap: 4px;
-  color: var(--mks-muted);
+  color: var(--sakai-muted);
   font-size: 0.9rem;
 }
 
@@ -278,7 +307,7 @@ textarea {
 }
 
 .muted {
-  color: var(--mks-muted);
+  color: var(--sakai-muted);
 }
 
 .notice {
@@ -296,5 +325,20 @@ textarea {
 }
 
 :host ::ng-deep .list-table .p-datatable-tbody > tr > td {
-  border-bottom: 1px solid color-mix(in srgb, #0f172a 10%, var(--mks-border));
+  border-bottom: 1px solid color-mix(in srgb, #0f172a 10%, var(--sakai-border));
+}
+
+@media (max-width: 920px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-icon {
+    display: none;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
 }

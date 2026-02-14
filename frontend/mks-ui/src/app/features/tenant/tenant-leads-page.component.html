@@ -1,12 +1,13 @@
-<section class="tenant-wrap">
-  <header class="page-header">
-    <div>
+<section class="tenant-wrap sakai-page">
+  <header class="page-header surface-card">
+    <div class="title-wrap">
       <p class="badge">CRM</p>
       <h1 class="title">Leads</h1>
       <p class="subtitle">
         Entrada por webhook/API/importação e gestão do primeiro contato com SLA e IA.
       </p>
     </div>
+    <i class="pi pi-users header-icon" aria-hidden="true"></i>
     <div class="header-actions">
       <div class="tabs">
         <button pButton
@@ -34,7 +35,7 @@
   <p *ngIf="error()" class="error">{{ error() }}</p>
   <p *ngIf="notice()" class="notice">{{ notice() }}</p>
 
-  <p-card styleClass="card">
+  <p-card styleClass="card form-card">
     <h2>Novo Lead</h2>
     <p class="muted">
       Ao salvar, o backend aplica IA automaticamente (score + próximos passos). Se houver
